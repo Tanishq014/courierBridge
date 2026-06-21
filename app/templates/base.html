@@ -3,25 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#123b30">
     <title>{% block title %}CourierBridge{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     {% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">CourierBridge</a>
-        <div class="navbar-nav">
-            <a href="/">Dashboard</a>
-            <a href="/shipments">Shipments</a>
-            <a href="/shipments/new">New Shipment</a>
-            <a href="/customers">Customers</a>
-            <a href="/tools/quick-add">Quick Add</a>
-        </div>
-    </nav>
+    {% set path = request.url.path %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a href="/" class="brand">
+                <span class="brand-mark">CB</span>
+                <span class="brand-copy">
+                    <span class="brand-name">CourierBridge</span>
+                    <span class="brand-tagline">Operations desk</span>
+                </span>
+            </a>
 
-    <div class="container">
-        {% block content %}{% endblock %}
+            <div class="nav-label">Workspace</div>
+            <nav class="nav-list" aria-label="Primary navigation">
+                <a href="/" class="nav-link {% if path == '/' %}active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+                    Dashboard
+                </a>
+                <a href="/shipments" class="nav-link {% if path.startswith('/shipments') and path != '/shipments/new' %}active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="m3 7 9 4 9-4M5 10v7l7 4 7-4v-7"/></svg>
+                    Shipments
+                </a>
+                <a href="/customers" class="nav-link {% if path.startswith('/customers') %}active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Customers
+                </a>
+                <a href="/tools/quick-add" class="nav-link {% if path.startswith('/tools') %}active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg>
+                    Quick add
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <span class="status-dot"></span>
+                    Local workspace online
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-area">
+            <header class="mobile-header">
+                <a href="/" class="mobile-brand"><span class="brand-mark">CB</span> CourierBridge</a>
+                <nav class="mobile-nav" aria-label="Mobile navigation">
+                    <a href="/" class="{% if path == '/' %}active{% endif %}">⌂ <span>Home</span></a>
+                    <a href="/shipments" class="{% if path.startswith('/shipments') %}active{% endif %}">▣ <span>Shipments</span></a>
+                    <a href="/customers" class="{% if path.startswith('/customers') %}active{% endif %}">◎ <span>Customers</span></a>
+                </nav>
+            </header>
+
+            <div class="topbar">
+                <span class="topbar-context">Shipment operations</span>
+                <div class="topbar-actions">
+                    <a href="/tools/quick-add" class="btn btn-secondary btn-sm">Quick add</a>
+                    <a href="/shipments/new" class="btn btn-primary btn-sm">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        New shipment
+                    </a>
+                </div>
+            </div>
+
+            <div class="container">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
     </div>
 
     {% block scripts %}{% endblock %}

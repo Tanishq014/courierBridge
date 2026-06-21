@@ -3,44 +3,60 @@
 {% block title %}Customers | CourierBridge{% endblock %}
 
 {% block content %}
-<div class="flex-between">
-    <h2>Customers</h2>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Customer directory</div>
+        <h1>Customers</h1>
+        <p class="page-description">Review shipment history and outstanding balances by customer.</p>
+    </div>
+</header>
 
-<div class="card">
+<section class="card table-card">
+    <div class="card-header">
+        <div>
+            <h3>All customers</h3>
+            <p class="card-subtitle">{{ customers|length }} customer records</p>
+        </div>
+    </div>
     {% if customers %}
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Total Shipments</th>
-                <th>Pending Balance</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in customers %}
-            <tr>
-                <td><strong>{{ c.name }}</strong></td>
-                <td>{{ c.phone }}</td>
-                <td>{{ c.total_shipments }}</td>
-                <td>
-                    {% if c.payment_pending_total > 0 %}
-                    <span style="color: var(--danger-text); font-weight: bold;">{{ c.payment_pending_total }}</span>
-                    {% else %}
-                    <span style="color: var(--success-text);">{{ c.payment_pending_total }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="/customers/{{ c.phone }}" class="btn btn-sm btn-secondary">View History</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Shipments</th>
+                    <th>Pending balance</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td><span class="cell-primary">{{ c.name }}</span></td>
+                    <td class="mono">{{ c.phone or '—' }}</td>
+                    <td><span class="badge badge-neutral">{{ c.total_shipments }}</span></td>
+                    <td>
+                        {% if c.payment_pending_total > 0 %}
+                        <span class="cell-primary text-danger">₹{{ '%.2f'|format(c.payment_pending_total) }}</span>
+                        {% else %}
+                        <span class="badge badge-success">Settled</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="/customers/{{ c.phone }}" class="btn btn-sm btn-secondary">View history</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p style="color: var(--text-muted); padding: 1rem 0;">No customers found.</p>
+    <div class="empty-state">
+        <div>
+            <div class="empty-icon">◎</div>
+            <h3>No customers yet</h3>
+            <p>Customers appear here automatically when shipments are created.</p>
+        </div>
+    </div>
     {% endif %}
-</div>
+</section>
 {% endblock %}

@@ -3,22 +3,26 @@
 {% block title %}Edit Shipment | CourierBridge{% endblock %}
 
 {% block content %}
-<div class="flex-between">
-    <h2>Edit Shipment #{{ shipment.id }}</h2>
-    <a href="/shipments/{{ shipment.id }}" class="btn btn-secondary">Cancel</a>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Shipment #{{ shipment.id }}</div>
+        <h1>Edit shipment</h1>
+        <p class="page-description">Update booking, financial, and tracking details for {{ shipment.customer_name }}.</p>
+    </div>
+    <div class="page-actions"><a href="/shipments/{{ shipment.id }}" class="btn btn-secondary">Cancel</a></div>
+</header>
 
-<div class="card">
-    <form method="POST" action="/shipments/{{ shipment.id }}/edit">
+<div class="card form-card">
+    <form method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form">
         
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Basic Details</h3>
         <div class="grid-3">
             <div class="form-group">
-                <label>Booking Date <span style="color: red;">*</span></label>
+                <label>Booking Date <span class="required">*</span></label>
                 <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
             </div>
             <div class="form-group">
-                <label>Customer Name <span style="color: red;">*</span></label>
+                <label>Customer Name <span class="required">*</span></label>
                 <input type="text" name="customer_name" value="{{ shipment.customer_name or '' }}" placeholder="e.g. John Doe" required>
             </div>
             <div class="form-group">
@@ -32,7 +36,7 @@
                 <input type="text" name="receiver_name" value="{{ shipment.receiver_name or '' }}" placeholder="e.g. Jane Smith">
             </div>
             <div class="form-group">
-                <label>Destination Country <span style="color: red;">*</span></label>
+                <label>Destination Country <span class="required">*</span></label>
                 <input type="text" name="destination_country" value="{{ shipment.destination_country or '' }}" placeholder="e.g. Canada, UK" required>
             </div>
             <div class="form-group">
@@ -60,7 +64,7 @@
         </div>
         <div class="grid-2">
             <div class="form-group">
-                <label>Courier Company <span style="color: red;">*</span></label>
+                <label>Courier Company <span class="required">*</span></label>
                 <input type="text" name="courier_company" value="{{ shipment.courier_company or '' }}" placeholder="e.g. DHL, QS" required>
             </div>
             <div class="form-group">
@@ -201,7 +205,8 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/shipments/{{ shipment.id }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
     </form>
 </div>

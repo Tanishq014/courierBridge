@@ -3,34 +3,46 @@
 {% block title %}Quick Add | CourierBridge{% endblock %}
 
 {% block content %}
-<div class="flex-between">
-    <h2>Quick Add from Text</h2>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Fast intake</div>
+        <h1>Quick add</h1>
+        <p class="page-description">Turn an unstructured WhatsApp message or Excel row into a shipment draft.</p>
+    </div>
+    <div class="page-actions"><a href="/shipments/new" class="btn btn-secondary">Use full form</a></div>
+</header>
 
-<div class="grid-2">
-    <div class="card">
-        <h3>Input Raw Text</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Paste the messy WhatsApp message or Excel row here.
-        </p>
+<div class="quick-add-grid">
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h3>1. Paste source text</h3>
+                <p class="card-subtitle">Include the customer, destination, weight, charge, cost, and tracking details you have.</p>
+            </div>
+        </div>
         <form method="POST" action="/tools/quick-add/parse">
             <div class="form-group">
-                <textarea name="raw_text" rows="6" placeholder="e.g. rahul 98765 canada 2.4kg charge 3200 cost 2450 india awb dtdc123 eta 7-10 days pending" required>{{ raw_text or '' }}</textarea>
+                <label for="raw-text">Raw message or row</label>
+                <textarea id="raw-text" class="raw-input" name="raw_text" placeholder="Rahul 98765 · Canada · 2.4 kg · charge 3200 · cost 2450 · DTDC123 · ETA 7–10 days · pending" required>{{ raw_text or '' }}</textarea>
             </div>
-            <button type="submit" class="btn btn-primary">Parse</button>
+            <button type="submit" class="btn btn-primary">Parse shipment details →</button>
         </form>
-    </div>
+    </section>
 
-    <div class="card">
-        <h3>Parsed Data</h3>
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h3>2. Review and save</h3>
+                <p class="card-subtitle">Confirm every extracted field before creating the shipment.</p>
+            </div>
+            {% if parsed_data %}<span class="badge badge-warning">Draft</span>{% endif %}
+        </div>
         {% if parsed_data %}
-        <p style="color: var(--warning-text); font-size: 0.9rem; margin-top: 0;">
-            Review the extracted details before confirming. (AI placeholder active)
-        </p>
-        <form method="POST" action="/shipments/new">
+        <div class="notice" style="margin-top: 0;"><span>!</span>The parser is a placeholder. Verify the extracted values before saving.</div>
+        <form method="POST" action="/shipments/new" style="margin-top: 18px;">
             <div class="grid-2">
                 <div class="form-group">
-                    <label>Customer Name</label>
+                    <label>Customer name</label>
                     <input type="text" name="customer_name" value="{{ parsed_data.customer_name }}">
                 </div>
                 <div class="form-group">
@@ -39,7 +51,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Name/Country Raw</label>
+                <label>Original name / country text</label>
                 <input type="text" name="name_country_raw" value="{{ parsed_data.name_country_raw }}">
             </div>
             <div class="grid-2">
@@ -48,11 +60,9 @@
                     <input type="text" name="item_category" value="{{ parsed_data.item_category }}">
                 </div>
                 <div class="form-group">
-                    <label>Charged Wt</label>
+                    <label>Charged weight</label>
                     <input type="number" step="0.01" name="charged_weight" value="{{ parsed_data.charged_weight }}">
                 </div>
-            </div>
-            <div class="grid-2">
                 <div class="form-group">
                     <label>Courier</label>
                     <input type="text" name="courier_company" value="{{ parsed_data.courier_company }}">
@@ -61,34 +71,37 @@
                     <label>Vendor</label>
                     <input type="text" name="vendor_partner" value="{{ parsed_data.vendor_partner }}">
                 </div>
-            </div>
-            <div class="grid-2">
                 <div class="form-group">
-                    <label>Billed (Charge)</label>
+                    <label>Billed amount</label>
                     <input type="number" step="0.01" name="billed_amount" value="{{ parsed_data.billed_amount }}">
                 </div>
                 <div class="form-group">
-                    <label>Self Cost</label>
+                    <label>Self cost</label>
                     <input type="number" step="0.01" name="self_cost" value="{{ parsed_data.self_cost }}">
                 </div>
             </div>
             <div class="form-group">
-                <label>Status Raw</label>
+                <label>Status text</label>
                 <input type="text" name="status_raw_text" value="{{ parsed_data.status_raw_text }}">
             </div>
-            
-            <!-- Hidden fields to complete form requirement -->
+
             <input type="hidden" name="weight_basis" value="actual">
             <input type="hidden" name="promised_days_text" value="{{ parsed_data.promised_days_text }}">
             <input type="hidden" name="internal_notes" value="Added via Quick Add.">
             <input type="hidden" name="raw_excel_row_text" value="{{ parsed_data.raw_text }}">
             <input type="hidden" name="received_amount" value="{{ parsed_data.received_amount }}">
 
-            <button type="submit" class="btn btn-success">Confirm & Save Shipment</button>
+            <button type="submit" class="btn btn-primary">Confirm and save shipment</button>
         </form>
         {% else %}
-        <p style="color: var(--text-muted);">Awaiting text input...</p>
+        <div class="empty-state">
+            <div>
+                <div class="empty-icon">↗</div>
+                <h3>Waiting for source text</h3>
+                <p>Your parsed shipment draft will appear here for review.</p>
+            </div>
+        </div>
         {% endif %}
-    </div>
+    </section>
 </div>
 {% endblock %}

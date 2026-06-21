@@ -3,134 +3,149 @@
 {% block title %}Shipments | CourierBridge{% endblock %}
 
 {% block content %}
-<div class="flex-between">
-    <h2>Shipments Ledger</h2>
-    <a href="/shipments/new" class="btn btn-primary">+ New Shipment</a>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Operations ledger</div>
+        <h1>Shipments</h1>
+        <p class="page-description">Search, filter, and manage every active and completed booking.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/tools/quick-add" class="btn btn-secondary">Quick add</a>
+        <a href="/shipments/new" class="btn btn-primary">+ New shipment</a>
+    </div>
+</header>
 
-<div class="card" style="margin-bottom: 1rem;">
-    <form method="GET" action="/shipments" class="grid-3" style="align-items: end;">
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Search</label>
-            <input type="text" name="q" value="{{ q }}" placeholder="Name, Phone, Destination, Ref...">
+<section class="card filter-card">
+    <form method="GET" action="/shipments" class="filter-form">
+        <div>
+            <label for="shipment-search">Search ledger</label>
+            <input id="shipment-search" type="text" name="q" value="{{ q }}" placeholder="Customer, phone, destination or reference">
         </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Status</label>
-            <select name="status">
-                <option value="">All</option>
+        <div>
+            <label for="shipment-status">Shipment status</label>
+            <select id="shipment-status" name="status">
+                <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
                 <option value="received" {% if status == 'received' %}selected{% endif %}>Received</option>
-                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
                 <option value="customs" {% if status == 'customs' %}selected{% endif %}>Customs</option>
-                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
                 <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
                 <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
-                <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return/Damage</option>
+                <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return / damage</option>
                 <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
             </select>
         </div>
-        <div>
-            <button type="submit" class="btn btn-secondary">Filter</button>
-            <a href="/shipments" class="btn btn-secondary" style="margin-left: 0.5rem;">Clear</a>
+        <div class="button-row">
+            <button type="submit" class="btn btn-primary">Apply filter</button>
+            {% if q or status %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
         </div>
     </form>
-</div>
+</section>
 
-<div class="card" style="overflow-x: auto;">
+<section class="card table-card">
+    <div class="card-header">
+        <div>
+            <h3>Shipment ledger</h3>
+            <p class="card-subtitle">{{ shipments|length }} records shown · Open a shipment for complete financial and tracking details.</p>
+        </div>
+    </div>
     {% if shipments %}
-    <table style="font-size: 0.85rem; white-space: nowrap;">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Contents</th>
-                <th>Dead Wt</th>
-                <th>Vol Wt</th>
-                <th>Charged Wt/Rate</th>
-                <th>Company</th>
-                <th>Vendor</th>
-                <th>Name/Country</th>
-                <th>Phone/Ref</th>
-                <th>Days</th>
-                <th>Tracking No</th>
-                <th>LM AWB</th>
-                <th>Status</th>
-                <th>Self Cost</th>
-                <th>Other Exp</th>
-                <th>Received</th>
-                <th>Profit/SV</th>
-                <th>Balance</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for s in shipments %}
-            <tr>
-                <td>{{ s.booking_date.strftime('%d-%m-%y') }}</td>
-                <td>{{ s.item_category }}</td>
-                <td>{{ s.dead_weight_text or s.dead_weight }}</td>
-                <td>{{ s.volumetric_weight_text or s.volumetric_weight }}</td>
-                <td>
-                    {{ s.charged_weight_text or s.charged_weight }}<br>
-                    <span style="color:var(--text-muted)">{{ s.customer_rate_text }}</span>
-                </td>
-                <td>{{ s.courier_company }}</td>
-                <td>{{ s.vendor_partner }}</td>
-                <td>
-                    <strong>{{ s.customer_name }}</strong><br>
-                    {{ s.destination_country }}
-                    {% if s.name_country_raw %}<br><span style="color:var(--text-muted); font-size: 0.75rem;">{{ s.name_country_raw }}</span>{% endif %}
-                </td>
-                <td>
-                    {{ s.customer_phone }}<br>
-                    <span style="color:var(--text-muted); font-size: 0.75rem;">{{ s.contact_or_reference_raw }}</span>
-                </td>
-                <td>{{ s.promised_days_text or s.promised_days_number }}</td>
-                
-                {# Find Primary Tracking and LM AWB #}
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Booking</th>
+                    <th>Customer</th>
+                    <th>Route</th>
+                    <th>Carrier</th>
+                    <th>Tracking</th>
+                    <th>Status</th>
+                    <th>Weight</th>
+                    <th>Financials</th>
+                    <th>Balance</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in shipments %}
                 {% set primary_tn = namespace(val=none) %}
                 {% set lm_tn = namespace(val=none) %}
                 {% for tn in s.tracking_numbers %}
                     {% if tn.is_primary %}{% set primary_tn.val = tn.tracking_number %}{% endif %}
                     {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.val = tn.tracking_number %}{% endif %}
                 {% endfor %}
-                
-                <td>{{ primary_tn.val or 'N/A' }}</td>
-                <td>{{ lm_tn.val or ('Miss' if s.requires_lm_awb and not s.is_stuck and s.overall_status not in ['delivered', 'rto'] else 'N/A') }}</td>
-                
-                <td>
-                    <span class="badge 
-                        {% if s.overall_status == 'delivered' %}badge-success
-                        {% elif s.overall_status in ['exception', 'rto', 'return_damage'] %}badge-danger
-                        {% elif s.overall_status == 'customs' %}badge-warning
-                        {% else %}badge-neutral{% endif %}">
-                        {{ s.overall_status | capitalize | replace('_', ' ') }}
-                    </span>
-                    <br>
-                    <span style="font-weight: 500;">{{ s.status_raw_text or '' }}</span>
-                    {% if s.is_stuck %}<br><span style="color: var(--danger-text)">[Stuck]</span>{% endif %}
-                </td>
-                
-                <td>{{ s.self_cost }}</td>
-                <td>{{ s.other_expense }}</td>
-                <td>{{ s.received_amount }}</td>
-                <td style="color: var(--success-text); font-weight: bold;">{{ s.service_value }}</td>
-                <td>
-                    {% if s.balance_amount and s.balance_amount > 0 %}
-                        <span style="color: var(--danger-text); font-weight: bold;">{{ s.balance_amount }}</span>
-                    {% else %}
-                        0.00
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">View</a>
-                    <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                <tr>
+                    <td>
+                        <span class="cell-primary">#{{ s.id }}</span>
+                        <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                    </td>
+                    <td>
+                        <span class="cell-primary">{{ s.customer_name }}</span>
+                        <span class="cell-secondary">{{ s.customer_phone or s.contact_or_reference_raw or 'No contact' }}</span>
+                    </td>
+                    <td>
+                        <span class="cell-primary">{{ s.destination_country }}</span>
+                        <span class="cell-secondary">{{ s.destination_city or s.item_category or '—' }}</span>
+                    </td>
+                    <td>
+                        <span class="cell-primary">{{ s.courier_company }}</span>
+                        <span class="cell-secondary">{{ s.vendor_partner or 'Direct' }}</span>
+                    </td>
+                    <td>
+                        <span class="cell-primary mono">{{ primary_tn.val or 'Not assigned' }}</span>
+                        {% if lm_tn.val %}
+                        <span class="cell-secondary mono">LM: {{ lm_tn.val }}</span>
+                        {% elif s.requires_lm_awb and s.overall_status not in ['delivered', 'rto'] %}
+                        <span class="cell-secondary text-warning">LM AWB missing</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if s.overall_status == 'delivered' %}badge-success
+                            {% elif s.overall_status in ['exception', 'rto', 'return_damage'] %}badge-danger
+                            {% elif s.overall_status == 'customs' %}badge-warning
+                            {% elif s.overall_status in ['in_transit', 'out_for_delivery'] %}badge-info
+                            {% else %}badge-neutral{% endif %}">
+                            {{ s.overall_status | capitalize | replace('_', ' ') }}
+                        </span>
+                        {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% elif s.status_raw_text %}<span class="cell-secondary">{{ s.status_raw_text }}</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="cell-primary">{{ s.charged_weight_text or s.charged_weight or '—' }}</span>
+                        <span class="cell-secondary">{{ s.item_category or 'Unspecified' }}</span>
+                    </td>
+                    <td>
+                        <span class="cell-primary">₹{{ '%.2f'|format(s.received_amount or 0) }} received</span>
+                        <span class="cell-secondary text-success">₹{{ '%.2f'|format(s.service_value or 0) }} service value</span>
+                    </td>
+                    <td>
+                        {% if s.balance_amount and s.balance_amount > 0 %}
+                        <span class="cell-primary text-danger">₹{{ '%.2f'|format(s.balance_amount) }}</span>
+                        <span class="cell-secondary">Pending</span>
+                        {% else %}
+                        <span class="badge badge-success">Settled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="button-row" style="flex-wrap: nowrap;">
+                            <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a>
+                            <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p style="color: var(--text-muted); padding: 1rem 0;">No shipments found.</p>
+    <div class="empty-state">
+        <div>
+            <div class="empty-icon">▣</div>
+            <h3>No shipments found</h3>
+            <p>Try clearing the filters or create a new shipment.</p>
+        </div>
+    </div>
     {% endif %}
-</div>
+</section>
 {% endblock %}
