@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Shipment #{{ shipment.id }} | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>
+        Shipment #{{ shipment.id }} 
+        <span class="badge badge-neutral">{{ shipment.overall_status | capitalize | replace('_', ' ') }}</span>
+        {% if shipment.is_stuck %}<span style="color: var(--danger-text); font-size: 0.9rem;">[Stuck]</span>{% endif %}
+    </h2>
+    <div>
+        <a href="/shipments/{{ shipment.id }}/edit" class="btn btn-secondary">Edit Details</a>
+        <button onclick="generateWhatsApp()" class="btn btn-success" style="background-color: #25D366; color: white;">WhatsApp Update</button>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Customer & Destination</h3>
+        <p><strong>Name:</strong> {{ shipment.customer_name }}</p>
+        <p><strong>Phone:</strong> {{ shipment.customer_phone }}</p>
+        {% if shipment.name_country_raw or shipment.contact_or_reference_raw %}
+        <p><strong>Raw Excel Name/Ref:</strong> <span style="color:var(--text-muted)">{{ shipment.name_country_raw }} | {{ shipment.contact_or_reference_raw }}</span></p>
+        {% endif %}
+        
+        <h4 style="margin-top: 1.5rem;">Destination</h4>
+        <p><strong>Country:</strong> {{ shipment.destination_country }}</p>
+        <p><strong>City:</strong> {{ shipment.destination_city or 'N/A' }}</p>
+        
+        <h4 style="margin-top: 1.5rem;">Notes & Raw Data</h4>
+        <p><strong>Status Raw:</strong> {{ shipment.status_raw_text or 'N/A' }}</p>
+        <p><strong>Internal:</strong> {{ shipment.internal_notes or 'None' }}</p>
+        <p><strong>Balance Notes:</strong> {{ shipment.balance_notes or 'None' }}</p>
+        <p><strong>Raw Excel Notes:</strong> {{ shipment.raw_excel_notes or 'None' }}</p>
+        {% if shipment.raw_excel_row_text %}
+        <p><strong>Raw Row:</strong> <span style="color:var(--text-muted)">{{ shipment.raw_excel_row_text }}</span></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Commercials & Weight</h3>
+        <div class="grid-2">
+            <div>
+                <p><strong>Courier Company:</strong> {{ shipment.courier_company }}</p>
+                <p><strong>Vendor Partner:</strong> {{ shipment.vendor_partner }}</p>
+                <p><strong>Promised Days:</strong> {{ shipment.promised_days_text or shipment.promised_days_number or 'N/A' }}</p>
+            </div>
+            <div>
+                <p><strong>Contents:</strong> {{ shipment.item_category or 'N/A' }}</p>
+                <p><strong>Weight (D/V/C):</strong><br>
+                    {{ shipment.dead_weight_text or shipment.dead_weight }} / 
+                    {{ shipment.volumetric_weight_text or shipment.volumetric_weight }} / 
+                    {{ shipment.charged_weight_text or shipment.charged_weight }}
+                </p>
+            </div>
+        </div>
+
+        <h4 style="margin-top: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Accounting</h4>
+        <div class="grid-2">
+            <div>
+                <p><strong>Billed:</strong> {{ shipment.billed_amount }} <span style="color:var(--text-muted); font-size:0.8rem;">{{ shipment.customer_rate_text }}</span></p>
+                <p><strong>Received:</strong> {{ shipment.received_amount }}</p>
+                <p><strong>Balance:</strong> <span class="{% if shipment.balance_amount > 0 %}text-danger{% endif %}" style="font-weight: bold;">{{ shipment.balance_amount }}</span></p>
+            </div>
+            <div>
+                <p><strong>Self Cost:</strong> {{ shipment.self_cost }} <span style="color:var(--text-muted); font-size:0.8rem;">{{ shipment.vendor_rate_text }}</span></p>
+                <p><strong>Other Exp:</strong> {{ shipment.other_expense }}</p>
+                <p><strong>Profit (SV):</strong> <span style="color: var(--success-text); font-weight: bold;">{{ shipment.service_value }}</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="flex-between">
+        <h3 style="margin-top: 0;">Tracking Numbers</h3>
+        <a href="/tracking/number/new?shipment_id={{ shipment.id }}" class="btn btn-sm btn-primary">+ Add Number</a>
+    </div>
+    
+    {% if shipment.tracking_numbers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Courier</th>
+                <th>Number</th>
+                <th>Primary</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tn in shipment.tracking_numbers %}
+            <tr>
+                <td>{{ tn.tracking_type }}</td>
+                <td>{{ tn.courier_name }}</td>
+                <td><strong>{{ tn.tracking_number }}</strong></td>
+                <td>{% if tn.is_primary %}[Primary]{% endif %}</td>
+                <td>
+                    <a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted);">No tracking numbers added yet.</p>
+    {% endif %}
+    {% if shipment.requires_lm_awb %}
+    <p style="color: var(--warning-text); font-size: 0.85rem;">[LM AWB expected] This shipment expects a Last Mile (LM) AWB to be added.</p>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="flex-between">
+        <h3 style="margin-top: 0;">Tracking Events</h3>
+        <a href="/tracking/event/new?shipment_id={{ shipment.id }}" class="btn btn-sm btn-primary">+ Add Event</a>
+    </div>
+    
+    {% if shipment.tracking_events %}
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Normalized</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ev in shipment.tracking_events|sort(attribute='event_time', reverse=true) %}
+            <tr>
+                <td>{{ ev.event_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td><strong>{{ ev.status_text }}</strong></td>
+                <td>{{ ev.location }}</td>
+                <td><span class="badge badge-neutral">{{ ev.normalized_status }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted);">No tracking events added yet.</p>
+    {% endif %}
+</div>
+
+<!-- Modal / Placeholder for WhatsApp text -->
+<dialog id="whatsappModal" style="padding: 2rem; border-radius: 8px; border: 1px solid #ccc; max-width: 500px; width: 100%;">
+    <h3 style="margin-top: 0;">WhatsApp Update</h3>
+    <textarea id="waText" rows="10" style="width: 100%; margin-bottom: 1rem;"></textarea>
+    <div style="text-align: right;">
+        <button onclick="document.getElementById('whatsappModal').close()" class="btn btn-secondary">Close</button>
+        <button onclick="copyWA()" class="btn btn-primary">Copy Text</button>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function generateWhatsApp() {
+        const customer = {{ (shipment.customer_name or shipment.name_country_raw or 'Customer') | tojson }};
+        const dest = {{ shipment.destination_country | tojson }};
+        const statusText = {{ (shipment.status_raw_text or shipment.last_status_text or 'Booked') | tojson }};
+        
+        let primaryNumber = "N/A";
+        {% for tn in shipment.tracking_numbers %}
+            {% if tn.is_primary %}
+                primaryNumber = {{ tn.tracking_number | tojson }};
+            {% endif %}
+        {% endfor %}
+        
+        const eta = {{ (shipment.promised_days_text or shipment.promised_days_number or 'N/A') | string | tojson }};
+        
+        let text = `Hello ${customer} ji, your parcel for ${dest} is currently: ${statusText}.\n`;
+        text += `Tracking number: ${primaryNumber}.\n`;
+        if (eta !== "N/A") {
+            text += `Estimated delivery told: ${eta}.\n`;
+        }
+        text += `We will update you if there is any delay.`;
+        
+        {% if shipment.is_stuck %}
+        text += `\n\nIt has not moved for a few days, so we are following up.`;
+        {% endif %}
+        
+        {% if shipment.balance_amount > 0 %}
+        text += `\n\nPending Balance: {{ shipment.balance_amount }}. Please clear at earliest.`;
+        {% endif %}
+        
+        document.getElementById('waText').value = text;
+        document.getElementById('whatsappModal').showModal();
+    }
+    
+    function copyWA() {
+        const txt = document.getElementById('waText');
+        txt.select();
+        document.execCommand('copy');
+        alert("Copied!");
+    }
+</script>
+{% endblock %}

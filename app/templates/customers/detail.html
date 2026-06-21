@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name }} | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>{{ name }} <span style="font-size: 1rem; color: var(--text-muted);">{{ phone }}</span></h2>
+    <a href="/customers" class="btn btn-secondary">Back to Customers</a>
+</div>
+
+<div class="kpi-grid">
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ total }}</div>
+        <div class="kpi-label">Total Shipments</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ active }}</div>
+        <div class="kpi-label">Active</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ delivered }}</div>
+        <div class="kpi-label">Delivered</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value {% if pending_total > 0 %}text-danger{% endif %}">{{ pending_total }}</div>
+        <div class="kpi-label">Pending Balance</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-top: 0;">Shipment History</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Destination</th>
+                <th>Status</th>
+                <th>Cost/Charge</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in shipments %}
+            <tr>
+                <td>{{ s.booking_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ s.destination_country }}</td>
+                <td>
+                    <span class="badge 
+                        {% if s.overall_status == 'delivered' %}badge-success
+                        {% elif s.overall_status == 'exception' %}badge-danger
+                        {% else %}badge-neutral{% endif %}">
+                        {{ s.overall_status | capitalize }}
+                    </span>
+                </td>
+                <td>
+                    Charge: {{ s.billed_amount }}<br>
+                    <span style="font-size: 0.8rem; color: var(--text-muted)">Paid: {{ s.received_amount }}</span>
+                </td>
+                <td>
+                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

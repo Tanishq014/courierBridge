@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Dashboard</h2>
+    <a href="/shipments/new" class="btn btn-primary">+ New Shipment</a>
+</div>
+
+<div class="kpi-grid">
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ total_active }}</div>
+        <div class="kpi-label">Active Shipments</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value {% if stuck_count > 0 %}text-danger{% endif %}">{{ stuck_count }}</div>
+        <div class="kpi-label">Stuck</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ payment_pending }}</div>
+        <div class="kpi-label">Payment Pending</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value">{{ delivered_today }}</div>
+        <div class="kpi-label">Delivered Today</div>
+    </div>
+    <div class="card kpi-card">
+        <div class="kpi-value {% if followup_due > 0 %}text-warning{% endif %}">{{ followup_due }}</div>
+        <div class="kpi-label">Follow-up Due</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-top: 0;">Attention Required</h3>
+    {% if attention_required %}
+    <table>
+        <thead>
+            <tr>
+                <th>Booking Date</th>
+                <th>Customer</th>
+                <th>Destination</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in attention_required %}
+            <tr>
+                <td>{{ s.booking_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <strong>{{ s.customer_name }}</strong><br>
+                    <span style="font-size: 0.8rem; color: var(--text-muted)">{{ s.customer_phone }}</span>
+                </td>
+                <td>{{ s.destination_country }}</td>
+                <td>
+                    <span class="badge 
+                        {% if s.overall_status == 'exception' %}badge-danger
+                        {% elif s.overall_status == 'customs' %}badge-warning
+                        {% else %}badge-neutral{% endif %}">
+                        {{ s.overall_status | capitalize }}
+                    </span>
+                    <br>
+                    <span style="font-size: 0.8rem; color: var(--text-muted)">{{ s.last_status_text or 'No tracking event' }}</span>
+                </td>
+                <td>
+                    {% if s.balance_amount > 0 %}
+                        <span class="badge badge-danger">Pending</span>
+                    {% else %}
+                        <span class="badge badge-success">Paid</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted); padding: 1rem 0;">No shipments require immediate attention. Great job!</p>
+    {% endif %}
+</div>
+{% endblock %}

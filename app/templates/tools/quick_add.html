@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Quick Add | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Quick Add from Text</h2>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Input Raw Text</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Paste the messy WhatsApp message or Excel row here.
+        </p>
+        <form method="POST" action="/tools/quick-add/parse">
+            <div class="form-group">
+                <textarea name="raw_text" rows="6" placeholder="e.g. rahul 98765 canada 2.4kg charge 3200 cost 2450 india awb dtdc123 eta 7-10 days pending" required>{{ raw_text or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Parse</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Parsed Data</h3>
+        {% if parsed_data %}
+        <p style="color: var(--warning-text); font-size: 0.9rem; margin-top: 0;">
+            Review the extracted details before confirming. (AI placeholder active)
+        </p>
+        <form method="POST" action="/shipments/new">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" name="customer_name" value="{{ parsed_data.customer_name }}">
+                </div>
+                <div class="form-group">
+                    <label>Destination</label>
+                    <input type="text" name="destination_country" value="{{ parsed_data.destination_country }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Name/Country Raw</label>
+                <input type="text" name="name_country_raw" value="{{ parsed_data.name_country_raw }}">
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Contents</label>
+                    <input type="text" name="item_category" value="{{ parsed_data.item_category }}">
+                </div>
+                <div class="form-group">
+                    <label>Charged Wt</label>
+                    <input type="number" step="0.01" name="charged_weight" value="{{ parsed_data.charged_weight }}">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Courier</label>
+                    <input type="text" name="courier_company" value="{{ parsed_data.courier_company }}">
+                </div>
+                <div class="form-group">
+                    <label>Vendor</label>
+                    <input type="text" name="vendor_partner" value="{{ parsed_data.vendor_partner }}">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Billed (Charge)</label>
+                    <input type="number" step="0.01" name="billed_amount" value="{{ parsed_data.billed_amount }}">
+                </div>
+                <div class="form-group">
+                    <label>Self Cost</label>
+                    <input type="number" step="0.01" name="self_cost" value="{{ parsed_data.self_cost }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Status Raw</label>
+                <input type="text" name="status_raw_text" value="{{ parsed_data.status_raw_text }}">
+            </div>
+            
+            <!-- Hidden fields to complete form requirement -->
+            <input type="hidden" name="weight_basis" value="actual">
+            <input type="hidden" name="promised_days_text" value="{{ parsed_data.promised_days_text }}">
+            <input type="hidden" name="internal_notes" value="Added via Quick Add.">
+            <input type="hidden" name="raw_excel_row_text" value="{{ parsed_data.raw_text }}">
+            <input type="hidden" name="received_amount" value="{{ parsed_data.received_amount }}">
+
+            <button type="submit" class="btn btn-success">Confirm & Save Shipment</button>
+        </form>
+        {% else %}
+        <p style="color: var(--text-muted);">Awaiting text input...</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

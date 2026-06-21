@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Add Tracking Number | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Add Tracking Number to Shipment #{{ shipment_id }}</h2>
+    <a href="/shipments/{{ shipment_id }}" class="btn btn-secondary">Cancel</a>
+</div>
+
+<div class="card">
+    <form method="POST" action="/tracking/number/new" style="max-width: 500px;">
+        <input type="hidden" name="shipment_id" value="{{ shipment_id }}">
+        
+        <div class="form-group">
+            <label>Tracking Type *</label>
+            <select name="tracking_type" required>
+                <option value="main_awb">Main AWB</option>
+                <option value="lm_awb">Last Mile (LM) AWB</option>
+                <option value="forwarder_awb">Forwarder AWB</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Courier Name *</label>
+            <input type="text" name="courier_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Tracking Number *</label>
+            <input type="text" name="tracking_number" required>
+        </div>
+        
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" name="is_primary" value="true" style="width: auto;">
+            <label style="margin: 0;">Is Primary (Backend enforces Main AWB as primary)</label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Number</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

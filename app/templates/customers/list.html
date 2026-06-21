@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Customers | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Customers</h2>
+</div>
+
+<div class="card">
+    {% if customers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Total Shipments</th>
+                <th>Pending Balance</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in customers %}
+            <tr>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.phone }}</td>
+                <td>{{ c.total_shipments }}</td>
+                <td>
+                    {% if c.payment_pending_total > 0 %}
+                    <span style="color: var(--danger-text); font-weight: bold;">{{ c.payment_pending_total }}</span>
+                    {% else %}
+                    <span style="color: var(--success-text);">{{ c.payment_pending_total }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/customers/{{ c.phone }}" class="btn btn-sm btn-secondary">View History</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted); padding: 1rem 0;">No customers found.</p>
+    {% endif %}
+</div>
+{% endblock %}

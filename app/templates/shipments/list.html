@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Shipments | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Shipments Ledger</h2>
+    <a href="/shipments/new" class="btn btn-primary">+ New Shipment</a>
+</div>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <form method="GET" action="/shipments" class="grid-3" style="align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Search</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Name, Phone, Destination, Ref...">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Status</label>
+            <select name="status">
+                <option value="">All</option>
+                <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
+                <option value="received" {% if status == 'received' %}selected{% endif %}>Received</option>
+                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                <option value="customs" {% if status == 'customs' %}selected{% endif %}>Customs</option>
+                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
+                <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
+                <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return/Damage</option>
+                <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="/shipments" class="btn btn-secondary" style="margin-left: 0.5rem;">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="overflow-x: auto;">
+    {% if shipments %}
+    <table style="font-size: 0.85rem; white-space: nowrap;">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Contents</th>
+                <th>Dead Wt</th>
+                <th>Vol Wt</th>
+                <th>Charged Wt/Rate</th>
+                <th>Company</th>
+                <th>Vendor</th>
+                <th>Name/Country</th>
+                <th>Phone/Ref</th>
+                <th>Days</th>
+                <th>Tracking No</th>
+                <th>LM AWB</th>
+                <th>Status</th>
+                <th>Self Cost</th>
+                <th>Other Exp</th>
+                <th>Received</th>
+                <th>Profit/SV</th>
+                <th>Balance</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in shipments %}
+            <tr>
+                <td>{{ s.booking_date.strftime('%d-%m-%y') }}</td>
+                <td>{{ s.item_category }}</td>
+                <td>{{ s.dead_weight_text or s.dead_weight }}</td>
+                <td>{{ s.volumetric_weight_text or s.volumetric_weight }}</td>
+                <td>
+                    {{ s.charged_weight_text or s.charged_weight }}<br>
+                    <span style="color:var(--text-muted)">{{ s.customer_rate_text }}</span>
+                </td>
+                <td>{{ s.courier_company }}</td>
+                <td>{{ s.vendor_partner }}</td>
+                <td>
+                    <strong>{{ s.customer_name }}</strong><br>
+                    {{ s.destination_country }}
+                    {% if s.name_country_raw %}<br><span style="color:var(--text-muted); font-size: 0.75rem;">{{ s.name_country_raw }}</span>{% endif %}
+                </td>
+                <td>
+                    {{ s.customer_phone }}<br>
+                    <span style="color:var(--text-muted); font-size: 0.75rem;">{{ s.contact_or_reference_raw }}</span>
+                </td>
+                <td>{{ s.promised_days_text or s.promised_days_number }}</td>
+                
+                {# Find Primary Tracking and LM AWB #}
+                {% set primary_tn = namespace(val=none) %}
+                {% set lm_tn = namespace(val=none) %}
+                {% for tn in s.tracking_numbers %}
+                    {% if tn.is_primary %}{% set primary_tn.val = tn.tracking_number %}{% endif %}
+                    {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.val = tn.tracking_number %}{% endif %}
+                {% endfor %}
+                
+                <td>{{ primary_tn.val or 'N/A' }}</td>
+                <td>{{ lm_tn.val or ('Miss' if s.requires_lm_awb and not s.is_stuck and s.overall_status not in ['delivered', 'rto'] else 'N/A') }}</td>
+                
+                <td>
+                    <span class="badge 
+                        {% if s.overall_status == 'delivered' %}badge-success
+                        {% elif s.overall_status in ['exception', 'rto', 'return_damage'] %}badge-danger
+                        {% elif s.overall_status == 'customs' %}badge-warning
+                        {% else %}badge-neutral{% endif %}">
+                        {{ s.overall_status | capitalize | replace('_', ' ') }}
+                    </span>
+                    <br>
+                    <span style="font-weight: 500;">{{ s.status_raw_text or '' }}</span>
+                    {% if s.is_stuck %}<br><span style="color: var(--danger-text)">[Stuck]</span>{% endif %}
+                </td>
+                
+                <td>{{ s.self_cost }}</td>
+                <td>{{ s.other_expense }}</td>
+                <td>{{ s.received_amount }}</td>
+                <td style="color: var(--success-text); font-weight: bold;">{{ s.service_value }}</td>
+                <td>
+                    {% if s.balance_amount and s.balance_amount > 0 %}
+                        <span style="color: var(--danger-text); font-weight: bold;">{{ s.balance_amount }}</span>
+                    {% else %}
+                        0.00
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">View</a>
+                    <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted); padding: 1rem 0;">No shipments found.</p>
+    {% endif %}
+</div>
+{% endblock %}

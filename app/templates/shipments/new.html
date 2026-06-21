@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}New Shipment | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>New Shipment</h2>
+    <a href="/shipments" class="btn btn-secondary">Cancel</a>
+</div>
+
+<div class="card">
+    <form method="POST" action="/shipments/new">
+        
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Basic Details</h3>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Booking Date <span style="color: red;">*</span></label>
+                <input type="date" name="booking_date" value="{{ today }}" required>
+            </div>
+            <div class="form-group">
+                <label>Customer Name <span style="color: red;">*</span></label>
+                <input type="text" name="customer_name" placeholder="e.g. John Doe" required>
+            </div>
+            <div class="form-group">
+                <label>Customer Phone</label>
+                <input type="text" name="customer_phone" placeholder="e.g. 9876543210">
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Receiver Name</label>
+                <input type="text" name="receiver_name" placeholder="e.g. Jane Smith">
+            </div>
+            <div class="form-group">
+                <label>Destination Country <span style="color: red;">*</span></label>
+                <input type="text" name="destination_country" placeholder="e.g. Canada, UK" required>
+            </div>
+            <div class="form-group">
+                <label>Destination City</label>
+                <input type="text" name="destination_city" placeholder="e.g. Toronto">
+            </div>
+        </div>
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Weight & Rates</h3>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Item Category</label>
+                <input type="text" name="item_category" placeholder="medicine, cloth, etc.">
+            </div>
+            <div class="form-group">
+                <label>Parcel Description</label>
+                <input type="text" name="parcel_description">
+            </div>
+            <div class="form-group">
+                <label>Weight Basis</label>
+                <select name="weight_basis">
+                    <option value="actual">Actual</option>
+                    <option value="volumetric">Volumetric</option>
+                </select>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Courier Company <span style="color: red;">*</span></label>
+                <input type="text" name="courier_company" placeholder="e.g. DHL, QS" required>
+            </div>
+            <div class="form-group">
+                <label>Vendor Partner</label>
+                <input type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Dead Weight (Num | Text)</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="number" step="0.01" name="dead_weight" value="0.0" style="width: 50%;">
+                    <input type="text" name="dead_weight_text" placeholder="e.g. 100GM" style="width: 50%;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Volumetric Weight (Num | Text)</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="number" step="0.01" name="volumetric_weight" value="0.0" style="width: 50%;">
+                    <input type="text" name="volumetric_weight_text" placeholder="e.g. 34/36/2" style="width: 50%;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Charged Weight (Num | Text)</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="number" step="0.01" name="charged_weight" value="0.0" style="width: 50%;">
+                    <input type="text" name="charged_weight_text" placeholder="e.g. 19KG" style="width: 50%;">
+                </div>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Customer Rate Text (Excel)</label>
+                <input type="text" name="customer_rate_text" placeholder="e.g. 23*600">
+            </div>
+            <div class="form-group">
+                <label>Vendor Rate Text (Excel)</label>
+                <input type="text" name="vendor_rate_text" placeholder="e.g. 21*602">
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Billed Amount (Customer)</label>
+                <input type="number" step="0.01" name="billed_amount" value="0.0" id="billed_amount">
+            </div>
+            <div class="form-group">
+                <label>Received Amount (Paid)</label>
+                <input type="number" step="0.01" name="received_amount" value="0.0" id="received_amount">
+            </div>
+            <div class="form-group" style="color: var(--danger-text); font-weight: bold;">
+                Balance: <span id="balance_display">0.00</span>
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Self Cost (Vendor)</label>
+                <input type="number" step="0.01" name="self_cost" value="0.0" id="self_cost">
+            </div>
+            <div class="form-group">
+                <label>Other Expense</label>
+                <input type="number" step="0.01" name="other_expense" value="0.0" id="other_expense">
+            </div>
+            <div class="form-group" style="color: var(--success-text); font-weight: bold;">
+                Profit (SV): <span id="profit_display">0.00</span>
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Tracking & Status</h3>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Main Tracking Number</label>
+                <input type="text" name="main_tracking_number" placeholder="e.g. 1234567890">
+            </div>
+            <div class="form-group">
+                <label>Main Tracking Courier</label>
+                <input type="text" name="main_tracking_courier" placeholder="e.g. DHL">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Last Mile (LM) AWB Number</label>
+                <input type="text" name="lm_awb_number" placeholder="e.g. LM123456">
+            </div>
+            <div class="form-group">
+                <label>Last Mile (LM) Courier</label>
+                <input type="text" name="lm_awb_courier" placeholder="e.g. Royal Mail">
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Promised Days (Text | Num)</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="text" name="promised_days_text" placeholder="e.g. 12+" style="width: 50%;">
+                    <input type="number" name="promised_days_number" placeholder="Days" style="width: 50%;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Status Raw Text</label>
+                <input type="text" name="status_raw_text" placeholder="e.g. PENDING CUSTOM">
+            </div>
+            <div class="form-group">
+                <label>Overall Status</label>
+                <select name="overall_status">
+                    <option value="booked">Booked</option>
+                    <option value="received">Received</option>
+                    <option value="in_transit">In Transit</option>
+                    <option value="customs">Customs</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="rto">RTO</option>
+                    <option value="return_damage">Return/Damage</option>
+                    <option value="exception">Exception</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;">
+            <label style="margin: 0; font-weight: 500;">Expects Last Mile (LM) AWB</label>
+        </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Notes</h3>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Customer Notes</label>
+                <input type="text" name="customer_notes">
+            </div>
+            <div class="form-group">
+                <label>Internal Notes</label>
+                <input type="text" name="internal_notes">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Balance Notes</label>
+            <input type="text" name="balance_notes" placeholder="e.g. balance 2769">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create Shipment</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const billedInput = document.getElementById('billed_amount');
+    const receivedInput = document.getElementById('received_amount');
+    const selfCostInput = document.getElementById('self_cost');
+    const otherExpInput = document.getElementById('other_expense');
+    
+    const balanceDisplay = document.getElementById('balance_display');
+    const profitDisplay = document.getElementById('profit_display');
+
+    function updateCalculations() {
+        const billed = parseFloat(billedInput.value) || 0;
+        const received = parseFloat(receivedInput.value) || 0;
+        const selfCost = parseFloat(selfCostInput.value) || 0;
+        const otherExp = parseFloat(otherExpInput.value) || 0;
+        
+        balanceDisplay.textContent = (billed - received).toFixed(2);
+        profitDisplay.textContent = (received - selfCost - otherExp).toFixed(2);
+    }
+
+    billedInput.addEventListener('input', updateCalculations);
+    receivedInput.addEventListener('input', updateCalculations);
+    selfCostInput.addEventListener('input', updateCalculations);
+    otherExpInput.addEventListener('input', updateCalculations);
+
+    function moveFocus(current, direction) {
+        const form = current.form;
+        if (!form) return;
+        const elements = Array.from(form.elements).filter(el => !el.disabled && el.type !== 'hidden' && el.tabIndex !== -1);
+        
+        if (direction === 'next') {
+            const index = elements.indexOf(current);
+            if (index > -1 && index < elements.length - 1) elements[index + 1].focus();
+            return;
+        }
+
+        const currentRect = current.getBoundingClientRect();
+        let bestMatch = null;
+        let minDistance = Infinity;
+
+        elements.forEach(el => {
+            if (el === current) return;
+            const rect = el.getBoundingClientRect();
+            let isCandidate = false;
+            let distance = 0;
+
+            const currentCenter = { x: currentRect.left + currentRect.width / 2, y: currentRect.top + currentRect.height / 2 };
+            const elCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
+            if (direction === 'ArrowDown') {
+                if (elCenter.y > currentCenter.y + 10) {
+                    if (Math.abs(elCenter.x - currentCenter.x) < currentRect.width / 1.5) {
+                        isCandidate = true; distance = elCenter.y - currentCenter.y;
+                    }
+                }
+            } else if (direction === 'ArrowUp') {
+                if (elCenter.y < currentCenter.y - 10) {
+                    if (Math.abs(elCenter.x - currentCenter.x) < currentRect.width / 1.5) {
+                        isCandidate = true; distance = currentCenter.y - elCenter.y;
+                    }
+                }
+            } else if (direction === 'ArrowRight') {
+                if (elCenter.x > currentCenter.x + 10) {
+                    if (Math.abs(elCenter.y - currentCenter.y) < currentRect.height) {
+                        isCandidate = true; distance = elCenter.x - currentCenter.x;
+                    }
+                }
+            } else if (direction === 'ArrowLeft') {
+                if (elCenter.x < currentCenter.x - 10) {
+                    if (Math.abs(elCenter.y - currentCenter.y) < currentRect.height) {
+                        isCandidate = true; distance = currentCenter.x - elCenter.x;
+                    }
+                }
+            }
+
+            if (isCandidate && distance < minDistance) {
+                minDistance = distance;
+                bestMatch = el;
+            }
+        });
+
+        if (!bestMatch) {
+            const index = elements.indexOf(current);
+            if (direction === 'ArrowRight' && index < elements.length - 1) bestMatch = elements[index + 1];
+            else if (direction === 'ArrowLeft' && index > 0) bestMatch = elements[index - 1];
+            else if (direction === 'ArrowDown' && index < elements.length - 1) bestMatch = elements[index + 1];
+            else if (direction === 'ArrowUp' && index > 0) bestMatch = elements[index - 1];
+        }
+
+        if (bestMatch) bestMatch.focus();
+    }
+
+    // Handle Enter and Arrow keys for spatial navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') return;
+
+        if (e.key === 'Enter' && e.target.type !== 'submit' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            moveFocus(e.target, 'next');
+            return;
+        }
+
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (e.target.tagName === 'TEXTAREA') return; 
+            if (e.target.tagName === 'SELECT') return; 
+            
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                let isAtBoundary = false;
+                try {
+                    const isFullySelected = e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length && e.target.value.length > 0;
+                    if (isFullySelected || !e.target.value) {
+                        isAtBoundary = true;
+                    } else if (e.key === 'ArrowRight' && e.target.selectionStart === e.target.value.length) {
+                        isAtBoundary = true;
+                    } else if (e.key === 'ArrowLeft' && e.target.selectionEnd === 0) {
+                        isAtBoundary = true;
+                    }
+                } catch (err) {
+                    if (!e.target.value) isAtBoundary = true;
+                }
+                if (!isAtBoundary) return;
+            }
+            e.preventDefault();
+            moveFocus(e.target, e.key);
+        }
+    });
+
+    // Auto-select text on focus
+    document.addEventListener('focusin', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            try {
+                e.target.select();
+            } catch (err) {
+                // Ignore errors on input types that don't support selection (like date)
+            }
+        }
+    });
+</script>
+{% endblock %}

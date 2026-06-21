@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Add Tracking Event | CourierBridge{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h2>Add Manual Tracking Event to Shipment #{{ shipment_id }}</h2>
+    <a href="/shipments/{{ shipment_id }}" class="btn btn-secondary">Cancel</a>
+</div>
+
+<div class="card">
+    <form method="POST" action="/tracking/event/new" style="max-width: 500px;">
+        <input type="hidden" name="shipment_id" value="{{ shipment_id }}">
+        
+        <div class="form-group">
+            <label>Status Text *</label>
+            <input type="text" name="status_text" placeholder="e.g., Arrived at Hub" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Location</label>
+            <input type="text" name="location">
+        </div>
+        
+        <div class="form-group">
+            <label>Normalized Status *</label>
+            <select name="normalized_status">
+                <option value="booked">Booked</option>
+                <option value="in_transit" selected>In Transit</option>
+                <option value="customs">Customs</option>
+                <option value="out_for_delivery">Out for Delivery</option>
+                <option value="delivered">Delivered</option>
+                <option value="exception">Exception</option>
+            </select>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Event</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
