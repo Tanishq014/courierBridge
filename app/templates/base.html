@@ -16,7 +16,6 @@
     <div class="app-shell">
         <aside class="sidebar">
             <a href="/" class="brand">
-                <span class="brand-mark">CB</span>
                 <span class="brand-copy">
                     <span class="brand-name">CourierBridge</span>
                     <span class="brand-tagline">Operations desk</span>
@@ -26,19 +25,15 @@
             <div class="nav-label">Workspace</div>
             <nav class="nav-list" aria-label="Primary navigation">
                 <a href="/" class="nav-link {% if path == '/' %}active{% endif %}">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
                     Dashboard
                 </a>
                 <a href="/shipments" class="nav-link {% if path.startswith('/shipments') and path != '/shipments/new' %}active{% endif %}">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="m3 7 9 4 9-4M5 10v7l7 4 7-4v-7"/></svg>
                     Shipments
                 </a>
                 <a href="/customers" class="nav-link {% if path.startswith('/customers') %}active{% endif %}">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Customers
                 </a>
                 <a href="/tools/quick-add" class="nav-link {% if path.startswith('/tools') %}active{% endif %}">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg>
                     Quick add
                 </a>
             </nav>
@@ -53,11 +48,11 @@
 
         <main class="main-area">
             <header class="mobile-header">
-                <a href="/" class="mobile-brand"><span class="brand-mark">CB</span> CourierBridge</a>
+                <a href="/" class="mobile-brand">CourierBridge</a>
                 <nav class="mobile-nav" aria-label="Mobile navigation">
-                    <a href="/" class="{% if path == '/' %}active{% endif %}">⌂ <span>Home</span></a>
-                    <a href="/shipments" class="{% if path.startswith('/shipments') %}active{% endif %}">▣ <span>Shipments</span></a>
-                    <a href="/customers" class="{% if path.startswith('/customers') %}active{% endif %}">◎ <span>Customers</span></a>
+                    <a href="/" class="{% if path == '/' %}active{% endif %}">Home</a>
+                    <a href="/shipments" class="{% if path.startswith('/shipments') %}active{% endif %}">Shipments</a>
+                    <a href="/customers" class="{% if path.startswith('/customers') %}active{% endif %}">Customers</a>
                 </nav>
             </header>
 
