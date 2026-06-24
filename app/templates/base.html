@@ -14,7 +14,8 @@
 <body>
     {% set path = request.url.path %}
     <div class="app-shell">
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar">
+            <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">Hide</button>
             <a href="/" class="brand">
                 <span class="brand-copy">
                     <span class="brand-name">CourierBridge</span>
@@ -44,6 +45,7 @@
                     Local workspace online
                 </div>
             </div>
+            <div class="sidebar-resizer" id="sidebar-resizer" aria-hidden="true"></div>
         </aside>
 
         <main class="main-area">
@@ -63,5 +65,43 @@
     </div>
 
     {% block scripts %}{% endblock %}
-</body>
+    <script>
+        (() => {
+            const root = document.documentElement;
+            const sidebar = document.getElementById('app-sidebar');
+            const toggle = document.getElementById('sidebar-toggle');
+            const resizer = document.getElementById('sidebar-resizer');
+            if (!sidebar || !toggle || !resizer) return;
+
+            const savedWidth = localStorage.getItem('courierbridge.sidebarWidth');
+            const savedCollapsed = localStorage.getItem('courierbridge.sidebarCollapsed') === 'true';
+            if (savedWidth) root.style.setProperty('--sidebar-width', savedWidth + 'px');
+            if (savedCollapsed) document.body.classList.add('sidebar-collapsed');
+            toggle.textContent = savedCollapsed ? 'Show' : 'Hide';
+
+            toggle.addEventListener('click', () => {
+                const collapsed = document.body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('courierbridge.sidebarCollapsed', String(collapsed));
+                toggle.textContent = collapsed ? 'Show' : 'Hide';
+            });
+
+            resizer.addEventListener('pointerdown', event => {
+                if (document.body.classList.contains('sidebar-collapsed')) return;
+                event.preventDefault();
+                resizer.setPointerCapture(event.pointerId);
+                const onMove = moveEvent => {
+                    const width = Math.min(360, Math.max(160, moveEvent.clientX));
+                    root.style.setProperty('--sidebar-width', width + 'px');
+                    localStorage.setItem('courierbridge.sidebarWidth', String(width));
+                };
+                const onUp = upEvent => {
+                    resizer.releasePointerCapture(upEvent.pointerId);
+                    resizer.removeEventListener('pointermove', onMove);
+                    resizer.removeEventListener('pointerup', onUp);
+                };
+                resizer.addEventListener('pointermove', onMove);
+                resizer.addEventListener('pointerup', onUp);
+            });
+        })();
+    </script></body>
 </html>

@@ -193,7 +193,7 @@ button {
 .container {
     width: min(1480px, 100%);
     margin: 0 auto;
-    padding: 30px 32px 56px;
+    padding: 14px 24px 44px;
 }
 
 .page-header,
@@ -202,7 +202,7 @@ button {
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: 22px;
+    margin-bottom: 12px;
 }
 
 .page-heading {
@@ -1448,4 +1448,57 @@ input[type="checkbox"] {
     .timeline-content {
         grid-column: 2;
     }
+}
+
+.sidebar-toggle {
+    align-self: flex-end;
+    min-height: 26px;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    color: rgba(237, 245, 241, 0.82);
+    background: rgba(255, 255, 255, 0.09);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.sidebar-toggle:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+}
+
+.sidebar-resizer:hover {
+    background: rgba(232, 135, 79, 0.22);
+}
+
+body.sidebar-collapsed {
+    --sidebar-width: 58px;
+}
+
+body.sidebar-collapsed .sidebar {
+    padding: 12px 8px;
+}
+
+body.sidebar-collapsed .brand,
+body.sidebar-collapsed .nav-label,
+body.sidebar-collapsed .nav-list,
+body.sidebar-collapsed .sidebar-footer,
+body.sidebar-collapsed .sidebar-resizer {
+    display: none;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+    align-self: center;
+    margin-bottom: 0;
+    padding: 4px 6px;
 }
