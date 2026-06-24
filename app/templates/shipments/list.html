@@ -10,8 +10,7 @@
         <p class="page-description">Search, filter, and manage every active and completed booking.</p>
     </div>
     <div class="page-actions">
-        <a href="/tools/quick-add" class="btn btn-secondary">Quick add</a>
-        <a href="/shipments/new" class="btn btn-primary">+ New shipment</a>
+        <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
     </div>
 </header>
 
@@ -43,16 +42,16 @@
     </form>
 </section>
 
-<section class="card table-card">
+<section class="card table-card shipment-ledger-card">
     <div class="card-header">
         <div>
             <h3>Shipment ledger</h3>
-            <p class="card-subtitle">{{ shipments|length }} records shown · Open a shipment for complete financial and tracking details.</p>
+            <p class="card-subtitle">{{ shipments|length }} records shown · Click booking/customer to open; edit status and tracking directly.</p>
         </div>
     </div>
     {% if shipments %}
     <div class="table-scroll">
-        <table>
+        <table class="shipments-table">
             <thead>
                 <tr>
                     <th>Booking</th>
@@ -62,75 +61,100 @@
                     <th>Tracking</th>
                     <th>Status</th>
                     <th>Weight</th>
-                    <th>Financials</th>
-                    <th>Balance</th>
+                    <th>Financials / balance</th>
+                    <th>Notes</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in shipments %}
-                {% set primary_tn = namespace(val=none) %}
-                {% set lm_tn = namespace(val=none) %}
+                {% set main_tn = namespace(item=none) %}
+                {% set lm_tn = namespace(item=none) %}
                 {% for tn in s.tracking_numbers %}
-                    {% if tn.is_primary %}{% set primary_tn.val = tn.tracking_number %}{% endif %}
-                    {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.val = tn.tracking_number %}{% endif %}
+                    {% if tn.tracking_type == 'main_awb' or tn.is_primary %}{% set main_tn.item = tn %}{% endif %}
+                    {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.item = tn %}{% endif %}
                 {% endfor %}
-                <tr>
+                {% set row_form_id = 'shipment-row-update-' ~ s.id %}
+                {% set main_courier = main_tn.item.courier_name if main_tn.item else s.courier_company %}
+                {% set lm_courier = lm_tn.item.courier_name if lm_tn.item else '' %}
+                <tr class="shipment-row">
                     <td>
-                        <span class="cell-primary">#{{ s.id }}</span>
-                        <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                        <a href="/shipments/{{ s.id }}" class="row-open-link">
+                            <span class="cell-primary">#{{ s.id }}</span>
+                            <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                        </a>
                     </td>
                     <td>
-                        <span class="cell-primary">{{ s.customer_name }}</span>
-                        <span class="cell-secondary">{{ s.customer_phone or s.contact_or_reference_raw or 'No contact' }}</span>
+                        <a href="/shipments/{{ s.id }}" class="row-open-link">
+                            <span class="cell-primary">{{ s.customer_name }}</span>
+                            <span class="cell-secondary">{{ s.customer_phone or s.contact_or_reference_raw or 'No contact' }}</span>
+                        </a>
                     </td>
                     <td>
                         <span class="cell-primary">{{ s.destination_country }}</span>
-                        <span class="cell-secondary">{{ s.destination_city or s.item_category or '—' }}</span>
+                        <span class="cell-secondary">{{ s.destination_city or '—' }}</span>
                     </td>
                     <td>
                         <span class="cell-primary">{{ s.courier_company }}</span>
                         <span class="cell-secondary">{{ s.vendor_partner or 'Direct' }}</span>
                     </td>
-                    <td>
-                        <span class="cell-primary mono">{{ primary_tn.val or 'Not assigned' }}</span>
-                        {% if lm_tn.val %}
-                        <span class="cell-secondary mono">LM: {{ lm_tn.val }}</span>
-                        {% elif s.requires_lm_awb and s.overall_status not in ['delivered', 'rto'] %}
-                        <span class="cell-secondary text-warning">LM AWB missing</span>
-                        {% endif %}
+                    <td class="tracking-cell">
+                        <div class="tracking-stack">
+                            <div class="tracking-line">
+                                <span>Main</span>
+                                <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="Main tracking">
+                                <select form="{{ row_form_id }}" class="row-edit-field" name="main_tracking_courier" data-initial="{{ main_courier or '' }}" aria-label="Main tracking courier">
+                                    <option value="">Courier</option>
+                                    {% if main_courier and main_courier not in courier_options %}<option value="{{ main_courier }}" selected>{{ main_courier }}</option>{% endif %}
+                                    {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == main_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="tracking-line">
+                                <span>LM</span>
+                                <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="lm_awb_number" value="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" data-initial="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" placeholder="LM tracking">
+                                <select form="{{ row_form_id }}" class="row-edit-field" name="lm_awb_courier" data-initial="{{ lm_courier or '' }}" aria-label="Last mile courier">
+                                    <option value="">LM courier</option>
+                                    {% if lm_courier and lm_courier not in courier_options %}<option value="{{ lm_courier }}" selected>{{ lm_courier }}</option>{% endif %}
+                                    {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == lm_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </td>
-                    <td>
-                        <span class="badge
-                            {% if s.overall_status == 'delivered' %}badge-success
-                            {% elif s.overall_status in ['exception', 'rto', 'return_damage'] %}badge-danger
-                            {% elif s.overall_status == 'customs' %}badge-warning
-                            {% elif s.overall_status in ['in_transit', 'out_for_delivery'] %}badge-info
-                            {% else %}badge-neutral{% endif %}">
-                            {{ s.overall_status | capitalize | replace('_', ' ') }}
-                        </span>
-                        {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% elif s.status_raw_text %}<span class="cell-secondary">{{ s.status_raw_text }}</span>{% endif %}
+                    <td class="status-cell">
+                        <form id="{{ row_form_id }}" method="POST" action="/shipments/{{ s.id }}/quick-update" class="inline-row-form">
+                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                            <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
+                                <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                                <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received</option>
+                                <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
+                                <option value="customs" {% if s.overall_status == 'customs' %}selected{% endif %}>Customs</option>
+                                <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                                <option value="delivered" {% if s.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>RTO</option>
+                                <option value="return_damage" {% if s.overall_status == 'return_damage' %}selected{% endif %}>Return / damage</option>
+                                <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
+                            </select>
+                            <input type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status note">
+                        </form>
+                        {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
                     <td>
                         <span class="cell-primary">{{ s.dead_weight or '—' }}{% if s.dead_weight %} {{ (s.dead_weight_text or 'KG')|upper }}{% endif %}</span>
-                        <span class="cell-secondary">{{ s.item_category or 'Unspecified' }}</span>
+                        <span class="cell-secondary">Vol {{ s.volumetric_weight or '—' }}</span>
+                    </td>
+                    <td class="financial-cell">
+                        <span class="cell-primary">Bill ₹{{ '%.2f'|format(s.billed_amount or 0) }}</span>
+                        <span class="cell-secondary">Paid ₹{{ '%.2f'|format(s.received_amount or 0) }} · Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
+                        <span class="cell-secondary">Cost ₹{{ '%.2f'|format(s.self_cost or 0) }} · Profit ₹{{ '%.2f'|format(s.service_value or 0) }}</span>
+                    </td>
+                    <td class="notes-cell">
+                        {{ s.internal_notes or s.customer_notes or s.balance_notes or '—' }}
                     </td>
                     <td>
-                        <span class="cell-primary">₹{{ '%.2f'|format(s.received_amount or 0) }} received</span>
-                        <span class="cell-secondary text-success">₹{{ '%.2f'|format(s.service_value or 0) }} service value</span>
-                    </td>
-                    <td>
-                        {% if s.balance_amount and s.balance_amount > 0 %}
-                        <span class="cell-primary text-danger">₹{{ '%.2f'|format(s.balance_amount) }}</span>
-                        <span class="cell-secondary">Pending</span>
-                        {% else %}
-                        <span class="badge badge-success">Settled</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="button-row" style="flex-wrap: nowrap;">
-                            <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a>
-                            <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                        <div class="button-row row-actions" data-row-actions>
+                            <span class="row-changed-label" hidden>Changed</span>
+                            <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save" hidden>Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary row-discard" hidden>Discard</button>
                         </div>
                     </td>
                 </tr>
@@ -148,4 +172,48 @@
     </div>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const rows = document.querySelectorAll('.shipment-row');
+
+    const valueOf = field => field.value || '';
+
+    rows.forEach(row => {
+        const fields = Array.from(row.querySelectorAll('.row-edit-field'));
+        const save = row.querySelector('.row-save');
+        const discard = row.querySelector('.row-discard');
+        const changedLabel = row.querySelector('.row-changed-label');
+
+        const updateRowState = () => {
+            let changed = false;
+            fields.forEach(field => {
+                const fieldChanged = valueOf(field) !== (field.dataset.initial || '');
+                field.classList.toggle('is-dirty', fieldChanged);
+                changed = changed || fieldChanged;
+            });
+            row.classList.toggle('row-is-dirty', changed);
+            if (save) save.hidden = !changed;
+            if (discard) discard.hidden = !changed;
+            if (changedLabel) changedLabel.hidden = !changed;
+        };
+
+        fields.forEach(field => field.addEventListener('input', updateRowState));
+        fields.forEach(field => field.addEventListener('change', updateRowState));
+
+        if (discard) {
+            discard.addEventListener('click', () => {
+                fields.forEach(field => {
+                    field.value = field.dataset.initial || '';
+                });
+                updateRowState();
+            });
+        }
+
+        updateRowState();
+    });
+})();
+</script>
 {% endblock %}

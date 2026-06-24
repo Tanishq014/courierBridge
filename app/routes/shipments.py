@@ -290,10 +290,14 @@ def list_shipments(
         query = query.filter(Shipment.overall_status == status)
         
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
+    shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
+    tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
+    courier_options = sorted({c.strip() for c in shipment_couriers + tracking_couriers if c and c.strip()}, key=str.lower)
     
     return templates.TemplateResponse("shipments/list.html", {
         "request": request,
         "shipments": shipments,
+        "courier_options": courier_options,
         "q": q,
         "status": status
     })
@@ -523,6 +527,36 @@ def create_shipment(
     
     return RedirectResponse(url=f"/shipments/{shipment.id}", status_code=303)
 
+@router.post("/{shipment_id}/quick-update")
+def quick_update_shipment(
+    shipment_id: int,
+    db: Session = Depends(get_db),
+    overall_status: str = Form("booked"),
+    status_raw_text: str = Form(""),
+    main_tracking_number: str = Form(""),
+    main_tracking_courier: str = Form(""),
+    lm_awb_number: str = Form(""),
+    lm_awb_courier: str = Form(""),
+    next_url: str = Form("/shipments")
+):
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    redirect_url = next_url if next_url.startswith("/shipments") else "/shipments"
+    if not shipment:
+        return RedirectResponse(url=redirect_url, status_code=303)
+
+    shipment.overall_status = overall_status.strip() or shipment.overall_status
+    shipment.status_raw_text = status_raw_text.strip()
+    if shipment.status_raw_text:
+        shipment.last_status_text = shipment.status_raw_text
+        shipment.last_status_at = now_ist()
+    if shipment.overall_status == "delivered" and not shipment.delivered_at:
+        shipment.delivered_at = now_ist()
+
+    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    db.commit()
+
+    return RedirectResponse(url=redirect_url, status_code=303)
 @router.get("/{shipment_id}")
 def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(get_db)):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
