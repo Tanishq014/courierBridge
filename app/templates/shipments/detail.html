@@ -159,9 +159,14 @@
                     <tr>
                         <td>{{ tn.tracking_type | replace('_', ' ') | title }}</td>
                         <td><span class="cell-primary">{{ tn.courier_name }}</span></td>
-                        <td class="mono">{{ tn.tracking_number }}</td>
+                        {% set tn_url = tracking_url(tn.courier_name, tn.tracking_number, tracking_type=tn.tracking_type) %}
+                        {% set tn_site_url = tracking_site_url(tn.courier_name, tn.tracking_number) %}
+                        {% set tn_open_url = tn_url or tn_site_url %}
+                        <td class="mono">
+                            {% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}
+                        </td>
                         <td>{% if tn.is_primary %}<span class="badge badge-info">Primary</span>{% else %}<span class="cell-secondary">Secondary</span>{% endif %}</td>
-                        <td><a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a></td>
+                        <td>{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}">Track ↗</a>{% else %}<a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a>{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -237,5 +242,13 @@
         await navigator.clipboard.writeText(text);
         document.getElementById('whatsappModal').close();
     }
-</script>
+
+    document.querySelectorAll('.copy-tracking-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (link.dataset.copyMode !== 'true' || !link.dataset.copyNumber) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link.dataset.copyNumber).catch(() => {});
+            }
+        });
+    });</script>
 {% endblock %}

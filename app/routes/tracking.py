@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import TrackingNumber, TrackingEvent, TrackingTemplate, Shipment, now_ist
+from app.tracking_links import build_tracking_site_url, build_tracking_url
 from datetime import datetime
 
 router = APIRouter(prefix="/tracking")
@@ -94,11 +95,17 @@ def open_tracking_url(tn_id: int, db: Session = Depends(get_db)):
     if not tn:
         return RedirectResponse(url="/shipments", status_code=303)
         
-    template = db.query(TrackingTemplate).filter(TrackingTemplate.courier_name == tn.courier_name).first()
-    
-    if template and "{awb}" in template.template_url:
-        url = template.template_url.replace("{awb}", tn.tracking_number)
+    db_templates = {
+        row.courier_name: row.template_url
+        for row in db.query(TrackingTemplate).all()
+        if row.courier_name and row.template_url
+    }
+    url = build_tracking_url(tn.courier_name, tn.tracking_number, db_templates, tn.tracking_type)
+    if url:
         return RedirectResponse(url=url, status_code=303)
+    site_url = build_tracking_site_url(tn.courier_name, tn.tracking_number)
+    if site_url:
+        return RedirectResponse(url=site_url, status_code=303)
         
     # If no template, show fallback page
     return f"No template found for {tn.courier_name}. Tracking Number: {tn.tracking_number}"

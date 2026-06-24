@@ -77,6 +77,12 @@
                 {% set row_form_id = 'shipment-row-update-' ~ s.id %}
                 {% set main_courier = main_tn.item.courier_name if main_tn.item else s.courier_company %}
                 {% set lm_courier = lm_tn.item.courier_name if lm_tn.item else '' %}
+                {% set main_tracking_number = main_tn.item.tracking_number if main_tn.item else '' %}
+                {% set lm_tracking_number = lm_tn.item.tracking_number if lm_tn.item else '' %}
+                {% set main_tracking_url = tracking_url(main_courier, main_tracking_number, tracking_type='main_awb') %}
+                {% set lm_tracking_url = tracking_url(lm_courier, lm_tracking_number, tracking_type='lm_awb') %}
+                {% set main_tracking_site_url = tracking_site_url(main_courier, main_tracking_number) %}
+                {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
                 <tr class="shipment-row">
                     <td>
                         <a href="/shipments/{{ s.id }}" class="row-open-link">
@@ -100,8 +106,8 @@
                     </td>
                     <td class="tracking-cell">
                         <div class="tracking-stack">
-                            <div class="tracking-line">
-                                <span>Main</span>
+                            <div class="tracking-line" data-tracking-type="main_awb">
+                                <a class="tracking-label-link" href="{{ main_tracking_url or main_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="Main" data-track-label="Track Main" data-copy-number="{{ main_tracking_number }}" {% if main_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not main_tracking_url and not main_tracking_site_url %}hidden{% endif %}>Track Main</a><span class="tracking-label-text" {% if main_tracking_url or main_tracking_site_url %}hidden{% endif %}>Main</span>
                                 <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="Main tracking">
                                 <select form="{{ row_form_id }}" class="row-edit-field" name="main_tracking_courier" data-initial="{{ main_courier or '' }}" aria-label="Main tracking courier">
                                     <option value="">Courier</option>
@@ -109,8 +115,8 @@
                                     {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == main_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
                                 </select>
                             </div>
-                            <div class="tracking-line">
-                                <span>LM</span>
+                            <div class="tracking-line" data-tracking-type="lm_awb">
+                                <a class="tracking-label-link" href="{{ lm_tracking_url or lm_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="LM" data-track-label="Track LM" data-copy-number="{{ lm_tracking_number }}" {% if lm_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not lm_tracking_url and not lm_tracking_site_url %}hidden{% endif %}>Track LM</a><span class="tracking-label-text" {% if lm_tracking_url or lm_tracking_site_url %}hidden{% endif %}>LM</span>
                                 <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="lm_awb_number" value="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" data-initial="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" placeholder="LM tracking">
                                 <select form="{{ row_form_id }}" class="row-edit-field" name="lm_awb_courier" data-initial="{{ lm_courier or '' }}" aria-label="Last mile courier">
                                     <option value="">LM courier</option>
@@ -178,14 +184,49 @@
 <script>
 (() => {
     const rows = document.querySelectorAll('.shipment-row');
+    const trackingTemplates = {
+        quickship: 'https://track.quickshipnow.com/?awb={awb}',
+        fedex: 'https://www.fedex.com/fedextrack/?trknbr={awb}',
+        ups: 'https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails',
+    };
+    const copyAndOpenSites = {
+        atlantic: 'https://atlanticcourier.net/track/',
+        overseas: 'https://track.overseaslogistic.com/tracking.aspx',
+    };
 
     const valueOf = field => field.value || '';
+    const normalizeCourier = courier => (courier || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const getTrackingAction = (courier, number, trackingType) => {
+        const normalized = normalizeCourier(courier);
+        const awb = (number || '').trim();
+        if (!awb) return { url: '', copy: false };
+        if (copyAndOpenSites[normalized]) return { url: copyAndOpenSites[normalized], copy: true };
+        const template = trackingTemplates[normalized] || (trackingType === 'lm_awb' ? 'https://t.17track.net/en#nums={awb}' : '');
+        return { url: template ? template.replace('{awb}', encodeURIComponent(awb)) : '', copy: false };
+    };
 
     rows.forEach(row => {
         const fields = Array.from(row.querySelectorAll('.row-edit-field'));
         const save = row.querySelector('.row-save');
         const discard = row.querySelector('.row-discard');
         const changedLabel = row.querySelector('.row-changed-label');
+        const trackingLines = Array.from(row.querySelectorAll('.tracking-line'));
+
+        const updateTrackingLinks = () => {
+            trackingLines.forEach(line => {
+                const numberInput = line.querySelector('input[type="text"]');
+                const courierSelect = line.querySelector('select');
+                const link = line.querySelector('.tracking-label-link');
+                const labelText = line.querySelector('.tracking-label-text');
+                if (!numberInput || !courierSelect || !link || !labelText) return;
+                const action = getTrackingAction(courierSelect.value, numberInput.value, line.dataset.trackingType);
+                link.href = action.url || '#';
+                link.dataset.copyMode = action.copy ? 'true' : 'false';
+                link.dataset.copyNumber = numberInput.value || '';
+                link.hidden = !action.url;
+                labelText.hidden = Boolean(action.url);
+            });
+        };
 
         const updateRowState = () => {
             let changed = false;
@@ -198,8 +239,20 @@
             if (save) save.hidden = !changed;
             if (discard) discard.hidden = !changed;
             if (changedLabel) changedLabel.hidden = !changed;
+            updateTrackingLinks();
         };
 
+
+        trackingLines.forEach(line => {
+            const link = line.querySelector('.tracking-label-link');
+            if (!link) return;
+            link.addEventListener('click', event => {
+                if (link.dataset.copyMode !== 'true' || !link.dataset.copyNumber) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link.dataset.copyNumber).catch(() => {});
+                }
+            });
+        });
         fields.forEach(field => field.addEventListener('input', updateRowState));
         fields.forEach(field => field.addEventListener('change', updateRowState));
 

@@ -1636,3 +1636,64 @@ body.sidebar-collapsed .sidebar-toggle {
     text-transform: uppercase;
     white-space: nowrap;
 }
+
+.tracking-line {
+    grid-template-columns: 32px minmax(98px, 1fr) 26px minmax(70px, 0.8fr);
+}
+
+.tracking-open-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    min-height: 28px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    color: var(--accent);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.tracking-open-link:hover,
+.tracking-number-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.tracking-number-link {
+    color: var(--accent);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.tracking-line {
+    grid-template-columns: 64px minmax(98px, 1fr) minmax(70px, 0.8fr);
+}
+
+.tracking-label-link,
+.tracking-label-text {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tracking-label-link {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.tracking-label-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.tracking-label-link[hidden],
+.tracking-label-text[hidden] {
+    display: none !important;
+}

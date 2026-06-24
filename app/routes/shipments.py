@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
 from app.models import Shipment, TrackingNumber, now_ist
+from app.tracking_links import build_tracking_site_url, build_tracking_url
 from decimal import Decimal
 from datetime import datetime
 import json
@@ -14,6 +15,8 @@ import urllib.request
 
 router = APIRouter(prefix="/shipments")
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["tracking_url"] = build_tracking_url
+templates.env.globals["tracking_site_url"] = build_tracking_site_url
 
 RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
 LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"
@@ -38,6 +41,7 @@ def get_courier_options(db: Session) -> list[str]:
     shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
     tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
     return sorted({c.strip() for c in DEFAULT_COURIERS + shipment_couriers + tracking_couriers if c and c.strip()}, key=str.lower)
+
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
         "line_1": "",
