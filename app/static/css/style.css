@@ -298,7 +298,8 @@ h4 {
 
 .grid-2,
 .grid-3,
-.grid-4 {
+.grid-4,
+.grid-5 {
     display: grid;
     gap: 16px;
 }
@@ -313,6 +314,10 @@ h4 {
 
 .grid-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .kpi-grid {
@@ -773,7 +778,8 @@ input[type="checkbox"] {
 
 .compact-shipment-form .grid-2,
 .compact-shipment-form .grid-3,
-.compact-shipment-form .grid-4 {
+.compact-shipment-form .grid-4,
+.compact-shipment-form .grid-5 {
     gap: 10px;
 }
 
@@ -783,6 +789,10 @@ input[type="checkbox"] {
 
 .compact-shipment-form .grid-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.compact-shipment-form .grid-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .compact-shipment-form .grid-2 {
@@ -1217,7 +1227,9 @@ input[type="checkbox"] {
     }
 
     .grid-4,
-    .compact-shipment-form .grid-4 {
+    .grid-5,
+    .compact-shipment-form .grid-4,
+    .compact-shipment-form .grid-5 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -1302,6 +1314,7 @@ input[type="checkbox"] {
     .grid-2,
     .grid-3,
     .grid-4,
+    .grid-5,
     .detail-list,
     .financial-strip,
     .filter-form {

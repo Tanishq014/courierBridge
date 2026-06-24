@@ -101,14 +101,7 @@
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Weight & Rates</h3>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Weight Basis</label>
-                <select name="weight_basis">
-                    <option value="actual">Actual</option>
-                    <option value="volumetric">Volumetric</option>
-                </select>
-            </div>
+        <div class="grid-5">
             <div class="form-group">
                 <label>Vendor Partner</label>
                 <input type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
@@ -117,8 +110,6 @@
                 <label>Courier Company <span class="required">*</span></label>
                 <input type="text" name="courier_company" placeholder="e.g. DHL, QS" required>
             </div>
-        </div>
-        <div class="grid-4">
             <div class="form-group">
                 <label>Dead Weight</label>
                 <div class="input-with-unit">
@@ -141,15 +132,44 @@
                     </select>
                 </div>
             </div>
+            <div class="form-group">
+                <label>Weight Basis</label>
+                <select name="weight_basis">
+                    <option value="actual">Actual</option>
+                    <option value="volumetric">Volumetric</option>
+                </select>
+            </div>
         </div>
-        <div class="grid-2">
+        <div class="grid-4">
             <div class="form-group">
                 <label>Customer Rate Text (Excel)</label>
-                <input type="text" name="customer_rate_text" placeholder="e.g. 23*600">
+                <input type="text" name="customer_rate_text" id="customer_rate_text" placeholder="e.g. 23*600">
+            </div>
+            <div class="form-group">
+                <label>Customer Charged Weight</label>
+                <div class="input-with-unit">
+                    <input type="number" step="0.01" name="customer_charged_weight" id="customer_charged_weight" placeholder="23">
+                    <select name="customer_charged_weight_unit" class="unit-select">
+                        <option value="KG" selected>KG</option>
+                        <option value="G">G</option>
+                        <option value="LB">LB</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group">
                 <label>Vendor Rate Text (Excel)</label>
-                <input type="text" name="vendor_rate_text" placeholder="e.g. 21*602">
+                <input type="text" name="vendor_rate_text" id="vendor_rate_text" placeholder="e.g. 21*602">
+            </div>
+            <div class="form-group">
+                <label>Vendor Charged Weight</label>
+                <div class="input-with-unit">
+                    <input type="number" step="0.01" name="vendor_charged_weight" id="vendor_charged_weight" placeholder="21">
+                    <select name="vendor_charged_weight_unit" class="unit-select">
+                        <option value="KG" selected>KG</option>
+                        <option value="G">G</option>
+                        <option value="LB">LB</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -406,6 +426,31 @@
         resizeTextarea(textarea);
         textarea.addEventListener('input', () => resizeTextarea(textarea));
     });
+
+    function extractChargedWeight(rateText) {
+        const matches = String(rateText || '').match(/-?\d+(?:\.\d+)?/g) || [];
+        if (!matches.length) return '';
+        const numbers = matches.map(value => Number(value)).filter(value => Number.isFinite(value));
+        if (!numbers.length) return '';
+        return String(Math.min(...numbers));
+    }
+
+    function bindChargedWeightExtraction(textId, weightId) {
+        const textInput = document.getElementById(textId);
+        const weightInput = document.getElementById(weightId);
+        if (!textInput || !weightInput) return;
+        textInput.addEventListener('input', () => {
+            const extracted = extractChargedWeight(textInput.value);
+            if (extracted) weightInput.value = extracted;
+        });
+        if (!weightInput.value) {
+            const extracted = extractChargedWeight(textInput.value);
+            if (extracted) weightInput.value = extracted;
+        }
+    }
+
+    bindChargedWeightExtraction('customer_rate_text', 'customer_charged_weight');
+    bindChargedWeightExtraction('vendor_rate_text', 'vendor_charged_weight');
 
     const initialItems = {{ item_details | tojson }};
     const itemRows = document.getElementById('item_rows');

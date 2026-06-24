@@ -19,6 +19,7 @@ RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
 LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"
 ITEM_DETAILS_PREFIX = "ITEM_DETAILS_JSON:"
 ITEM_RAW_PREFIX = "ITEM_RAW_TEXT_JSON:"
+RATE_DETAILS_PREFIX = "RATE_DETAILS_JSON:"
 
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
@@ -127,6 +128,47 @@ def encode_item_details(raw_notes: str | None, items: list[dict[str, str]], raw_
     if raw_text.strip():
         preserved_lines.append(
             ITEM_RAW_PREFIX + json.dumps(raw_text.strip(), separators=(",", ":"))
+        )
+    return "\n".join(line for line in preserved_lines if line.strip())
+
+def parse_rate_details(raw_notes: str | None) -> dict[str, str]:
+    blank = {
+        "customer_charged_weight": "",
+        "customer_charged_weight_unit": "KG",
+        "vendor_charged_weight": "",
+        "vendor_charged_weight_unit": "KG",
+    }
+    if not raw_notes:
+        return blank
+
+    for line in raw_notes.splitlines():
+        if line.startswith(RATE_DETAILS_PREFIX):
+            try:
+                parsed = json.loads(line[len(RATE_DETAILS_PREFIX):])
+            except json.JSONDecodeError:
+                return blank
+            return {
+                "customer_charged_weight": str(parsed.get("customer_charged_weight", parsed.get("customer_charged_rate", "")) or ""),
+                "customer_charged_weight_unit": normalize_unit(str(parsed.get("customer_charged_weight_unit", "KG") or "KG")),
+                "vendor_charged_weight": str(parsed.get("vendor_charged_weight", parsed.get("vendor_charged_rate", "")) or ""),
+                "vendor_charged_weight_unit": normalize_unit(str(parsed.get("vendor_charged_weight_unit", "KG") or "KG")),
+            }
+    return blank
+
+def encode_rate_details(raw_notes: str | None, rates: dict[str, str]) -> str:
+    preserved_lines = [
+        line for line in (raw_notes or "").splitlines()
+        if not line.startswith(RATE_DETAILS_PREFIX)
+    ]
+    cleaned = {
+        "customer_charged_weight": str(rates.get("customer_charged_weight", "") or "").strip(),
+        "customer_charged_weight_unit": normalize_unit(str(rates.get("customer_charged_weight_unit", "KG") or "KG")),
+        "vendor_charged_weight": str(rates.get("vendor_charged_weight", "") or "").strip(),
+        "vendor_charged_weight_unit": normalize_unit(str(rates.get("vendor_charged_weight_unit", "KG") or "KG")),
+    }
+    if cleaned["customer_charged_weight"] or cleaned["vendor_charged_weight"]:
+        preserved_lines.append(
+            RATE_DETAILS_PREFIX + json.dumps(cleaned, separators=(",", ":"))
         )
     return "\n".join(line for line in preserved_lines if line.strip())
 
@@ -354,7 +396,11 @@ def create_shipment(
     volumetric_weight_unit: str = Form("KG"),
     
     customer_rate_text: str = Form(""),
+    customer_charged_weight: str = Form(""),
+    customer_charged_weight_unit: str = Form("KG"),
     vendor_rate_text: str = Form(""),
+    vendor_charged_weight: str = Form(""),
+    vendor_charged_weight_unit: str = Form("KG"),
     courier_company: str = Form(""),
     vendor_partner: str = Form(""),
     
@@ -410,6 +456,12 @@ def create_shipment(
     item_details = clean_item_details(item_details_json)
     notes_with_receiver = encode_receiver_address(raw_excel_notes, receiver_address)
     notes_with_items = encode_item_details(notes_with_receiver, item_details, item_raw_text)
+    notes_with_rates = encode_rate_details(notes_with_items, {
+        "customer_charged_weight": customer_charged_weight,
+        "customer_charged_weight_unit": customer_charged_weight_unit,
+        "vendor_charged_weight": vendor_charged_weight,
+        "vendor_charged_weight_unit": vendor_charged_weight_unit,
+    })
 
     shipment = Shipment(
         booking_date=parsed_booking_date,
@@ -448,7 +500,7 @@ def create_shipment(
         internal_notes=internal_notes,
         customer_notes=customer_notes,
         balance_notes=balance_notes,
-        raw_excel_notes=notes_with_items,
+        raw_excel_notes=notes_with_rates,
         raw_excel_row_text=raw_excel_row_text,
         last_status_text=status_raw_text
     )
@@ -479,12 +531,14 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
         
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_details = parse_item_details(shipment.raw_excel_notes)
+    rate_details = parse_rate_details(shipment.raw_excel_notes)
     return templates.TemplateResponse("shipments/detail.html", {
         "request": request,
         "shipment": shipment,
         "receiver_address": receiver_address,
         "receiver_address_text": format_receiver_address(receiver_address),
-        "item_details": item_details
+        "item_details": item_details,
+        "rate_details": rate_details
     })
 
 @router.get("/{shipment_id}/edit")
@@ -498,6 +552,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_details = parse_item_details(shipment.raw_excel_notes)
+    rate_details = parse_rate_details(shipment.raw_excel_notes)
     return templates.TemplateResponse("shipments/edit.html", {
         "request": request,
         "shipment": shipment,
@@ -505,7 +560,8 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "lm_awb": lm_awb,
         "receiver_address": receiver_address,
         "item_details": item_details,
-        "item_raw_text": parse_item_raw_text(shipment.raw_excel_notes)
+        "item_raw_text": parse_item_raw_text(shipment.raw_excel_notes),
+        "rate_details": rate_details
     })
 
 @router.post("/{shipment_id}/edit")
@@ -537,7 +593,11 @@ def update_shipment(
     volumetric_weight_unit: str = Form("KG"),
     
     customer_rate_text: str = Form(""),
+    customer_charged_weight: str = Form(""),
+    customer_charged_weight_unit: str = Form("KG"),
     vendor_rate_text: str = Form(""),
+    vendor_charged_weight: str = Form(""),
+    vendor_charged_weight_unit: str = Form("KG"),
     courier_company: str = Form(""),
     vendor_partner: str = Form(""),
     
@@ -644,7 +704,13 @@ def update_shipment(
     shipment.balance_notes = balance_notes
     item_details = clean_item_details(item_details_json)
     notes_with_receiver = encode_receiver_address(raw_excel_notes, receiver_address)
-    shipment.raw_excel_notes = encode_item_details(notes_with_receiver, item_details, item_raw_text)
+    notes_with_items = encode_item_details(notes_with_receiver, item_details, item_raw_text)
+    shipment.raw_excel_notes = encode_rate_details(notes_with_items, {
+        "customer_charged_weight": customer_charged_weight,
+        "customer_charged_weight_unit": customer_charged_weight_unit,
+        "vendor_charged_weight": vendor_charged_weight,
+        "vendor_charged_weight_unit": vendor_charged_weight_unit,
+    })
     shipment.raw_excel_row_text = raw_excel_row_text
     
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
