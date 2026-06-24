@@ -226,11 +226,8 @@
         </div>
         <div class="grid-3">
             <div class="form-group">
-                <label>Promised Days (Text | Num)</label>
-                <div style="display:flex; gap:0.5rem;">
-                    <input type="text" name="promised_days_text" value="{{ shipment.promised_days_text or '' }}" style="width: 50%;">
-                    <input type="number" name="promised_days_number" value="{{ shipment.promised_days_number or '' }}" style="width: 50%;">
-                </div>
+                <label>Promised Days</label>
+                <input type="number" name="promised_days_number" value="{{ shipment.promised_days_number or '' }}" placeholder="Days">
             </div>
             <div class="form-group">
                 <label>Status Raw Text</label>
@@ -453,6 +450,32 @@
 
     bindChargedWeightExtraction('customer_rate_text', 'customer_charged_weight');
     bindChargedWeightExtraction('vendor_rate_text', 'vendor_charged_weight');
+    function extractRateAmount(rateText) {
+        const parts = String(rateText || '').split('*');
+        if (parts.length < 2) return '';
+        const numbers = parts.map(part => {
+            const match = part.match(/-?\d+(?:\.\d+)?/);
+            return match ? Number(match[0]) : NaN;
+        }).filter(value => Number.isFinite(value));
+        if (numbers.length < 2) return '';
+        const amount = numbers.reduce((total, value) => total * value, 1);
+        return Number.isFinite(amount) ? amount.toFixed(2) : '';
+    }
+
+    function bindAmountExtraction(textId, amountInput) {
+        const textInput = document.getElementById(textId);
+        if (!textInput || !amountInput) return;
+        textInput.addEventListener('input', () => {
+            const extracted = extractRateAmount(textInput.value);
+            if (extracted) {
+                amountInput.value = extracted;
+                updateCalculations();
+            }
+        });
+    }
+
+    bindAmountExtraction('customer_rate_text', billedInput);
+    bindAmountExtraction('vendor_rate_text', selfCostInput);
 
     const initialItems = {{ item_details | tojson }};
     const itemRows = document.getElementById('item_rows');

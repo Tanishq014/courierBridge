@@ -768,6 +768,27 @@ input[type="checkbox"] {
     font-size: 28px;
 }
 
+.heading-with-date {
+    display: flex;
+    align-items: end;
+    gap: 14px;
+}
+
+.page-inline-date {
+    width: 180px;
+    margin-bottom: 0;
+}
+
+.page-inline-date label {
+    margin-bottom: 3px;
+    font-size: 10px;
+}
+
+.page-inline-date input[type="date"] {
+    min-height: 32px;
+    padding: 5px 8px;
+}
+
 .compact-page-header .page-description {
     margin: 0;
 }
@@ -1328,6 +1349,16 @@ input[type="checkbox"] {
     }
 
     .form-section-title .inline-date {
+        width: 100%;
+    }
+
+    .heading-with-date {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .page-inline-date {
         width: 100%;
     }
 

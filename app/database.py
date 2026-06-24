@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 SQLALCHEMY_DATABASE_URL = os.environ.get("COURIERBRIDGE_DATABASE_URL", "sqlite:///./courierbridge.db")
 

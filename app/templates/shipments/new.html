@@ -5,20 +5,21 @@
 {% block content %}
 <header class="page-header compact-page-header">
     <div class="page-heading">
-        <h1>Create new booking</h1>
+        <div class="heading-with-date">
+            <h1>Create new booking</h1>
+            <div class="form-group inline-date page-inline-date">
+                <input form="new-shipment-form" type="date" name="booking_date" value="{{ today }}" required aria-label="Booking date" title="Booking date">
+            </div>
+        </div>
     </div>
     <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
 </header>
 
 <div class="card form-card">
-    <form method="POST" action="/shipments/new" class="shipment-form compact-shipment-form">
+    <form method="POST" action="/shipments/new" class="shipment-form compact-shipment-form" id="new-shipment-form">
         
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
-            <div class="form-group inline-date">
-                <label>Booking Date <span class="required">*</span></label>
-                <input type="date" name="booking_date" value="{{ today }}" required>
-            </div>
         </div>
         <div class="grid-4">
             <div class="form-group">
@@ -224,11 +225,8 @@
         </div>
         <div class="grid-3">
             <div class="form-group">
-                <label>Promised Days (Text | Num)</label>
-                <div style="display:flex; gap:0.5rem;">
-                    <input type="text" name="promised_days_text" placeholder="e.g. 12+" style="width: 50%;">
-                    <input type="number" name="promised_days_number" placeholder="Days" style="width: 50%;">
-                </div>
+                <label>Promised Days</label>
+                <input type="number" name="promised_days_number" placeholder="Days">
             </div>
             <div class="form-group">
                 <label>Status Raw Text</label>
@@ -451,6 +449,32 @@
 
     bindChargedWeightExtraction('customer_rate_text', 'customer_charged_weight');
     bindChargedWeightExtraction('vendor_rate_text', 'vendor_charged_weight');
+    function extractRateAmount(rateText) {
+        const parts = String(rateText || '').split('*');
+        if (parts.length < 2) return '';
+        const numbers = parts.map(part => {
+            const match = part.match(/-?\d+(?:\.\d+)?/);
+            return match ? Number(match[0]) : NaN;
+        }).filter(value => Number.isFinite(value));
+        if (numbers.length < 2) return '';
+        const amount = numbers.reduce((total, value) => total * value, 1);
+        return Number.isFinite(amount) ? amount.toFixed(2) : '';
+    }
+
+    function bindAmountExtraction(textId, amountInput) {
+        const textInput = document.getElementById(textId);
+        if (!textInput || !amountInput) return;
+        textInput.addEventListener('input', () => {
+            const extracted = extractRateAmount(textInput.value);
+            if (extracted) {
+                amountInput.value = extracted;
+                updateCalculations();
+            }
+        });
+    }
+
+    bindAmountExtraction('customer_rate_text', billedInput);
+    bindAmountExtraction('vendor_rate_text', selfCostInput);
 
     const initialItems = {{ item_details | tojson }};
     const itemRows = document.getElementById('item_rows');
