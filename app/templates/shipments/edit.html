@@ -110,7 +110,11 @@
             </div>
             <div class="form-group">
                 <label>Courier Company <span class="required">*</span></label>
-                <input type="text" name="courier_company" value="{{ shipment.courier_company or '' }}" placeholder="e.g. DHL, QS" required>
+                <select name="courier_company" required>
+                    <option value="">Select courier</option>
+                    {% if shipment.courier_company and shipment.courier_company not in courier_options %}<option value="{{ shipment.courier_company }}" selected>{{ shipment.courier_company }}</option>{% endif %}
+                    {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == shipment.courier_company %}selected{% endif %}>{{ courier }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Dead Weight</label>
@@ -209,7 +213,12 @@
             </div>
             <div class="form-group">
                 <label>Main Tracking Courier</label>
-                <input type="text" name="main_tracking_courier" value="{{ main_awb.courier_name if main_awb else '' }}">
+                <select name="main_tracking_courier">
+                    {% set current_main_courier = main_awb.courier_name if main_awb else '' %}
+                    <option value="">Select courier</option>
+                    {% if current_main_courier and current_main_courier not in courier_options %}<option value="{{ current_main_courier }}" selected>{{ current_main_courier }}</option>{% endif %}
+                    {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == current_main_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) AWB Number</label>
@@ -217,7 +226,12 @@
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) Courier</label>
-                <input type="text" name="lm_awb_courier" value="{{ lm_awb.courier_name if lm_awb else '' }}">
+                <select name="lm_awb_courier">
+                    {% set current_lm_courier = lm_awb.courier_name if lm_awb else '' %}
+                    <option value="">Select courier</option>
+                    {% if current_lm_courier and current_lm_courier not in courier_options %}<option value="{{ current_lm_courier }}" selected>{{ current_lm_courier }}</option>{% endif %}
+                    {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == current_lm_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
+                </select>
             </div>
         </div>
         <div class="grid-3">

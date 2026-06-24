@@ -21,6 +21,23 @@ ITEM_DETAILS_PREFIX = "ITEM_DETAILS_JSON:"
 ITEM_RAW_PREFIX = "ITEM_RAW_TEXT_JSON:"
 RATE_DETAILS_PREFIX = "RATE_DETAILS_JSON:"
 
+DEFAULT_COURIERS = [
+    "DHL",
+    "Aramax",
+    "Quickship",
+    "DTDC",
+    "UPS",
+    "Overseas",
+    "Atlantic",
+    "FedEx",
+    "IndiaPost",
+    "DPD",
+]
+
+def get_courier_options(db: Session) -> list[str]:
+    shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
+    tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
+    return sorted({c.strip() for c in DEFAULT_COURIERS + shipment_couriers + tracking_couriers if c and c.strip()}, key=str.lower)
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
         "line_1": "",
@@ -290,9 +307,7 @@ def list_shipments(
         query = query.filter(Shipment.overall_status == status)
         
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
-    shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
-    tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
-    courier_options = sorted({c.strip() for c in shipment_couriers + tracking_couriers if c and c.strip()}, key=str.lower)
+    courier_options = get_courier_options(db)
     
     return templates.TemplateResponse("shipments/list.html", {
         "request": request,
@@ -303,13 +318,14 @@ def list_shipments(
     })
 
 @router.get("/new")
-def new_shipment_form(request: Request):
+def new_shipment_form(request: Request, db: Session = Depends(get_db)):
     today = now_ist().strftime("%Y-%m-%d")
     return templates.TemplateResponse("shipments/new.html", {
         "request": request,
         "today": today,
         "item_details": [],
-        "item_raw_text": ""
+        "item_raw_text": "",
+        "courier_options": get_courier_options(db)
     })
 
 @router.post("/items/parse")
@@ -595,7 +611,8 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "receiver_address": receiver_address,
         "item_details": item_details,
         "item_raw_text": parse_item_raw_text(shipment.raw_excel_notes),
-        "rate_details": rate_details
+        "rate_details": rate_details,
+        "courier_options": get_courier_options(db)
     })
 
 @router.post("/{shipment_id}/edit")

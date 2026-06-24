@@ -109,7 +109,10 @@
             </div>
             <div class="form-group">
                 <label>Courier Company <span class="required">*</span></label>
-                <input type="text" name="courier_company" placeholder="e.g. DHL, QS" required>
+                <select name="courier_company" required>
+                    <option value="">Select courier</option>
+                    {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Dead Weight</label>
@@ -208,7 +211,10 @@
             </div>
             <div class="form-group">
                 <label>Main Tracking Courier</label>
-                <input type="text" name="main_tracking_courier" placeholder="e.g. DHL">
+                <select name="main_tracking_courier">
+                    <option value="">Select courier</option>
+                    {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) AWB Number</label>
@@ -216,7 +222,10 @@
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) Courier</label>
-                <input type="text" name="lm_awb_courier" placeholder="e.g. Royal Mail">
+                <select name="lm_awb_courier">
+                    <option value="">Select courier</option>
+                    {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
+                </select>
             </div>
         </div>
         <div class="grid-3">
