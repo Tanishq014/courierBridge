@@ -848,6 +848,12 @@ input[type="checkbox"] {
     line-height: 1.35;
     resize: vertical;
 }
+.compact-shipment-form textarea.large-notes {
+    min-height: 96px;
+    overflow: hidden;
+    line-height: 1.45;
+    resize: vertical;
+}
 
 .item-details-layout {
     display: grid;
@@ -914,6 +920,13 @@ input[type="checkbox"] {
     padding-inline: 8px;
     font-weight: 800;
     text-transform: uppercase;
+}
+.money-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(105px, 1fr));
+    gap: 8px;
+    align-items: end;
+    overflow-x: auto;
 }
 
 .compact-shipment-form > h3 {

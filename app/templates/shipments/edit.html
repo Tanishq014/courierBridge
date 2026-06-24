@@ -176,7 +176,7 @@
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
-        <div class="grid-3">
+        <div class="money-grid">
             <div class="form-group">
                 <label>Billed Amount (Customer)</label>
                 <input type="number" step="0.01" name="billed_amount" value="{{ shipment.billed_amount or 0 }}" id="billed_amount">
@@ -188,8 +188,6 @@
             <div class="form-group" style="color: var(--danger-text); font-weight: bold;">
                 Balance: <span id="balance_display">{{ shipment.balance_amount or 0 }}</span>
             </div>
-        </div>
-        <div class="grid-3">
             <div class="form-group">
                 <label>Self Cost (Vendor)</label>
                 <input type="number" step="0.01" name="self_cost" value="{{ shipment.self_cost or 0 }}" id="self_cost">
@@ -204,7 +202,7 @@
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Tracking & Status</h3>
-        <div class="grid-2">
+        <div class="grid-4">
             <div class="form-group">
                 <label>Main Tracking Number</label>
                 <input type="text" name="main_tracking_number" value="{{ main_awb.tracking_number if main_awb else '' }}">
@@ -213,8 +211,6 @@
                 <label>Main Tracking Courier</label>
                 <input type="text" name="main_tracking_courier" value="{{ main_awb.courier_name if main_awb else '' }}">
             </div>
-        </div>
-        <div class="grid-2">
             <div class="form-group">
                 <label>Last Mile (LM) AWB Number</label>
                 <input type="text" name="lm_awb_number" value="{{ lm_awb.tracking_number if lm_awb else '' }}">
@@ -251,23 +247,13 @@
         </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;" {% if shipment.requires_lm_awb %}checked{% endif %}>
-            <label style="margin: 0; font-weight: 500;">Expects Last Mile (LM) AWB</label>
+            <label style="margin: 0; font-weight: 500;">Last-mile AWB will be added later</label>
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Notes</h3>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Customer Notes</label>
-                <input type="text" name="customer_notes" value="{{ shipment.customer_notes or '' }}">
-            </div>
-            <div class="form-group">
-                <label>Internal Notes</label>
-                <input type="text" name="internal_notes" value="{{ shipment.internal_notes or '' }}">
-            </div>
-        </div>
         <div class="form-group">
-            <label>Balance Notes</label>
-            <input type="text" name="balance_notes" value="{{ shipment.balance_notes or '' }}">
+            <label>Notes</label>
+            <textarea class="auto-grow large-notes" rows="4" name="internal_notes" placeholder="Add customer, balance, or internal notes here">{{ [shipment.internal_notes, shipment.customer_notes, shipment.balance_notes] | select | join('\n') }}</textarea>
         </div>
 
         <div class="form-actions">
