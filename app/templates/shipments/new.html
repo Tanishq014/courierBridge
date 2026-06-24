@@ -146,14 +146,10 @@
         </div>
         <div class="grid-4">
             <div class="form-group">
-                <label>Customer Rate Text (Excel)</label>
-                <input type="text" name="customer_rate_text" id="customer_rate_text" placeholder="e.g. 23*600">
-            </div>
-            <div class="form-group">
                 <label>Customer Charged Weight</label>
                 <div class="input-with-unit">
                     <input type="number" step="0.01" name="customer_charged_weight" id="customer_charged_weight" placeholder="23">
-                    <select name="customer_charged_weight_unit" class="unit-select">
+                    <select name="customer_charged_weight_unit" id="customer_charged_weight_unit" class="unit-select">
                         <option value="KG" selected>KG</option>
                         <option value="G">G</option>
                         <option value="LB">LB</option>
@@ -161,19 +157,23 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Vendor Rate Text (Excel)</label>
-                <input type="text" name="vendor_rate_text" id="vendor_rate_text" placeholder="e.g. 21*602">
+                <label>Customer Per KG Rate</label>
+                <input type="number" step="0.01" name="customer_rate_text" id="customer_rate_text" placeholder="600">
             </div>
             <div class="form-group">
                 <label>Vendor Charged Weight</label>
                 <div class="input-with-unit">
                     <input type="number" step="0.01" name="vendor_charged_weight" id="vendor_charged_weight" placeholder="21">
-                    <select name="vendor_charged_weight_unit" class="unit-select">
+                    <select name="vendor_charged_weight_unit" id="vendor_charged_weight_unit" class="unit-select">
                         <option value="KG" selected>KG</option>
                         <option value="G">G</option>
                         <option value="LB">LB</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Vendor Per KG Rate</label>
+                <input type="number" step="0.01" name="vendor_rate_text" id="vendor_rate_text" placeholder="602">
             </div>
         </div>
 
@@ -419,57 +419,42 @@
         textarea.addEventListener('input', () => resizeTextarea(textarea));
     });
 
-    function extractChargedWeight(rateText) {
-        const matches = String(rateText || '').match(/-?\d+(?:\.\d+)?/g) || [];
-        if (!matches.length) return '';
-        const numbers = matches.map(value => Number(value)).filter(value => Number.isFinite(value));
-        if (!numbers.length) return '';
-        return String(Math.min(...numbers));
+    function weightInKg(weight, unit) {
+        const value = parseFloat(weight) || 0;
+        const normalizedUnit = String(unit || 'KG').toUpperCase();
+        if (normalizedUnit === 'G') return value / 1000;
+        if (normalizedUnit === 'LB') return value * 0.45359237;
+        return value;
     }
 
-    function bindChargedWeightExtraction(textId, weightId) {
-        const textInput = document.getElementById(textId);
-        const weightInput = document.getElementById(weightId);
-        if (!textInput || !weightInput) return;
-        textInput.addEventListener('input', () => {
-            const extracted = extractChargedWeight(textInput.value);
-            if (extracted) weightInput.value = extracted;
-        });
-        if (!weightInput.value) {
-            const extracted = extractChargedWeight(textInput.value);
-            if (extracted) weightInput.value = extracted;
+    function updateRateAmounts() {
+        const customerWeight = document.getElementById('customer_charged_weight');
+        const customerUnit = document.getElementById('customer_charged_weight_unit');
+        const customerRate = document.getElementById('customer_rate_text');
+        const vendorWeight = document.getElementById('vendor_charged_weight');
+        const vendorUnit = document.getElementById('vendor_charged_weight_unit');
+        const vendorRate = document.getElementById('vendor_rate_text');
+
+        if (customerWeight && customerUnit && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
+            const amount = weightInKg(customerWeight.value, customerUnit.value) * (parseFloat(customerRate.value) || 0);
+            billedInput.value = amount ? amount.toFixed(2) : '0.00';
         }
+        if (vendorWeight && vendorUnit && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
+            const amount = weightInKg(vendorWeight.value, vendorUnit.value) * (parseFloat(vendorRate.value) || 0);
+            selfCostInput.value = amount ? amount.toFixed(2) : '0.00';
+        }
+        updateCalculations();
     }
 
-    bindChargedWeightExtraction('customer_rate_text', 'customer_charged_weight');
-    bindChargedWeightExtraction('vendor_rate_text', 'vendor_charged_weight');
-    function extractRateAmount(rateText) {
-        const parts = String(rateText || '').split('*');
-        if (parts.length < 2) return '';
-        const numbers = parts.map(part => {
-            const match = part.match(/-?\d+(?:\.\d+)?/);
-            return match ? Number(match[0]) : NaN;
-        }).filter(value => Number.isFinite(value));
-        if (numbers.length < 2) return '';
-        const amount = numbers.reduce((total, value) => total * value, 1);
-        return Number.isFinite(amount) ? amount.toFixed(2) : '';
-    }
+    ['customer_charged_weight', 'customer_charged_weight_unit', 'customer_rate_text', 'vendor_charged_weight', 'vendor_charged_weight_unit', 'vendor_rate_text'].forEach(id => {
+        const field = document.getElementById(id);
+        if (field) {
+            field.addEventListener('input', updateRateAmounts);
+            field.addEventListener('change', updateRateAmounts);
+        }
+    });
 
-    function bindAmountExtraction(textId, amountInput) {
-        const textInput = document.getElementById(textId);
-        if (!textInput || !amountInput) return;
-        textInput.addEventListener('input', () => {
-            const extracted = extractRateAmount(textInput.value);
-            if (extracted) {
-                amountInput.value = extracted;
-                updateCalculations();
-            }
-        });
-    }
-
-    bindAmountExtraction('customer_rate_text', billedInput);
-    bindAmountExtraction('vendor_rate_text', selfCostInput);
-
+    updateRateAmounts();
     const initialItems = {{ item_details | tojson }};
     const itemRows = document.getElementById('item_rows');
     const itemDetailsInput = document.getElementById('item_details_json');

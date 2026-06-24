@@ -109,6 +109,14 @@
                 <span class="detail-label">Rate basis</span>
                 <span class="detail-value">{{ shipment.weight_basis | capitalize }}</span>
             </div>
+            <div class="detail-item">
+                <span class="detail-label">Customer charged</span>
+                <span class="detail-value">{{ rate_details.customer_charged_weight or '—' }}{% if rate_details.customer_charged_weight %} {{ rate_details.customer_charged_weight_unit }}{% endif %}{% if customer_per_kg_rate %} · ₹{{ customer_per_kg_rate }}/KG{% endif %}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Vendor charged</span>
+                <span class="detail-value">{{ rate_details.vendor_charged_weight or '—' }}{% if rate_details.vendor_charged_weight %} {{ rate_details.vendor_charged_weight_unit }}{% endif %}{% if vendor_per_kg_rate %} · ₹{{ vendor_per_kg_rate }}/KG{% endif %}</span>
+            </div>
         </div>
         <div class="financial-strip">
             <div class="financial-item">

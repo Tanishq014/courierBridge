@@ -234,6 +234,44 @@ def parse_decimal(val: str) -> Decimal:
     except Exception:
         return Decimal("0.0")
 
+
+def decimal_to_plain(value: Decimal) -> str:
+    normalized = value.normalize()
+    if normalized == normalized.to_integral():
+        return format(normalized, "f")
+    return format(normalized, "f").rstrip("0").rstrip(".")
+
+
+def extract_per_kg_rate(val: str) -> str:
+    parts = [part.strip() for part in str(val or "").split("*") if part.strip()]
+    if len(parts) >= 2:
+        numbers = []
+        for part in parts:
+            try:
+                numbers.append(Decimal(part))
+            except Exception:
+                continue
+        if numbers:
+            return decimal_to_plain(max(numbers))
+    parsed = parse_decimal(str(val or ""))
+    return decimal_to_plain(parsed) if parsed else ""
+
+
+def charged_weight_to_kg(weight: str, unit: str) -> Decimal:
+    value = parse_decimal(weight)
+    normalized_unit = normalize_unit(unit)
+    if normalized_unit == "G":
+        return value / Decimal("1000")
+    if normalized_unit == "LB":
+        return value * Decimal("0.45359237")
+    return value
+
+
+def calculate_rate_amount(weight: str, unit: str, per_kg_rate: str) -> Decimal:
+    kg_weight = charged_weight_to_kg(weight, unit)
+    rate = parse_decimal(extract_per_kg_rate(per_kg_rate))
+    return (kg_weight * rate).quantize(Decimal("0.01")) if kg_weight and rate else Decimal("0.0")
+
 def parse_float(val: str) -> float:
     try:
         return float(val) if val and val.strip() else 0.0
@@ -452,9 +490,9 @@ def create_shipment(
     raw_excel_notes: str = Form(""),
     raw_excel_row_text: str = Form("")
 ):
-    parsed_billed = parse_decimal(billed_amount)
+    parsed_billed = calculate_rate_amount(customer_charged_weight, customer_charged_weight_unit, customer_rate_text) or parse_decimal(billed_amount)
     parsed_received = parse_decimal(received_amount)
-    parsed_self_cost = parse_decimal(self_cost)
+    parsed_self_cost = calculate_rate_amount(vendor_charged_weight, vendor_charged_weight_unit, vendor_rate_text) or parse_decimal(self_cost)
     parsed_other_exp = parse_decimal(other_expense)
     
     total_cost = parsed_self_cost + parsed_other_exp
@@ -592,7 +630,9 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
         "receiver_address": receiver_address,
         "receiver_address_text": format_receiver_address(receiver_address),
         "item_details": item_details,
-        "rate_details": rate_details
+        "rate_details": rate_details,
+        "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
+        "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text)
     })
 
 @router.get("/{shipment_id}/edit")
@@ -616,6 +656,8 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "item_details": item_details,
         "item_raw_text": parse_item_raw_text(shipment.raw_excel_notes),
         "rate_details": rate_details,
+        "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
+        "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text),
         "courier_options": get_courier_options(db)
     })
 
@@ -684,9 +726,9 @@ def update_shipment(
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
         
-    parsed_billed = parse_decimal(billed_amount)
+    parsed_billed = calculate_rate_amount(customer_charged_weight, customer_charged_weight_unit, customer_rate_text) or parse_decimal(billed_amount)
     parsed_received = parse_decimal(received_amount)
-    parsed_self_cost = parse_decimal(self_cost)
+    parsed_self_cost = calculate_rate_amount(vendor_charged_weight, vendor_charged_weight_unit, vendor_rate_text) or parse_decimal(self_cost)
     parsed_other_exp = parse_decimal(other_expense)
         
     total_cost = parsed_self_cost + parsed_other_exp
