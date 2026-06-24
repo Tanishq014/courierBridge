@@ -18,6 +18,8 @@ ENV/
 
 # Env vars
 .env
+.env.*
+!.env.example
 
 # IDEs
 .idea/

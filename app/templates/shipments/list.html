@@ -112,7 +112,7 @@
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% elif s.status_raw_text %}<span class="cell-secondary">{{ s.status_raw_text }}</span>{% endif %}
                     </td>
                     <td>
-                        <span class="cell-primary">{{ s.charged_weight_text or s.charged_weight or '—' }}</span>
+                        <span class="cell-primary">{{ s.dead_weight or '—' }}{% if s.dead_weight %} {{ (s.dead_weight_text or 'KG')|upper }}{% endif %}</span>
                         <span class="cell-secondary">{{ s.item_category or 'Unspecified' }}</span>
                     </td>
                     <td>

@@ -37,18 +37,22 @@
     <section class="card">
         <div class="card-header">
             <div>
-                <h3>Customer & route</h3>
+                <h3>Sender & route</h3>
                 <p class="card-subtitle">Contact and delivery information.</p>
             </div>
         </div>
         <div class="detail-list">
             <div class="detail-item">
-                <span class="detail-label">Customer</span>
+                <span class="detail-label">Sender</span>
                 <span class="detail-value">{{ shipment.customer_name }}</span>
             </div>
             <div class="detail-item">
-                <span class="detail-label">Phone</span>
+                <span class="detail-label">Sender phone</span>
                 <span class="detail-value">{{ shipment.customer_phone or 'Not provided' }}</span>
+            </div>
+            <div class="detail-item wide">
+                <span class="detail-label">Receiver address</span>
+                <span class="detail-value">{{ receiver_address_text or 'Not provided' }}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Receiver</span>
@@ -61,6 +65,18 @@
             <div class="detail-item">
                 <span class="detail-label">Contents</span>
                 <span class="detail-value">{{ shipment.item_category or 'Not specified' }}</span>
+            </div>
+            <div class="detail-item wide">
+                <span class="detail-label">Item details</span>
+                <span class="detail-value">
+                    {% if item_details %}
+                        {% for item in item_details %}
+                            {{ item.name }}{% if item.quantity %} × {{ item.quantity }}{% endif %}{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        Not provided
+                    {% endif %}
+                </span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Promised timeline</span>
@@ -83,15 +99,11 @@
         <div class="detail-list">
             <div class="detail-item">
                 <span class="detail-label">Dead weight</span>
-                <span class="detail-value">{{ shipment.dead_weight_text or shipment.dead_weight or '—' }}</span>
+                <span class="detail-value">{{ shipment.dead_weight or '—' }}{% if shipment.dead_weight %} {{ (shipment.dead_weight_text or 'KG')|upper }}{% endif %}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Volumetric weight</span>
-                <span class="detail-value">{{ shipment.volumetric_weight_text or shipment.volumetric_weight or '—' }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Charged weight</span>
-                <span class="detail-value">{{ shipment.charged_weight_text or shipment.charged_weight or '—' }}</span>
+                <span class="detail-value">{{ shipment.volumetric_weight or '—' }}{% if shipment.volumetric_weight %} {{ (shipment.volumetric_weight_text or 'KG')|upper }}{% endif %}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Rate basis</span>

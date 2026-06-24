@@ -1,15 +1,169 @@
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
 from app.models import Shipment, TrackingNumber, now_ist
 from decimal import Decimal
 from datetime import datetime
+import json
+import os
+import urllib.error
+import urllib.request
 
 router = APIRouter(prefix="/shipments")
 templates = Jinja2Templates(directory="app/templates")
+
+RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
+LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"
+ITEM_DETAILS_PREFIX = "ITEM_DETAILS_JSON:"
+ITEM_RAW_PREFIX = "ITEM_RAW_TEXT_JSON:"
+
+def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
+    blank = {
+        "line_1": "",
+        "line_2": "",
+        "line_3": "",
+        "city": "",
+        "state": "",
+        "zip": "",
+    }
+    if not raw_notes:
+        return blank
+
+    for line in raw_notes.splitlines():
+        if line.startswith(RECEIVER_ADDRESS_PREFIX):
+            try:
+                parsed = json.loads(line[len(RECEIVER_ADDRESS_PREFIX):])
+            except json.JSONDecodeError:
+                return blank
+            return {key: str(parsed.get(key, "") or "") for key in blank}
+    return blank
+
+def format_receiver_address(address: dict[str, str]) -> str:
+    return ", ".join(value for value in address.values() if value)
+
+def encode_receiver_address(raw_notes: str | None, address: dict[str, str]) -> str:
+    preserved_lines = [
+        line for line in (raw_notes or "").splitlines()
+        if not line.startswith(RECEIVER_ADDRESS_PREFIX)
+        and not line.startswith(LEGACY_SENDER_ADDRESS_PREFIX)
+    ]
+    if any(value.strip() for value in address.values()):
+        preserved_lines.append(
+            RECEIVER_ADDRESS_PREFIX + json.dumps(address, separators=(",", ":"))
+        )
+    return "\n".join(line for line in preserved_lines if line.strip())
+
+def parse_item_details(raw_notes: str | None) -> list[dict[str, str]]:
+    if not raw_notes:
+        return []
+
+    for line in raw_notes.splitlines():
+        if line.startswith(ITEM_DETAILS_PREFIX):
+            try:
+                parsed = json.loads(line[len(ITEM_DETAILS_PREFIX):])
+            except json.JSONDecodeError:
+                return []
+            if not isinstance(parsed, list):
+                return []
+            items = []
+            for item in parsed:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name", "") or "").strip()
+                quantity = str(item.get("quantity", "") or "").strip()
+                if name or quantity:
+                    items.append({"name": name, "quantity": quantity})
+            return items
+    return []
+
+def parse_item_raw_text(raw_notes: str | None) -> str:
+    if not raw_notes:
+        return ""
+
+    for line in raw_notes.splitlines():
+        if line.startswith(ITEM_RAW_PREFIX):
+            try:
+                parsed = json.loads(line[len(ITEM_RAW_PREFIX):])
+            except json.JSONDecodeError:
+                return ""
+            return str(parsed or "")
+    return ""
+
+def clean_item_details(raw_items: str | None) -> list[dict[str, str]]:
+    if not raw_items:
+        return []
+
+    try:
+        parsed = json.loads(raw_items)
+    except json.JSONDecodeError:
+        return []
+
+    if not isinstance(parsed, list):
+        return []
+
+    items = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "") or "").strip()
+        quantity = str(item.get("quantity", "") or "").strip()
+        if name or quantity:
+            items.append({"name": name, "quantity": quantity})
+    return items
+
+def encode_item_details(raw_notes: str | None, items: list[dict[str, str]], raw_text: str) -> str:
+    preserved_lines = [
+        line for line in (raw_notes or "").splitlines()
+        if not line.startswith(ITEM_DETAILS_PREFIX)
+        and not line.startswith(ITEM_RAW_PREFIX)
+    ]
+    if items:
+        preserved_lines.append(
+            ITEM_DETAILS_PREFIX + json.dumps(items, separators=(",", ":"))
+        )
+    if raw_text.strip():
+        preserved_lines.append(
+            ITEM_RAW_PREFIX + json.dumps(raw_text.strip(), separators=(",", ":"))
+        )
+    return "\n".join(line for line in preserved_lines if line.strip())
+
+def extract_json_from_text(text: str):
+    text = (text or "").strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = min((idx for idx in [text.find("["), text.find("{")] if idx != -1), default=-1)
+        end = max(text.rfind("]"), text.rfind("}"))
+        if start == -1 or end == -1 or end <= start:
+            raise
+        return json.loads(text[start:end + 1])
+
+def normalize_gemini_items(parsed) -> list[dict[str, str]]:
+    if isinstance(parsed, dict):
+        parsed = parsed.get("items", [])
+    if not isinstance(parsed, list):
+        return []
+
+    items = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", item.get("item", "")) or "").strip()
+        quantity = str(item.get("quantity", item.get("qty", "")) or "").strip()
+        if name or quantity:
+            items.append({"name": name, "quantity": quantity})
+    return items
 
 def parse_decimal(val: str) -> Decimal:
     try:
@@ -22,6 +176,10 @@ def parse_float(val: str) -> float:
         return float(val) if val and val.strip() else 0.0
     except ValueError:
         return 0.0
+
+def normalize_unit(val: str, default: str = "KG") -> str:
+    normalized = (val or default).strip().upper()
+    return normalized or default
 
 def parse_int(val: str) -> int | None:
     try:
@@ -101,13 +259,83 @@ def list_shipments(
 @router.get("/new")
 def new_shipment_form(request: Request):
     today = now_ist().strftime("%Y-%m-%d")
-    return templates.TemplateResponse("shipments/new.html", {"request": request, "today": today})
+    return templates.TemplateResponse("shipments/new.html", {
+        "request": request,
+        "today": today,
+        "item_details": [],
+        "item_raw_text": ""
+    })
+
+@router.post("/items/parse")
+async def parse_items_with_gemini(request: Request):
+    payload = await request.json()
+    raw_text = str(payload.get("raw_text", "") or "").strip()
+    if not raw_text:
+        return JSONResponse({"items": []})
+
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return JSONResponse(
+            {"error": "Set GEMINI_API_KEY or GOOGLE_API_KEY in the environment."},
+            status_code=400
+        )
+
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    prompt = (
+        "Extract shipment item details from the raw text. "
+        "Return only valid JSON in this exact shape: "
+        "{\"items\":[{\"name\":\"item name\",\"quantity\":\"quantity\"}]}. "
+        "Use strings for quantity and preserve units if present. "
+        "Do not include markdown or explanation.\n\n"
+        f"Raw text:\n{raw_text}"
+    )
+    body = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.1,
+            "responseMimeType": "application/json"
+        }
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            response_payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        return JSONResponse({"error": f"Gemini request failed: {details}"}, status_code=502)
+    except Exception as exc:
+        return JSONResponse({"error": f"Gemini request failed: {exc}"}, status_code=502)
+
+    try:
+        text = response_payload["candidates"][0]["content"]["parts"][0]["text"]
+        items = normalize_gemini_items(extract_json_from_text(text))
+    except Exception:
+        return JSONResponse({"error": "Gemini returned an invalid item JSON response."}, status_code=502)
+
+    return JSONResponse({"items": items})
 
 @router.post("/new")
 def create_shipment(
     request: Request,
     db: Session = Depends(get_db),
     customer_name: str = Form(""),
+    receiver_address_line_1: str = Form(""),
+    receiver_address_line_2: str = Form(""),
+    receiver_address_line_3: str = Form(""),
+    receiver_state: str = Form(""),
+    receiver_zip: str = Form(""),
     receiver_name: str = Form(""),
     destination_country: str = Form(""),
     destination_city: str = Form(""),
@@ -116,15 +344,14 @@ def create_shipment(
     contact_or_reference_raw: str = Form(""),
     
     item_category: str = Form(""),
-    parcel_description: str = Form(""),
+    item_details_json: str = Form("[]"),
+    item_raw_text: str = Form(""),
     
     dead_weight: str = Form("0.0"),
     volumetric_weight: str = Form("0.0"),
-    charged_weight: str = Form("0.0"),
     weight_basis: str = Form("actual"),
-    dead_weight_text: str = Form(""),
-    volumetric_weight_text: str = Form(""),
-    charged_weight_text: str = Form(""),
+    dead_weight_unit: str = Form("KG"),
+    volumetric_weight_unit: str = Form("KG"),
     
     customer_rate_text: str = Form(""),
     vendor_rate_text: str = Form(""),
@@ -171,6 +398,19 @@ def create_shipment(
         except ValueError:
             pass
 
+    receiver_address = {
+        "line_1": receiver_address_line_1.strip(),
+        "line_2": receiver_address_line_2.strip(),
+        "line_3": receiver_address_line_3.strip(),
+        "city": destination_city.strip(),
+        "state": receiver_state.strip(),
+        "zip": receiver_zip.strip(),
+    }
+
+    item_details = clean_item_details(item_details_json)
+    notes_with_receiver = encode_receiver_address(raw_excel_notes, receiver_address)
+    notes_with_items = encode_item_details(notes_with_receiver, item_details, item_raw_text)
+
     shipment = Shipment(
         booking_date=parsed_booking_date,
         customer_name=customer_name,
@@ -181,14 +421,14 @@ def create_shipment(
         name_country_raw=name_country_raw,
         contact_or_reference_raw=contact_or_reference_raw,
         item_category=item_category,
-        parcel_description=parcel_description,
+        parcel_description="",
         dead_weight=parse_float(dead_weight),
         volumetric_weight=parse_float(volumetric_weight),
-        charged_weight=parse_float(charged_weight),
+        charged_weight=0.0,
         weight_basis=weight_basis,
-        dead_weight_text=dead_weight_text,
-        volumetric_weight_text=volumetric_weight_text,
-        charged_weight_text=charged_weight_text,
+        dead_weight_text=normalize_unit(dead_weight_unit),
+        volumetric_weight_text=normalize_unit(volumetric_weight_unit),
+        charged_weight_text="",
         customer_rate_text=customer_rate_text,
         vendor_rate_text=vendor_rate_text,
         courier_company=courier_company,
@@ -208,7 +448,7 @@ def create_shipment(
         internal_notes=internal_notes,
         customer_notes=customer_notes,
         balance_notes=balance_notes,
-        raw_excel_notes=raw_excel_notes,
+        raw_excel_notes=notes_with_items,
         raw_excel_row_text=raw_excel_row_text,
         last_status_text=status_raw_text
     )
@@ -237,9 +477,14 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
         
+    receiver_address = parse_receiver_address(shipment.raw_excel_notes)
+    item_details = parse_item_details(shipment.raw_excel_notes)
     return templates.TemplateResponse("shipments/detail.html", {
         "request": request,
-        "shipment": shipment
+        "shipment": shipment,
+        "receiver_address": receiver_address,
+        "receiver_address_text": format_receiver_address(receiver_address),
+        "item_details": item_details
     })
 
 @router.get("/{shipment_id}/edit")
@@ -251,11 +496,16 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
     main_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "main_awb"), None)
     lm_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "lm_awb"), None)
         
+    receiver_address = parse_receiver_address(shipment.raw_excel_notes)
+    item_details = parse_item_details(shipment.raw_excel_notes)
     return templates.TemplateResponse("shipments/edit.html", {
         "request": request,
         "shipment": shipment,
         "main_awb": main_awb,
-        "lm_awb": lm_awb
+        "lm_awb": lm_awb,
+        "receiver_address": receiver_address,
+        "item_details": item_details,
+        "item_raw_text": parse_item_raw_text(shipment.raw_excel_notes)
     })
 
 @router.post("/{shipment_id}/edit")
@@ -264,6 +514,11 @@ def update_shipment(
     shipment_id: int,
     db: Session = Depends(get_db),
     customer_name: str = Form(""),
+    receiver_address_line_1: str = Form(""),
+    receiver_address_line_2: str = Form(""),
+    receiver_address_line_3: str = Form(""),
+    receiver_state: str = Form(""),
+    receiver_zip: str = Form(""),
     receiver_name: str = Form(""),
     destination_country: str = Form(""),
     destination_city: str = Form(""),
@@ -272,15 +527,14 @@ def update_shipment(
     contact_or_reference_raw: str = Form(""),
     
     item_category: str = Form(""),
-    parcel_description: str = Form(""),
+    item_details_json: str = Form("[]"),
+    item_raw_text: str = Form(""),
     
     dead_weight: str = Form("0.0"),
     volumetric_weight: str = Form("0.0"),
-    charged_weight: str = Form("0.0"),
     weight_basis: str = Form("actual"),
-    dead_weight_text: str = Form(""),
-    volumetric_weight_text: str = Form(""),
-    charged_weight_text: str = Form(""),
+    dead_weight_unit: str = Form("KG"),
+    volumetric_weight_unit: str = Form("KG"),
     
     customer_rate_text: str = Form(""),
     vendor_rate_text: str = Form(""),
@@ -330,6 +584,15 @@ def update_shipment(
         except ValueError:
             pass
     
+    receiver_address = {
+        "line_1": receiver_address_line_1.strip(),
+        "line_2": receiver_address_line_2.strip(),
+        "line_3": receiver_address_line_3.strip(),
+        "city": destination_city.strip(),
+        "state": receiver_state.strip(),
+        "zip": receiver_zip.strip(),
+    }
+
     shipment.customer_name = customer_name
     shipment.receiver_name = receiver_name
     shipment.destination_country = destination_country
@@ -339,15 +602,15 @@ def update_shipment(
     shipment.contact_or_reference_raw = contact_or_reference_raw
     
     shipment.item_category = item_category
-    shipment.parcel_description = parcel_description
+    shipment.parcel_description = ""
     
     shipment.dead_weight = parse_float(dead_weight)
     shipment.volumetric_weight = parse_float(volumetric_weight)
-    shipment.charged_weight = parse_float(charged_weight)
+    shipment.charged_weight = 0.0
     shipment.weight_basis = weight_basis
-    shipment.dead_weight_text = dead_weight_text
-    shipment.volumetric_weight_text = volumetric_weight_text
-    shipment.charged_weight_text = charged_weight_text
+    shipment.dead_weight_text = normalize_unit(dead_weight_unit)
+    shipment.volumetric_weight_text = normalize_unit(volumetric_weight_unit)
+    shipment.charged_weight_text = ""
     
     shipment.customer_rate_text = customer_rate_text
     shipment.vendor_rate_text = vendor_rate_text
@@ -379,7 +642,9 @@ def update_shipment(
     shipment.internal_notes = internal_notes
     shipment.customer_notes = customer_notes
     shipment.balance_notes = balance_notes
-    shipment.raw_excel_notes = raw_excel_notes
+    item_details = clean_item_details(item_details_json)
+    notes_with_receiver = encode_receiver_address(raw_excel_notes, receiver_address)
+    shipment.raw_excel_notes = encode_item_details(notes_with_receiver, item_details, item_raw_text)
     shipment.raw_excel_row_text = raw_excel_row_text
     
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)

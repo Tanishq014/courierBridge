@@ -3,57 +3,105 @@
 {% block title %}New Shipment | CourierBridge{% endblock %}
 
 {% block content %}
-<header class="page-header">
+<header class="page-header compact-page-header">
     <div class="page-heading">
-        <div class="eyebrow">New booking</div>
-        <h1>Create shipment</h1>
-        <p class="page-description">Capture the customer, route, commercial details, and initial tracking references.</p>
+        <h1>Create new booking</h1>
     </div>
     <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
 </header>
 
 <div class="card form-card">
-    <form method="POST" action="/shipments/new" class="shipment-form">
+    <form method="POST" action="/shipments/new" class="shipment-form compact-shipment-form">
         
-        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Basic Details</h3>
-        <div class="grid-3">
-            <div class="form-group">
+        <div class="form-section-title">
+            <h3>Sender & Receiver</h3>
+            <div class="form-group inline-date">
                 <label>Booking Date <span class="required">*</span></label>
                 <input type="date" name="booking_date" value="{{ today }}" required>
             </div>
+        </div>
+        <div class="grid-4">
             <div class="form-group">
-                <label>Customer Name <span class="required">*</span></label>
-                <input type="text" name="customer_name" placeholder="e.g. John Doe" required>
-            </div>
-            <div class="form-group">
-                <label>Customer Phone</label>
+                <label>Sender Phone</label>
                 <input type="text" name="customer_phone" placeholder="e.g. 9876543210">
             </div>
-        </div>
-        <div class="grid-3">
+            <div class="form-group">
+                <label>Sender Name <span class="required">*</span></label>
+                <input type="text" name="customer_name" placeholder="e.g. John Doe" required>
+            </div>
             <div class="form-group">
                 <label>Receiver Name</label>
                 <input type="text" name="receiver_name" placeholder="e.g. Jane Smith">
             </div>
             <div class="form-group">
+                <label>Receiver Phone</label>
+                <input type="text" name="contact_or_reference_raw" placeholder="Optional">
+            </div>
+        </div>
+        <div class="grid-4">
+            <div class="form-group">
+                <label>Receiver City</label>
+                <input type="text" name="destination_city" placeholder="e.g. Toronto">
+            </div>
+            <div class="form-group">
+                <label>Receiver State</label>
+                <input type="text" name="receiver_state" placeholder="e.g. Ontario">
+            </div>
+            <div class="form-group">
+                <label>Receiver ZIP</label>
+                <input type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
+            </div>
+            <div class="form-group">
                 <label>Destination Country <span class="required">*</span></label>
                 <input type="text" name="destination_country" placeholder="e.g. Canada, UK" required>
             </div>
+        </div>
+        <div class="grid-4 address-grid">
             <div class="form-group">
-                <label>Destination City</label>
-                <input type="text" name="destination_city" placeholder="e.g. Toronto">
+                <label>Address Line 1</label>
+                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_1" placeholder="House / building"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Address Line 2</label>
+                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_2" placeholder="Street / area"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Address Line 3</label>
+                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_3" placeholder="Landmark / optional"></textarea>
             </div>
         </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Item Details</h3>
+        <input type="hidden" name="item_details_json" id="item_details_json" value="[]">
+        <input type="hidden" name="item_raw_text" id="item_raw_text_hidden" value="">
+        <div class="item-details-layout">
+            <div class="item-detail-stack">
+                <div class="form-group">
+                    <label>Item Category</label>
+                    <input type="text" name="item_category" placeholder="medicine, cloth, etc.">
+                </div>
+                <div class="form-group">
+                    <label>Raw Items</label>
+                    <textarea id="item_raw_text_input" class="auto-grow item-raw-input" rows="3" placeholder="Paste item list here, then click Add items"></textarea>
+                    <div class="item-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="parse_items_btn">Add items</button>
+                        <span class="field-hint" id="item_parse_status">Uses Gemini when an API key is configured.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="item-table-card item-table-align-category">
+                <div class="item-table-header">
+                    <span>Item name</span>
+                    <span>Quantity</span>
+                    <span></span>
+                </div>
+                <div id="item_rows" class="item-rows"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="add_item_row_btn">Add row manually</button>
+            </div>
+        </div>
+
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Weight & Rates</h3>
-        <div class="grid-3">
-            <div class="form-group">
-                <label>Item Category</label>
-                <input type="text" name="item_category" placeholder="medicine, cloth, etc.">
-            </div>
-            <div class="form-group">
-                <label>Parcel Description</label>
-                <input type="text" name="parcel_description">
-            </div>
+        <div class="grid-4">
             <div class="form-group">
                 <label>Weight Basis</label>
                 <select name="weight_basis">
@@ -61,37 +109,36 @@
                     <option value="volumetric">Volumetric</option>
                 </select>
             </div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Courier Company <span class="required">*</span></label>
-                <input type="text" name="courier_company" placeholder="e.g. DHL, QS" required>
-            </div>
             <div class="form-group">
                 <label>Vendor Partner</label>
                 <input type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
             </div>
+            <div class="form-group">
+                <label>Courier Company <span class="required">*</span></label>
+                <input type="text" name="courier_company" placeholder="e.g. DHL, QS" required>
+            </div>
         </div>
-        <div class="grid-3">
+        <div class="grid-4">
             <div class="form-group">
-                <label>Dead Weight (Num | Text)</label>
-                <div style="display:flex; gap:0.5rem;">
-                    <input type="number" step="0.01" name="dead_weight" value="0.0" style="width: 50%;">
-                    <input type="text" name="dead_weight_text" placeholder="e.g. 100GM" style="width: 50%;">
+                <label>Dead Weight</label>
+                <div class="input-with-unit">
+                    <input type="number" step="0.01" name="dead_weight" value="0.0">
+                    <select name="dead_weight_unit" class="unit-select">
+                        <option value="KG" selected>KG</option>
+                        <option value="G">G</option>
+                        <option value="LB">LB</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group">
-                <label>Volumetric Weight (Num | Text)</label>
-                <div style="display:flex; gap:0.5rem;">
-                    <input type="number" step="0.01" name="volumetric_weight" value="0.0" style="width: 50%;">
-                    <input type="text" name="volumetric_weight_text" placeholder="e.g. 34/36/2" style="width: 50%;">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Charged Weight (Num | Text)</label>
-                <div style="display:flex; gap:0.5rem;">
-                    <input type="number" step="0.01" name="charged_weight" value="0.0" style="width: 50%;">
-                    <input type="text" name="charged_weight_text" placeholder="e.g. 19KG" style="width: 50%;">
+                <label>Volumetric Weight</label>
+                <div class="input-with-unit">
+                    <input type="number" step="0.01" name="volumetric_weight" value="0.0">
+                    <select name="volumetric_weight_unit" class="unit-select">
+                        <option value="KG" selected>KG</option>
+                        <option value="G">G</option>
+                        <option value="LB">LB</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -206,7 +253,7 @@
 
         <div class="form-actions">
             <a href="/shipments" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary">Create shipment</button>
+            <button type="submit" class="btn btn-primary">Create new booking</button>
         </div>
     </form>
 </div>
@@ -349,5 +396,84 @@
             }
         }
     });
+
+    function resizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    document.querySelectorAll('textarea.auto-grow').forEach(textarea => {
+        resizeTextarea(textarea);
+        textarea.addEventListener('input', () => resizeTextarea(textarea));
+    });
+
+    const initialItems = {{ item_details | tojson }};
+    const itemRows = document.getElementById('item_rows');
+    const itemDetailsInput = document.getElementById('item_details_json');
+    const itemRawInput = document.getElementById('item_raw_text_input');
+    const itemRawHidden = document.getElementById('item_raw_text_hidden');
+    const itemStatus = document.getElementById('item_parse_status');
+
+    function syncItemDetails() {
+        const items = Array.from(itemRows.querySelectorAll('.item-row')).map(row => ({
+            name: row.querySelector('[data-item-name]').value.trim(),
+            quantity: row.querySelector('[data-item-quantity]').value.trim()
+        })).filter(item => item.name || item.quantity);
+
+        itemDetailsInput.value = JSON.stringify(items);
+        itemRawHidden.value = itemRawInput.value;
+    }
+
+    function addItemRow(item = {}) {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+            <input type="text" data-item-name placeholder="Item name">
+            <input type="text" data-item-quantity placeholder="Qty">
+            <button type="button" class="btn btn-secondary btn-sm" data-remove-item>Remove</button>
+        `;
+        row.querySelector('[data-item-name]').value = item.name || '';
+        row.querySelector('[data-item-quantity]').value = item.quantity || '';
+        row.addEventListener('input', syncItemDetails);
+        row.querySelector('[data-remove-item]').addEventListener('click', () => {
+            row.remove();
+            if (!itemRows.children.length) addItemRow();
+            syncItemDetails();
+        });
+        itemRows.appendChild(row);
+        syncItemDetails();
+    }
+
+    function replaceItemRows(items) {
+        itemRows.innerHTML = '';
+        if (items && items.length) items.forEach(addItemRow);
+        else addItemRow();
+        syncItemDetails();
+    }
+
+    document.getElementById('add_item_row_btn').addEventListener('click', () => addItemRow());
+    itemRawInput.addEventListener('input', syncItemDetails);
+    document.getElementById('parse_items_btn').addEventListener('click', async () => {
+        const rawText = itemRawInput.value.trim();
+        if (!rawText) {
+            itemStatus.textContent = 'Paste raw item text first.';
+            return;
+        }
+        itemStatus.textContent = 'Parsing with Gemini...';
+        try {
+            const response = await fetch('/shipments/items/parse', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({raw_text: rawText})
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to parse items.');
+            replaceItemRows(payload.items || []);
+            itemStatus.textContent = payload.items && payload.items.length ? `Added ${payload.items.length} item(s).` : 'No items found.';
+        } catch (err) {
+            itemStatus.textContent = err.message;
+        }
+    });
+    replaceItemRows(initialItems);
 </script>
 {% endblock %}
