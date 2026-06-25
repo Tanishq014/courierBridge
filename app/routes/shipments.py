@@ -38,6 +38,53 @@ DEFAULT_COURIERS = [
     "MAWW",
 ]
 
+COUNTRY_ALIASES = {
+    "AUS": "AUSTRALIA",
+    "AUST": "AUSTRALIA",
+    "AUSTRALIA": "AUSTRALIA",
+    "CAN": "CANADA",
+    "CANADA": "CANADA",
+    "GER": "GERMANY",
+    "GERMANY": "GERMANY",
+    "EUROPE": "EUROPE",
+    "NZ": "NEW ZEALAND",
+    "NEW ZEALAND": "NEW ZEALAND",
+    "SINGAPORE": "SINGAPORE",
+    "UK": "UNITED KINGDOM",
+    "U.K.": "UNITED KINGDOM",
+    "UNITED KINGDOM": "UNITED KINGDOM",
+    "LONDON": "UNITED KINGDOM",
+    "US": "UNITED STATES",
+    "USA": "UNITED STATES",
+    "U.S.A.": "UNITED STATES",
+    "UNITED STATES": "UNITED STATES",
+}
+
+DEFAULT_COUNTRIES = [
+    "AUSTRALIA",
+    "CANADA",
+    "GERMANY",
+    "EUROPE",
+    "NEW ZEALAND",
+    "SINGAPORE",
+    "UNITED KINGDOM",
+    "UNITED STATES",
+]
+
+def normalize_country(value: str | None) -> str:
+    country = " ".join((value or "").strip().upper().replace("/", " ").replace("(", " ").replace(")", " ").split())
+    if country.startswith("AUS") or country.startswith("AUST"):
+        return "AUSTRALIA"
+    if country.startswith("CAN"):
+        return "CANADA"
+    if country.startswith("GER"):
+        return "GERMANY"
+    return COUNTRY_ALIASES.get(country, country)
+
+def get_country_options(db: Session) -> list[str]:
+    existing = [normalize_country(row[0]) for row in db.query(Shipment.destination_country).distinct().all() if row[0]]
+    return sorted({country for country in DEFAULT_COUNTRIES + existing if country}, key=str.lower)
+
 def get_courier_options(db: Session) -> list[str]:
     shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
     tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
@@ -371,8 +418,9 @@ def list_shipments(
         )
     if status:
         query = query.filter(Shipment.overall_status == status)
-    if country:
-        query = query.filter(Shipment.destination_country == country)
+    normalized_country_filter = normalize_country(country)
+    if normalized_country_filter:
+        query = query.filter(Shipment.destination_country == normalized_country_filter)
         
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
     shipment_previews = {}
@@ -384,7 +432,7 @@ def list_shipments(
             "address": format_receiver_address(receiver_address),
         }
     courier_options = get_courier_options(db)
-    country_options = [row[0] for row in db.query(Shipment.destination_country).distinct().order_by(Shipment.destination_country).all() if row[0]]
+    country_options = get_country_options(db)
     
     return templates.TemplateResponse("shipments/list.html", {
         "request": request,
@@ -394,7 +442,7 @@ def list_shipments(
         "country_options": country_options,
         "q": q,
         "status": status,
-        "country": country
+        "country": normalized_country_filter
     })
 
 @router.get("/new")
@@ -405,7 +453,8 @@ def new_shipment_form(request: Request, db: Session = Depends(get_db)):
         "today": today,
         "item_details": [],
         "item_raw_text": "",
-        "courier_options": get_courier_options(db)
+        "courier_options": get_courier_options(db),
+        "country_options": get_country_options(db)
     })
 
 @router.post("/items/parse")
@@ -567,7 +616,7 @@ def create_shipment(
         booking_date=parsed_booking_date,
         customer_name=customer_name,
         receiver_name=receiver_name,
-        destination_country=destination_country,
+        destination_country=normalize_country(destination_country),
         destination_city=destination_city,
         customer_phone=customer_phone,
         name_country_raw=name_country_raw,
@@ -706,7 +755,8 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "rate_details": rate_details,
         "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
         "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text),
-        "courier_options": get_courier_options(db)
+        "courier_options": get_courier_options(db),
+        "country_options": get_country_options(db)
     })
 
 @router.post("/{shipment_id}/edit")
@@ -803,7 +853,7 @@ def update_shipment(
 
     shipment.customer_name = customer_name
     shipment.receiver_name = receiver_name
-    shipment.destination_country = destination_country
+    shipment.destination_country = normalize_country(destination_country)
     shipment.destination_city = destination_city
     shipment.customer_phone = customer_phone
     shipment.name_country_raw = name_country_raw

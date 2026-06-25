@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Atlantic tracking | CourierBridge{% endblock %}
+
+{% block content %}
+<header class="page-header compact-page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Tracking lookup</div>
+        <h1>Atlantic tracking</h1>
+        <p class="page-description">AWB {{ awb }} · loaded through Atlantic backend action endpoint.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/shipments" class="btn btn-secondary">Back</a>
+    </div>
+</header>
+
+<section class="card stack">
+    <div class="form-group">
+        <label>Atlantic AWB</label>
+        <input id="atlantic-awb" type="text" value="{{ awb }}">
+    </div>
+    <div class="button-row">
+        <button type="button" class="btn btn-primary" id="lookup-btn">Run backend lookup</button>
+        <button type="button" class="btn btn-secondary" id="open-fill-btn">Debug browser autofill</button>
+        <a class="btn btn-secondary" href="{{ atlantic_url }}" target="_blank" rel="noopener">Open Atlantic only</a>
+    </div>
+    <div class="notice">
+        <span>i</span>
+        Backend lookup is the working path. Browser autofill is kept only for debugging because cross-domain security can block it.
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Tracking result</h3>
+            <p class="card-subtitle">Rendered from Atlantic response.</p>
+        </div>
+    </div>
+    <div id="atlantic-rendered-result" class="atlantic-rendered-result empty-state compact">
+        <div><div class="empty-icon">⌁</div><h3>No result loaded</h3><p>Run backend lookup to load tracking details.</p></div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Debug output</h3>
+            <p class="card-subtitle">Raw backend response and browser autofill logs.</p>
+        </div>
+    </div>
+    <pre id="debug-output" class="debug-output">Waiting...</pre>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const awbInput = document.getElementById('atlantic-awb');
+    const output = document.getElementById('debug-output');
+    const renderedResult = document.getElementById('atlantic-rendered-result');
+    const atlanticUrl = {{ atlantic_url | tojson }};
+    const log = (...args) => {
+        console.log('[Atlantic tracking debug]', ...args);
+        output.textContent += `\n${args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2)).join(' ')}`;
+    };
+    const awb = () => awbInput.value.trim();
+
+    async function runLookup() {
+        output.textContent = 'Running backend lookup...';
+        renderedResult.classList.add('empty-state', 'compact');
+        renderedResult.innerHTML = '<div><div class="empty-icon">⌁</div><h3>Loading...</h3><p>Calling Atlantic action endpoint.</p></div>';
+        const number = awb();
+        log('lookup:start', {awb: number});
+        try {
+            const response = await fetch(`/tracking/atlantic/lookup?awb=${encodeURIComponent(number)}`);
+            const payload = await response.json();
+            log('lookup:status', response.status);
+            log('lookup:payload', payload);
+            output.textContent = JSON.stringify(payload, null, 2);
+            if (payload.raw) {
+                renderedResult.classList.remove('empty-state', 'compact');
+                renderedResult.innerHTML = payload.raw;
+            } else {
+                renderedResult.classList.add('empty-state', 'compact');
+                renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>No tracking HTML returned</h3><p>Check debug output below.</p></div>';
+            }
+        } catch (err) {
+            log('lookup:error', String(err));
+            renderedResult.classList.add('empty-state', 'compact');
+            renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>Lookup failed</h3><p>Check debug output below.</p></div>';
+        }
+    }
+
+    function openAndAutofill() {
+        const number = awb();
+        output.textContent = 'Opening Atlantic page and trying autofill...';
+        log('autofill:start', {awb: number, url: atlanticUrl});
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(number).then(() => log('clipboard:copied')).catch(err => log('clipboard:error', String(err)));
+        }
+        const popup = window.open(atlanticUrl, '_blank');
+        if (!popup) {
+            log('popup:blocked');
+            return;
+        }
+        const script = `javascript:(()=>{console.log('[CourierBridge Atlantic autofill] injected');const n=${JSON.stringify(number)};const fill=()=>{const input=document.querySelector('#tracking');const btn=document.querySelector('#track');console.log('[CourierBridge Atlantic autofill] elements',{input:!!input,btn:!!btn});if(!input||!btn)return false;input.focus();input.value=n;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));btn.click();console.log('[CourierBridge Atlantic autofill] clicked');return true;};let tries=0;const timer=setInterval(()=>{tries++;console.log('[CourierBridge Atlantic autofill] try',tries);if(fill()||tries>20)clearInterval(timer);},500);})()`;
+        setTimeout(() => {
+            try {
+                popup.location.href = script;
+                log('autofill:script-sent');
+            } catch (err) {
+                log('autofill:script-error', String(err));
+            }
+        }, 1800);
+    }
+
+    document.getElementById('lookup-btn').addEventListener('click', runLookup);
+    document.getElementById('open-fill-btn').addEventListener('click', openAndAutofill);
+    if (awb()) runLookup();
+})();
+</script>
+{% endblock %}

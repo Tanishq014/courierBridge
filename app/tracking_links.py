@@ -8,10 +8,7 @@ DEFAULT_TRACKING_TEMPLATES = {
     "aramex": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
-COPY_AND_OPEN_TRACKING_SITES = {
-    "atlantic": "https://atlanticcourier.net/track/",
-    "overseas": "https://track.overseaslogistic.com/tracking.aspx",
-}
+COPY_AND_OPEN_TRACKING_SITES = {}
 
 
 def normalize_courier_name(courier_name: str | None) -> str:
@@ -39,7 +36,7 @@ def build_tracking_url(
     })
 
     normalized_courier = normalize_courier_name(courier_name)
-    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES:
+    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas"}:
         return ""
 
     template = normalized_templates.get(normalized_courier)
@@ -50,8 +47,14 @@ def build_tracking_url(
 
     return template.replace("{awb}", quote_plus(tracking_number))
 
+
 def build_tracking_site_url(courier_name: str | None, tracking_number: str | None) -> str:
     tracking_number = (tracking_number or "").strip()
     if not tracking_number:
         return ""
-    return COPY_AND_OPEN_TRACKING_SITES.get(normalize_courier_name(courier_name), "")
+    normalized = normalize_courier_name(courier_name)
+    if normalized == "atlantic":
+        return f"/tracking/atlantic?awb={quote_plus(tracking_number)}"
+    if normalized == "overseas":
+        return f"/tracking/overseas?awb={quote_plus(tracking_number)}"
+    return COPY_AND_OPEN_TRACKING_SITES.get(normalized, "")

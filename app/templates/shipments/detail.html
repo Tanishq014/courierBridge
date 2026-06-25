@@ -170,15 +170,16 @@
                     {% for tn in shipment.tracking_numbers %}
                     <tr>
                         <td>{{ tn.tracking_type | replace('_', ' ') | title }}</td>
-                        <td><span class="cell-primary">{{ tn.courier_name }}</span></td>
-                        {% set tn_url = tracking_url(tn.courier_name, tn.tracking_number, tracking_type=tn.tracking_type) %}
-                        {% set tn_site_url = tracking_site_url(tn.courier_name, tn.tracking_number) %}
+                        {% set effective_tn_courier = tn.courier_name or (shipment.courier_company if tn.tracking_type == 'main_awb' else '') %}
+                        <td><span class="cell-primary">{{ effective_tn_courier }}</span></td>
+                        {% set tn_url = tracking_url(effective_tn_courier, tn.tracking_number, tracking_type=tn.tracking_type) %}
+                        {% set tn_site_url = tracking_site_url(effective_tn_courier, tn.tracking_number) %}
                         {% set tn_open_url = tn_url or tn_site_url %}
                         <td class="mono">
-                            {% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}
+                            {% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}
                         </td>
                         <td>{% if tn.is_primary %}<span class="badge badge-info">Primary</span>{% else %}<span class="cell-secondary">Secondary</span>{% endif %}</td>
-                        <td>{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}">Track ↗</a>{% else %}<a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a>{% endif %}</td>
+                        <td>{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">Track ↗</a>{% else %}<a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a>{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -260,11 +261,22 @@
     }
 
     document.querySelectorAll('.copy-tracking-link').forEach(link => {
-        link.addEventListener('click', () => {
+        link.addEventListener('click', event => {
             if (link.dataset.copyMode !== 'true' || !link.dataset.copyNumber) return;
+            const trackingNumber = link.dataset.copyNumber;
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(link.dataset.copyNumber).catch(() => {});
+                navigator.clipboard.writeText(trackingNumber).catch(() => {});
+            }
+            if (link.dataset.autoFillMode === 'atlantic') {
+                event.preventDefault();
+                const popup = window.open(link.href, '_blank');
+                if (!popup) return;
+                const script = `javascript:(()=>{const n=${JSON.stringify(trackingNumber)};const fill=()=>{const input=document.querySelector('#tracking');const btn=document.querySelector('#track');if(!input||!btn)return false;input.focus();input.value=n;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));btn.click();return true;};let tries=0;const timer=setInterval(()=>{tries++;if(fill()||tries>20)clearInterval(timer);},500);})()`;
+                setTimeout(() => {
+                    try { popup.location.href = script; } catch (err) {}
+                }, 1800);
             }
         });
-    });</script>
+    });
+</script>
 {% endblock %}

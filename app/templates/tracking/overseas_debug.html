@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Overseas tracking | CourierBridge{% endblock %}
+
+{% block content %}
+<header class="page-header compact-page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Tracking lookup</div>
+        <h1>Overseas tracking</h1>
+        <p class="page-description">AWB {{ awb }} · loaded through Overseas WebForms postback.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/shipments" class="btn btn-secondary">Back</a>
+    </div>
+</header>
+
+<section class="card stack">
+    <div class="form-group">
+        <label>Overseas AWB</label>
+        <input id="overseas-awb" type="text" value="{{ awb }}">
+    </div>
+    <div class="button-row">
+        <button type="button" class="btn btn-primary" id="lookup-btn">Run backend lookup</button>
+        <a class="btn btn-secondary" href="{{ overseas_url }}" target="_blank" rel="noopener">Open Overseas only</a>
+    </div>
+    <div class="notice">
+        <span>i</span>
+        This lookup fetches fresh ASP.NET hidden fields first, then posts the tracking number server-side.
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Tracking result</h3>
+            <p class="card-subtitle">Rendered in an iframe from Overseas response.</p>
+        </div>
+    </div>
+    <iframe id="overseas-rendered-result" class="tracking-result-frame" title="Overseas tracking result" scrolling="no"></iframe>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Debug output</h3>
+            <p class="card-subtitle">Raw backend response metadata.</p>
+        </div>
+    </div>
+    <pre id="debug-output" class="debug-output">Waiting...</pre>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const awbInput = document.getElementById('overseas-awb');
+    const output = document.getElementById('debug-output');
+    const frame = document.getElementById('overseas-rendered-result');
+    const awb = () => awbInput.value.trim();
+
+    function resizeOverseasFrame() {
+        let attempts = 0;
+        const resize = () => {
+            attempts += 1;
+            try {
+                const doc = frame.contentDocument || frame.contentWindow.document;
+                const height = Math.max(
+                    doc.body ? doc.body.scrollHeight : 0,
+                    doc.documentElement ? doc.documentElement.scrollHeight : 0,
+                    420
+                );
+                frame.style.height = `${height + 24}px`;
+            } catch (err) {}
+            if (attempts < 20) setTimeout(resize, 250);
+        };
+        setTimeout(resize, 80);
+    }
+
+    async function runLookup() {
+        const number = awb();
+        output.textContent = 'Running backend lookup...';
+        frame.removeAttribute('srcdoc');
+        try {
+            const response = await fetch(`/tracking/overseas/lookup?awb=${encodeURIComponent(number)}`);
+            const payload = await response.json();
+            const debugPayload = {...payload};
+            if (debugPayload.raw) debugPayload.raw = `[${debugPayload.raw.length} chars rendered in iframe]`;
+            output.textContent = JSON.stringify(debugPayload, null, 2);
+            if (payload.raw) {
+                frame.srcdoc = payload.raw;
+                resizeOverseasFrame();
+            } else {
+                frame.srcdoc = '<div style="font-family:sans-serif;padding:16px;">No tracking HTML returned. Check debug output.</div>';
+            }
+        } catch (err) {
+            output.textContent = String(err);
+            frame.srcdoc = '<div style="font-family:sans-serif;padding:16px;">Lookup failed. Check debug output.</div>';
+        }
+    }
+
+    document.getElementById('lookup-btn').addEventListener('click', runLookup);
+    if (awb()) runLookup();
+})();
+</script>
+{% endblock %}

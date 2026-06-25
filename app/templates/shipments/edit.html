@@ -55,9 +55,14 @@
             </div>
             <div class="form-group">
                 <label>Destination Country <span class="required">*</span></label>
-                <input type="text" name="destination_country" value="{{ shipment.destination_country or '' }}" placeholder="e.g. Canada, UK" required>
+                <input type="text" name="destination_country" class="country-normalized-input" value="{{ shipment.destination_country or '' }}" list="destination-country-options" placeholder="Search country" required>
             </div>
         </div>
+        <datalist id="destination-country-options">
+            {% for option in country_options %}
+            <option value="{{ option }}"></option>
+            {% endfor %}
+        </datalist>
         <div class="grid-4 address-grid">
             <div class="form-group">
                 <label>Address Line 1</label>
@@ -214,7 +219,7 @@
             <div class="form-group">
                 <label>Main Tracking Courier</label>
                 <select name="main_tracking_courier">
-                    {% set current_main_courier = main_awb.courier_name if main_awb else '' %}
+                    {% set current_main_courier = main_awb.courier_name if main_awb and main_awb.courier_name else shipment.courier_company %}
                     <option value="">Select courier</option>
                     {% if current_main_courier and current_main_courier not in courier_options %}<option value="{{ current_main_courier }}" selected>{{ current_main_courier }}</option>{% endif %}
                     {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == current_main_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
@@ -465,6 +470,13 @@
     });
 
     updateRateAmounts();
+    function normalizeCountryInput(field) {
+        field.value = field.value.toUpperCase();
+    }
+    document.querySelectorAll('.country-normalized-input').forEach(field => {
+        field.addEventListener('input', () => normalizeCountryInput(field));
+        field.addEventListener('change', () => normalizeCountryInput(field));
+    });
     const initialItems = {{ item_details | tojson }};
     const itemRows = document.getElementById('item_rows');
     const itemDetailsInput = document.getElementById('item_details_json');

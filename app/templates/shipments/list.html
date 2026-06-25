@@ -89,7 +89,7 @@
                     {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.item = tn %}{% endif %}
                 {% endfor %}
                 {% set row_form_id = 'shipment-row-update-' ~ s.id %}
-                {% set main_courier = main_tn.item.courier_name if main_tn.item else s.courier_company %}
+                {% set main_courier = (main_tn.item.courier_name if main_tn.item and main_tn.item.courier_name else s.courier_company) %}
                 {% set lm_courier = lm_tn.item.courier_name if lm_tn.item else '' %}
                 {% set main_tracking_number = main_tn.item.tracking_number if main_tn.item else '' %}
                 {% set lm_tracking_number = lm_tn.item.tracking_number if lm_tn.item else '' %}
@@ -236,11 +236,20 @@
         const searchInput = filterForm.querySelector('input[name="q"]');
         const dropdowns = filterForm.querySelectorAll('select');
         let searchTimer = null;
-        dropdowns.forEach(dropdown => dropdown.addEventListener('change', () => filterForm.requestSubmit()));
+        const submitAndRefocus = () => {
+            sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
+            filterForm.requestSubmit();
+        };
+        dropdowns.forEach(dropdown => dropdown.addEventListener('change', submitAndRefocus));
         if (searchInput) {
+            if (sessionStorage.getItem('shipmentFilterFocus') === 'q') {
+                sessionStorage.removeItem('shipmentFilterFocus');
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
             searchInput.addEventListener('input', () => {
                 clearTimeout(searchTimer);
-                searchTimer = setTimeout(() => filterForm.requestSubmit(), 450);
+                searchTimer = setTimeout(submitAndRefocus, 500);
             });
         }
     }
@@ -254,8 +263,6 @@
         aramex: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
     };
     const copyAndOpenSites = {
-        atlantic: 'https://atlanticcourier.net/track/',
-        overseas: 'https://track.overseaslogistic.com/tracking.aspx',
     };
 
     const valueOf = field => field.value || '';
@@ -264,9 +271,11 @@
         const normalized = normalizeCourier(courier);
         const awb = (number || '').trim();
         if (!awb) return { url: '', copy: false };
-        if (copyAndOpenSites[normalized]) return { url: copyAndOpenSites[normalized], copy: true };
+        if (normalized === 'atlantic') return { url: `/tracking/atlantic?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
+        if (normalized === 'overseas') return { url: `/tracking/overseas?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
+        if (copyAndOpenSites[normalized]) return { url: copyAndOpenSites[normalized], copy: true, autoFill: false };
         const template = trackingTemplates[normalized] || (trackingType === 'lm_awb' ? 'https://t.17track.net/en#nums={awb}' : '');
-        return { url: template ? template.replace('{awb}', encodeURIComponent(awb)) : '', copy: false };
+        return { url: template ? template.replace('{awb}', encodeURIComponent(awb)) : '', copy: false, autoFill: false };
     };
 
     rows.forEach(row => {
@@ -289,6 +298,7 @@
                 link.href = action.url || '#';
                 link.dataset.copyMode = action.copy ? 'true' : 'false';
                 link.dataset.copyNumber = numberInput.value || '';
+                link.dataset.autoFillMode = action.autoFill ? 'atlantic' : '';
                 link.hidden = !action.url;
                 labelText.hidden = Boolean(action.url);
             });
@@ -323,8 +333,18 @@
             if (!link) return;
             link.addEventListener('click', event => {
                 if (link.dataset.copyMode !== 'true' || !link.dataset.copyNumber) return;
+                const trackingNumber = link.dataset.copyNumber;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(link.dataset.copyNumber).catch(() => {});
+                    navigator.clipboard.writeText(trackingNumber).catch(() => {});
+                }
+                if (link.dataset.autoFillMode === 'atlantic') {
+                    event.preventDefault();
+                    const popup = window.open(link.href, '_blank');
+                    if (!popup) return;
+                    const script = `javascript:(()=>{const n=${JSON.stringify(trackingNumber)};const fill=()=>{const input=document.querySelector('#tracking');const btn=document.querySelector('#track');if(!input||!btn)return false;input.focus();input.value=n;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));btn.click();return true;};let tries=0;const timer=setInterval(()=>{tries++;if(fill()||tries>20)clearInterval(timer);},500);})()`;
+                    setTimeout(() => {
+                        try { popup.location.href = script; } catch (err) {}
+                    }, 1800);
                 }
             });
         });

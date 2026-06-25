@@ -402,7 +402,7 @@ h4 {
 }
 
 .table-scroll {
-    overflow-x: auto;
+    overflow: visible;
 }
 
 table {
@@ -926,7 +926,7 @@ input[type="checkbox"] {
     grid-template-columns: repeat(6, minmax(105px, 1fr));
     gap: 8px;
     align-items: end;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .compact-shipment-form > h3 {
@@ -1873,4 +1873,52 @@ body.sidebar-collapsed .sidebar-toggle {
 
 .row-notes-input::placeholder {
     color: var(--muted);
+}
+
+.atlantic-rendered-result {
+    overflow: visible;
+    color: var(--ink);
+}
+
+.atlantic-rendered-result table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.atlantic-rendered-result td,
+.atlantic-rendered-result th {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    vertical-align: top;
+}
+
+.atlantic-rendered-result .atl-md-shipment-overview,
+.atlantic-rendered-result .current-status {
+    margin-bottom: 10px;
+}
+
+.atlantic-rendered-result .header,
+.atlantic-rendered-result .panel-title {
+    color: var(--ink);
+}
+
+.debug-output {
+    max-height: 260px;
+    overflow: auto;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #111b15;
+    color: #d7f5df;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+.tracking-result-frame {
+    width: 100%;
+    min-height: 420px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
 }
