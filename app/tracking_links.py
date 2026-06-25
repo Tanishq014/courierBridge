@@ -4,6 +4,8 @@ DEFAULT_TRACKING_TEMPLATES = {
     "quickship": "https://track.quickshipnow.com/?awb={awb}",
     "fedex": "https://www.fedex.com/fedextrack/?trknbr={awb}",
     "ups": "https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails",
+    "aramax": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
+    "aramex": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {
