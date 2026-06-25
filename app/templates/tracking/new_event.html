@@ -16,7 +16,7 @@
     <form method="POST" action="/tracking/event/new">
         <input type="hidden" name="shipment_id" value="{{ shipment_id }}">
         <div class="form-group">
-            <label>Status text <span class="required">*</span></label>
+            <label>Status <span class="required">*</span></label>
             <input type="text" name="status_text" placeholder="e.g. Arrived at destination hub" required autofocus>
             <span class="field-hint">Use the carrier's wording where possible.</span>
         </div>
@@ -25,15 +25,27 @@
             <input type="text" name="location" placeholder="City, airport, or sorting hub">
         </div>
         <div class="form-group">
-            <label>Normalized status <span class="required">*</span></label>
+            <label>Status type <span class="required">*</span></label>
             <select name="normalized_status">
                 <option value="booked">Booked</option>
+                <option value="packed">Packed</option>
+                <option value="bagged">Bagged</option>
+                <option value="received">Received</option>
                 <option value="in_transit" selected>In transit</option>
                 <option value="customs">Customs</option>
+                <option value="at_lm_partner">At LM partner</option>
                 <option value="out_for_delivery">Out for delivery</option>
+                <option value="undelivered">Undelivered</option>
                 <option value="delivered">Delivered</option>
+                <option value="rto">RTO</option>
+                <option value="return_damage">Return / damage</option>
                 <option value="exception">Exception</option>
+                <option value="unknown">Unknown</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" rows="4" class="auto-grow" placeholder="Add notes saved with this timeline update"></textarea>
         </div>
         <div class="form-actions" style="margin: 20px -22px -22px;">
             <a href="/shipments/{{ shipment_id }}" class="btn btn-secondary">Cancel</a>

@@ -240,17 +240,21 @@
                 <input type="number" name="promised_days_number" value="{{ shipment.promised_days_number or '' }}" placeholder="Days">
             </div>
             <div class="form-group">
-                <label>Status Raw Text</label>
-                <input type="text" name="status_raw_text" value="{{ shipment.status_raw_text or '' }}">
+                <label>Status Notes</label>
+                <input type="text" name="status_raw_text" value="{{ shipment.status_raw_text or '' }}" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
             <div class="form-group">
                 <label>Overall Status</label>
                 <select name="overall_status">
                     <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                    <option value="packed" {% if shipment.overall_status == 'packed' %}selected{% endif %}>Packed</option>
+                    <option value="bagged" {% if shipment.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
                     <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received</option>
                     <option value="in_transit" {% if shipment.overall_status == 'in_transit' %}selected{% endif %}>In Transit</option>
                     <option value="customs" {% if shipment.overall_status == 'customs' %}selected{% endif %}>Customs</option>
+                    <option value="at_lm_partner" {% if shipment.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM Partner</option>
                     <option value="out_for_delivery" {% if shipment.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                    <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                     <option value="delivered" {% if shipment.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
                     <option value="rto" {% if shipment.overall_status == 'rto' %}selected{% endif %}>RTO</option>
                     <option value="return_damage" {% if shipment.overall_status == 'return_damage' %}selected{% endif %}>Return/Damage</option>

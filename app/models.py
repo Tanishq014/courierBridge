@@ -151,6 +151,7 @@ class TrackingEvent(Base):
     location = Column(String)
     status_text = Column(String)
     normalized_status = Column(String)
+    notes = Column(String)
     source = Column(String, default="manual")
     created_at = Column(DateTime, default=now_ist)
     

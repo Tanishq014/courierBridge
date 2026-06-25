@@ -59,6 +59,7 @@ def create_tracking_event(
     status_text: str = Form(...),
     location: str = Form(""),
     normalized_status: str = Form("in_transit"),
+    notes: str = Form(""),
     db: Session = Depends(get_db)
 ):
     ev = TrackingEvent(
@@ -67,6 +68,7 @@ def create_tracking_event(
         status_text=status_text,
         location=location,
         normalized_status=normalized_status,
+        notes=notes.strip(),
         source="manual"
     )
     db.add(ev)
@@ -74,17 +76,15 @@ def create_tracking_event(
     # Update denormalized fields on shipment
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if shipment:
-        shipment.status_raw_text = status_text
-        shipment.last_status_text = status_text
+        shipment.status_raw_text = notes.strip() or status_text
+        shipment.last_status_text = notes.strip() or status_text
         shipment.last_status_at = ev.event_time
         shipment.last_status_location = location
         shipment.last_normalized_status = normalized_status
         
-        # Optionally update overall_status based on event
-        if normalized_status in ["delivered", "exception", "customs", "out_for_delivery"]:
-            shipment.overall_status = normalized_status
-            if normalized_status == "delivered" and not shipment.delivered_at:
-                shipment.delivered_at = ev.event_time
+        shipment.overall_status = normalized_status
+        if normalized_status == "delivered" and not shipment.delivered_at:
+            shipment.delivered_at = ev.event_time
                 
     db.commit()
     return RedirectResponse(url=f"/shipments/{shipment_id}", status_code=303)
@@ -109,3 +109,14 @@ def open_tracking_url(tn_id: int, db: Session = Depends(get_db)):
         
     # If no template, show fallback page
     return f"No template found for {tn.courier_name}. Tracking Number: {tn.tracking_number}"
+
+@router.post("/event/{event_id}/delete")
+def delete_tracking_event(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(TrackingEvent).filter(TrackingEvent.id == event_id).first()
+    if not event:
+        return RedirectResponse(url="/shipments", status_code=303)
+
+    shipment_id = event.shipment_id
+    db.delete(event)
+    db.commit()
+    return RedirectResponse(url=f"/shipments/{shipment_id}", status_code=303)

@@ -234,17 +234,21 @@
                 <input type="number" name="promised_days_number" placeholder="Days">
             </div>
             <div class="form-group">
-                <label>Status Raw Text</label>
-                <input type="text" name="status_raw_text" placeholder="e.g. PENDING CUSTOM">
+                <label>Status Notes</label>
+                <input type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
             <div class="form-group">
                 <label>Overall Status</label>
                 <select name="overall_status">
                     <option value="booked">Booked</option>
+                    <option value="packed">Packed</option>
+                    <option value="bagged">Bagged</option>
                     <option value="received">Received</option>
                     <option value="in_transit">In Transit</option>
                     <option value="customs">Customs</option>
+                    <option value="at_lm_partner">At LM Partner</option>
                     <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="undelivered">Undelivered</option>
                     <option value="delivered">Delivered</option>
                     <option value="rto">RTO</option>
                     <option value="return_damage">Return/Damage</option>

@@ -1697,3 +1697,98 @@ body.sidebar-collapsed .sidebar-toggle {
 .tracking-label-text[hidden] {
     display: none !important;
 }
+
+.shipment-filter-form {
+    grid-template-columns: minmax(180px, 1.2fr) minmax(135px, 0.75fr) minmax(135px, 0.75fr) auto;
+    gap: 8px;
+}
+
+.shipment-filter-form label {
+    margin-bottom: 4px;
+    font-size: 11px;
+}
+
+.shipment-filter-form input,
+.shipment-filter-form select {
+    min-height: 34px;
+    padding: 7px 9px;
+}
+
+.shipment-filter-form .button-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+.shipment-filter-form .btn {
+    min-height: 34px;
+    padding: 7px 10px;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .shipment-filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hover-preview-cell {
+    position: relative;
+}
+
+.cell-hover-card {
+    position: absolute;
+    top: calc(100% - 2px);
+    left: 4px;
+    z-index: 50;
+    display: none;
+    width: max-content;
+    min-width: 220px;
+    max-width: 360px;
+    padding: 9px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    color: var(--ink);
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(31, 42, 37, 0.16);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+}
+
+.hover-preview-cell:hover .cell-hover-card,
+.hover-preview-cell:focus-within .cell-hover-card {
+    display: block;
+}
+
+.route-hover-card {
+    min-width: 280px;
+}
+
+.hover-title {
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.hover-line + .hover-line {
+    margin-top: 3px;
+}
+
+.hover-line.muted {
+    color: var(--muted);
+}
+
+.timeline-notes {
+    margin-top: 5px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.timeline-delete-form {
+    margin-top: 7px;
+}

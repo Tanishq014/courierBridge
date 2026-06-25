@@ -15,7 +15,7 @@
 </header>
 
 <section class="card filter-card">
-    <form method="GET" action="/shipments" class="filter-form">
+    <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
         <div>
             <label for="shipment-search">Search ledger</label>
             <input id="shipment-search" type="text" name="q" value="{{ q }}" placeholder="Customer, phone, destination or reference">
@@ -25,19 +25,33 @@
             <select id="shipment-status" name="status">
                 <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
+                <option value="packed" {% if status == 'packed' %}selected{% endif %}>Packed</option>
+                <option value="bagged" {% if status == 'bagged' %}selected{% endif %}>Bagged</option>
                 <option value="received" {% if status == 'received' %}selected{% endif %}>Received</option>
                 <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
                 <option value="customs" {% if status == 'customs' %}selected{% endif %}>Customs</option>
+                <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
                 <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                 <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
                 <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
                 <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return / damage</option>
                 <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
+                <option value="unknown" {% if status == 'unknown' %}selected{% endif %}>Unknown</option>
+            </select>
+        </div>
+        <div>
+            <label for="shipment-country">Country</label>
+            <select id="shipment-country" name="country">
+                <option value="">All countries</option>
+                {% for option in country_options %}
+                <option value="{{ option }}" {% if country == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
             </select>
         </div>
         <div class="button-row">
             <button type="submit" class="btn btn-primary">Apply filter</button>
-            {% if q or status %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
+            {% if q or status or country %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
         </div>
     </form>
 </section>
@@ -83,6 +97,7 @@
                 {% set lm_tracking_url = tracking_url(lm_courier, lm_tracking_number, tracking_type='lm_awb') %}
                 {% set main_tracking_site_url = tracking_site_url(main_courier, main_tracking_number) %}
                 {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
+                {% set preview = shipment_previews.get(s.id, {}) %}
                 <tr class="shipment-row">
                     <td>
                         <a href="/shipments/{{ s.id }}" class="row-open-link">
@@ -90,15 +105,29 @@
                             <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
                         </a>
                     </td>
-                    <td>
+                    <td class="hover-preview-cell">
                         <a href="/shipments/{{ s.id }}" class="row-open-link">
                             <span class="cell-primary">{{ s.customer_name }}</span>
                             <span class="cell-secondary">{{ s.customer_phone or s.contact_or_reference_raw or 'No contact' }}</span>
                         </a>
+                        <div class="cell-hover-card">
+                            <div class="hover-title">Item details</div>
+                            {% if preview.get('items') %}
+                                {% for item in preview.get('items') %}
+                                <div class="hover-line">{{ item.name or 'Unnamed item' }}{% if item.quantity %} × {{ item.quantity }}{% endif %}</div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="hover-line muted">No item details added</div>
+                            {% endif %}
+                        </div>
                     </td>
-                    <td>
+                    <td class="hover-preview-cell">
                         <span class="cell-primary">{{ s.destination_country }}</span>
                         <span class="cell-secondary">{{ s.destination_city or '—' }}</span>
+                        <div class="cell-hover-card route-hover-card">
+                            <div class="hover-title">Receiver address</div>
+                            <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
+                        </div>
                     </td>
                     <td>
                         <span class="cell-primary">{{ s.courier_company }}</span>
@@ -131,16 +160,21 @@
                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                                <option value="packed" {% if s.overall_status == 'packed' %}selected{% endif %}>Packed</option>
+                                <option value="bagged" {% if s.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
                                 <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received</option>
                                 <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
                                 <option value="customs" {% if s.overall_status == 'customs' %}selected{% endif %}>Customs</option>
+                                <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
                                 <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                                <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                                 <option value="delivered" {% if s.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
                                 <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>RTO</option>
                                 <option value="return_damage" {% if s.overall_status == 'return_damage' %}selected{% endif %}>Return / damage</option>
                                 <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
+                                <option value="unknown" {% if s.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
                             </select>
-                            <input type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status note">
+                            <input type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
@@ -183,6 +217,20 @@
 {% block scripts %}
 <script>
 (() => {
+    const filterForm = document.querySelector('.shipment-filter-form');
+    if (filterForm) {
+        const searchInput = filterForm.querySelector('input[name="q"]');
+        const dropdowns = filterForm.querySelectorAll('select');
+        let searchTimer = null;
+        dropdowns.forEach(dropdown => dropdown.addEventListener('change', () => filterForm.requestSubmit()));
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => filterForm.requestSubmit(), 450);
+            });
+        }
+    }
+
     const rows = document.querySelectorAll('.shipment-row');
     const trackingTemplates = {
         quickship: 'https://track.quickshipnow.com/?awb={awb}',

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
-from app.models import Shipment, TrackingNumber, now_ist
+from app.models import Shipment, TrackingEvent, TrackingNumber, now_ist
 from app.tracking_links import build_tracking_site_url, build_tracking_url
 from decimal import Decimal
 from datetime import datetime
@@ -288,6 +288,28 @@ def parse_int(val: str) -> int | None:
     except ValueError:
         return None
 
+
+def status_label(status: str) -> str:
+    return (status or "booked").replace("_", " ").title()
+
+
+def add_status_timeline_event(db: Session, shipment: Shipment, status: str, notes: str = "", source: str = "status_update"):
+    event_time = now_ist()
+    event = TrackingEvent(
+        shipment_id=shipment.id,
+        event_time=event_time,
+        status_text=status_label(status),
+        normalized_status=status,
+        notes=(notes or "").strip(),
+        source=source,
+    )
+    db.add(event)
+    shipment.last_status_text = (notes or "").strip() or status_label(status)
+    shipment.last_status_at = event_time
+    shipment.last_normalized_status = status
+    if status == "delivered" and not shipment.delivered_at:
+        shipment.delivered_at = event_time
+
 def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool):
     number = number.strip() if number else ""
     if not number:
@@ -326,7 +348,8 @@ def list_shipments(
     request: Request, 
     db: Session = Depends(get_db),
     q: str = "",
-    status: str = ""
+    status: str = "",
+    country: str = ""
 ):
     query = db.query(Shipment).outerjoin(TrackingNumber)
     
@@ -347,16 +370,30 @@ def list_shipments(
         )
     if status:
         query = query.filter(Shipment.overall_status == status)
+    if country:
+        query = query.filter(Shipment.destination_country == country)
         
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
+    shipment_previews = {}
+    for shipment in shipments:
+        items = parse_item_details(shipment.raw_excel_notes)
+        receiver_address = parse_receiver_address(shipment.raw_excel_notes)
+        shipment_previews[shipment.id] = {
+            "items": items,
+            "address": format_receiver_address(receiver_address),
+        }
     courier_options = get_courier_options(db)
+    country_options = [row[0] for row in db.query(Shipment.destination_country).distinct().order_by(Shipment.destination_country).all() if row[0]]
     
     return templates.TemplateResponse("shipments/list.html", {
         "request": request,
         "shipments": shipments,
+        "shipment_previews": shipment_previews,
         "courier_options": courier_options,
+        "country_options": country_options,
         "q": q,
-        "status": status
+        "status": status,
+        "country": country
     })
 
 @router.get("/new")
@@ -577,6 +614,9 @@ def create_shipment(
     db.add(shipment)
     db.commit()
     db.refresh(shipment)
+
+    if overall_status or status_raw_text.strip():
+        add_status_timeline_event(db, shipment, overall_status or "booked", status_raw_text, "shipment_create")
     
     # Tracking numbers
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
@@ -602,13 +642,14 @@ def quick_update_shipment(
     if not shipment:
         return RedirectResponse(url=redirect_url, status_code=303)
 
-    shipment.overall_status = overall_status.strip() or shipment.overall_status
-    shipment.status_raw_text = status_raw_text.strip()
-    if shipment.status_raw_text:
-        shipment.last_status_text = shipment.status_raw_text
-        shipment.last_status_at = now_ist()
-    if shipment.overall_status == "delivered" and not shipment.delivered_at:
-        shipment.delivered_at = now_ist()
+    old_status = shipment.overall_status or "booked"
+    old_notes = shipment.status_raw_text or ""
+    new_status = overall_status.strip() or old_status
+    new_notes = status_raw_text.strip()
+    shipment.overall_status = new_status
+    shipment.status_raw_text = new_notes
+    if new_status != old_status or new_notes != old_notes:
+        add_status_timeline_event(db, shipment, new_status, new_notes, "row_status_update")
 
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
@@ -725,6 +766,9 @@ def update_shipment(
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
+
+    old_status = shipment.overall_status or "booked"
+    old_notes = shipment.status_raw_text or ""
         
     parsed_billed = calculate_rate_amount(customer_charged_weight, customer_charged_weight_unit, customer_rate_text) or parse_decimal(billed_amount)
     parsed_received = parse_decimal(received_amount)
@@ -785,15 +829,12 @@ def update_shipment(
     shipment.service_value = service_value
     shipment.balance_amount = balance_amount
     
-    shipment.status_raw_text = status_raw_text
-    if status_raw_text and status_raw_text.strip():
-        shipment.last_status_text = status_raw_text
-        if not shipment.last_status_at:
-            shipment.last_status_at = shipment.booking_date
-
-    if overall_status == "delivered" and not shipment.delivered_at:
-        shipment.delivered_at = shipment.booking_date
-    shipment.overall_status = overall_status
+    new_status = overall_status.strip() or old_status
+    new_notes = status_raw_text.strip()
+    shipment.status_raw_text = new_notes
+    shipment.overall_status = new_status
+    if new_status != old_status or new_notes != old_notes:
+        add_status_timeline_event(db, shipment, new_status, new_notes, "shipment_edit")
     shipment.requires_lm_awb = requires_lm_awb
     
     shipment.internal_notes = internal_notes

@@ -15,9 +15,9 @@
     <div class="page-actions">
         <span class="badge
             {% if shipment.overall_status == 'delivered' %}badge-success
-            {% elif shipment.overall_status in ['exception', 'rto', 'return_damage'] %}badge-danger
+            {% elif shipment.overall_status in ['exception', 'rto', 'return_damage', 'undelivered'] %}badge-danger
             {% elif shipment.overall_status == 'customs' %}badge-warning
-            {% elif shipment.overall_status in ['in_transit', 'out_for_delivery'] %}badge-info
+            {% elif shipment.overall_status in ['in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged'] %}badge-info
             {% else %}badge-neutral{% endif %}">
             {{ shipment.overall_status | capitalize | replace('_', ' ') }}
         </span>
@@ -81,6 +81,10 @@
             <div class="detail-item">
                 <span class="detail-label">Promised timeline</span>
                 <span class="detail-value">{{ shipment.promised_days_text or shipment.promised_days_number or 'Not set' }}</span>
+            </div>
+            <div class="detail-item wide">
+                <span class="detail-label">Status notes</span>
+                <span class="detail-value">{{ shipment.status_raw_text or shipment.last_status_text or 'No status notes added' }}</span>
             </div>
             <div class="detail-item wide">
                 <span class="detail-label">Internal notes</span>
@@ -204,7 +208,11 @@
                 <div class="timeline-rail"><span class="timeline-dot"></span></div>
                 <div class="timeline-content">
                     <div class="timeline-title">{{ ev.status_text }}</div>
-                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} · {{ ev.normalized_status | replace('_', ' ') | title }}</div>
+                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} · {{ ev.normalized_status | replace('_', ' ') | title }}{% if ev.source %} · {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
+                    {% if ev.notes %}<div class="timeline-notes">{{ ev.notes }}</div>{% endif %}
+                    <form method="POST" action="/tracking/event/{{ ev.id }}/delete" class="timeline-delete-form" onsubmit="return confirm('Delete this timeline update?');">
+                        <button type="submit" class="btn btn-sm btn-secondary">Delete</button>
+                    </form>
                 </div>
             </div>
             {% endfor %}
