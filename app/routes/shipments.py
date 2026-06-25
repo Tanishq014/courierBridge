@@ -81,6 +81,10 @@ def normalize_country(value: str | None) -> str:
         return "GERMANY"
     return COUNTRY_ALIASES.get(country, country)
 
+def normalize_proper_case(value: str | None) -> str:
+    text = " ".join((value or "").strip().split())
+    return text.title() if text else ""
+
 def get_country_options(db: Session) -> list[str]:
     existing = [normalize_country(row[0]) for row in db.query(Shipment.destination_country).distinct().all() if row[0]]
     return sorted({country for country in DEFAULT_COUNTRIES + existing if country}, key=str.lower)
@@ -593,13 +597,18 @@ def create_shipment(
         except ValueError:
             pass
 
+    normalized_destination_city = normalize_proper_case(destination_city)
+    normalized_receiver_state = normalize_proper_case(receiver_state)
+    normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
+    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+
     receiver_address = {
         "line_1": receiver_address_line_1.strip(),
         "line_2": receiver_address_line_2.strip(),
         "line_3": receiver_address_line_3.strip(),
-        "city": destination_city.strip(),
-        "state": receiver_state.strip(),
-        "zip": receiver_zip.strip(),
+        "city": normalized_destination_city,
+        "state": normalized_receiver_state,
+        "zip": normalized_receiver_zip,
     }
 
     item_details = clean_item_details(item_details_json)
@@ -617,7 +626,7 @@ def create_shipment(
         customer_name=customer_name,
         receiver_name=receiver_name,
         destination_country=normalize_country(destination_country),
-        destination_city=destination_city,
+        destination_city=normalized_destination_city,
         customer_phone=customer_phone,
         name_country_raw=name_country_raw,
         contact_or_reference_raw=contact_or_reference_raw,
@@ -633,7 +642,7 @@ def create_shipment(
         customer_rate_text=customer_rate_text,
         vendor_rate_text=vendor_rate_text,
         courier_company=courier_company,
-        vendor_partner=vendor_partner,
+        vendor_partner=normalized_vendor_partner,
         promised_days_text=promised_days_text,
         promised_days_number=parse_int(promised_days_number),
         billed_amount=parsed_billed,
@@ -842,19 +851,24 @@ def update_shipment(
         except ValueError:
             pass
     
+    normalized_destination_city = normalize_proper_case(destination_city)
+    normalized_receiver_state = normalize_proper_case(receiver_state)
+    normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
+    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+
     receiver_address = {
         "line_1": receiver_address_line_1.strip(),
         "line_2": receiver_address_line_2.strip(),
         "line_3": receiver_address_line_3.strip(),
-        "city": destination_city.strip(),
-        "state": receiver_state.strip(),
-        "zip": receiver_zip.strip(),
+        "city": normalized_destination_city,
+        "state": normalized_receiver_state,
+        "zip": normalized_receiver_zip,
     }
 
     shipment.customer_name = customer_name
     shipment.receiver_name = receiver_name
     shipment.destination_country = normalize_country(destination_country)
-    shipment.destination_city = destination_city
+    shipment.destination_city = normalized_destination_city
     shipment.customer_phone = customer_phone
     shipment.name_country_raw = name_country_raw
     shipment.contact_or_reference_raw = contact_or_reference_raw
@@ -873,7 +887,7 @@ def update_shipment(
     shipment.customer_rate_text = customer_rate_text
     shipment.vendor_rate_text = vendor_rate_text
     shipment.courier_company = courier_company
-    shipment.vendor_partner = vendor_partner
+    shipment.vendor_partner = normalized_vendor_partner
     
     shipment.promised_days_text = promised_days_text
     shipment.promised_days_number = parse_int(promised_days_number)

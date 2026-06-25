@@ -4,6 +4,11 @@ from fastapi.templating import Jinja2Templates
 router = APIRouter(prefix="/tools")
 templates = Jinja2Templates(directory="app/templates")
 
+
+def normalize_proper_case(value: str | None) -> str:
+    text = " ".join((value or "").strip().split())
+    return text.title() if text else ""
+
 @router.get("/quick-add")
 def quick_add_form(request: Request):
     return templates.TemplateResponse("tools/quick_add.html", {"request": request})
@@ -22,7 +27,7 @@ def parse_quick_add(
     parsed_data = {
         "customer_name": "Mock Name",
         "name_country_raw": "Mock Name / Canada",
-        "destination_country": "Canada",
+        "destination_country": "CANADA",
         "item_category": "documents",
         "charged_weight": 2.4,
         "billed_amount": 3200,
@@ -31,7 +36,7 @@ def parse_quick_add(
         "promised_days_text": "7-10 days",
         "status_raw_text": "PENDING CUSTOM",
         "courier_company": "DTDC",
-        "vendor_partner": "Self",
+        "vendor_partner": normalize_proper_case("Self"),
         "raw_text": raw_text
     }
     
