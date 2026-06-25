@@ -23,7 +23,7 @@
         <form method="POST" action="/tools/quick-add/parse">
             <div class="form-group">
                 <label for="raw-text">Raw message or row</label>
-                <textarea id="raw-text" class="raw-input" name="raw_text" placeholder="Rahul 98765 · Canada · 2.4 kg · charge 3200 · cost 2450 · DTDC123 · ETA 7–10 days · pending" required>{{ raw_text or '' }}</textarea>
+                <textarea autocomplete="new-password" spellcheck="false" id="raw-text" class="raw-input" name="raw_text" placeholder="Rahul 98765 · Canada · 2.4 kg · charge 3200 · cost 2450 · DTDC123 · ETA 7–10 days · pending" required>{{ raw_text or '' }}</textarea>
             </div>
             <button type="submit" class="btn btn-primary">Parse shipment details →</button>
         </form>
@@ -43,21 +43,21 @@
             <div class="grid-2">
                 <div class="form-group">
                     <label>Customer name</label>
-                    <input type="text" name="customer_name" value="{{ parsed_data.customer_name }}">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" value="{{ parsed_data.customer_name }}">
                 </div>
                 <div class="form-group">
                     <label>Destination</label>
-                    <input type="text" name="destination_country" value="{{ parsed_data.destination_country }}">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" value="{{ parsed_data.destination_country }}">
                 </div>
             </div>
             <div class="form-group">
                 <label>Original name / country text</label>
-                <input type="text" name="name_country_raw" value="{{ parsed_data.name_country_raw }}">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="name_country_raw" value="{{ parsed_data.name_country_raw }}">
             </div>
             <div class="grid-2">
                 <div class="form-group">
                     <label>Contents</label>
-                    <input type="text" name="item_category" value="{{ parsed_data.item_category }}">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="item_category" value="{{ parsed_data.item_category }}">
                 </div>
                 <div class="form-group">
                     <label>Dead weight</label>
@@ -72,11 +72,11 @@
                 </div>
                 <div class="form-group">
                     <label>Courier</label>
-                    <input type="text" name="courier_company" value="{{ parsed_data.courier_company }}">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="courier_company" value="{{ parsed_data.courier_company }}">
                 </div>
                 <div class="form-group">
                     <label>Vendor</label>
-                    <input type="text" name="vendor_partner" value="{{ parsed_data.vendor_partner }}">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ parsed_data.vendor_partner }}">
                 </div>
                 <div class="form-group">
                     <label>Billed amount</label>
@@ -89,7 +89,7 @@
             </div>
             <div class="form-group">
                 <label>Status text</label>
-                <input type="text" name="status_raw_text" value="{{ parsed_data.status_raw_text }}">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" value="{{ parsed_data.status_raw_text }}">
             </div>
 
             <input type="hidden" name="weight_basis" value="actual">

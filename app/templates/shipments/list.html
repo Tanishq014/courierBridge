@@ -18,7 +18,7 @@
     <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
         <div>
             <label for="shipment-search">Search ledger</label>
-            <input id="shipment-search" type="text" name="q" value="{{ q }}" placeholder="Customer, phone, destination or reference">
+            <input autocomplete="new-password" spellcheck="false" id="shipment-search" type="text" name="q" value="{{ q }}" placeholder="Customer, phone, destination or reference">
         </div>
         <div>
             <label for="shipment-status">Shipment status</label>
@@ -145,7 +145,7 @@
                         <div class="tracking-stack">
                             <div class="tracking-line" data-tracking-type="main_awb">
                                 <a class="tracking-label-link" href="{{ main_tracking_url or main_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="Main" data-track-label="Track Main" data-copy-number="{{ main_tracking_number }}" {% if main_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not main_tracking_url and not main_tracking_site_url %}hidden{% endif %}>Track Main</a><span class="tracking-label-text" {% if main_tracking_url or main_tracking_site_url %}hidden{% endif %}>Main</span>
-                                <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="Main tracking">
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="Main tracking">
                                 <select form="{{ row_form_id }}" class="row-edit-field" name="main_tracking_courier" data-initial="{{ main_courier or '' }}" aria-label="Main tracking courier">
                                     <option value="">Courier</option>
                                     {% if main_courier and main_courier not in courier_options %}<option value="{{ main_courier }}" selected>{{ main_courier }}</option>{% endif %}
@@ -154,7 +154,7 @@
                             </div>
                             <div class="tracking-line" data-tracking-type="lm_awb">
                                 <a class="tracking-label-link" href="{{ lm_tracking_url or lm_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="LM" data-track-label="Track LM" data-copy-number="{{ lm_tracking_number }}" {% if lm_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not lm_tracking_url and not lm_tracking_site_url %}hidden{% endif %}>Track LM</a><span class="tracking-label-text" {% if lm_tracking_url or lm_tracking_site_url %}hidden{% endif %}>LM</span>
-                                <input form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="lm_awb_number" value="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" data-initial="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" placeholder="LM tracking">
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="lm_awb_number" value="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" data-initial="{{ lm_tn.item.tracking_number if lm_tn.item else '' }}" placeholder="LM tracking">
                                 <select form="{{ row_form_id }}" class="row-edit-field" name="lm_awb_courier" data-initial="{{ lm_courier or '' }}" aria-label="Last mile courier">
                                     <option value="">LM courier</option>
                                     {% if lm_courier and lm_courier not in courier_options %}<option value="{{ lm_courier }}" selected>{{ lm_courier }}</option>{% endif %}
@@ -182,7 +182,7 @@
                                 <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
                                 <option value="unknown" {% if s.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
                             </select>
-                            <input type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
+                            <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
@@ -196,7 +196,7 @@
                         <span class="cell-secondary">Cost ₹{{ '%.2f'|format(s.self_cost or 0) }} · Profit ₹{{ '%.2f'|format(s.service_value or 0) }}</span>
                     </td>
                     <td class="notes-cell">
-                        <textarea form="{{ row_form_id }}" name="internal_notes" class="row-edit-field row-notes-input" data-initial="{{ s.internal_notes or '' }}" rows="2" placeholder="Notes">{{ s.internal_notes or '' }}</textarea>
+                        <textarea autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" name="internal_notes" class="row-edit-field row-notes-input" data-initial="{{ s.internal_notes or '' }}" rows="2" placeholder="Notes">{{ s.internal_notes or '' }}</textarea>
                     </td>
                     <td>
                         <div class="button-row row-actions" data-row-actions>

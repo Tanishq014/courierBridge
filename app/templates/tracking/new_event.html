@@ -17,12 +17,12 @@
         <input type="hidden" name="shipment_id" value="{{ shipment_id }}">
         <div class="form-group">
             <label>Status <span class="required">*</span></label>
-            <input type="text" name="status_text" placeholder="e.g. Arrived at destination hub" required autofocus>
+            <input autocomplete="new-password" spellcheck="false" type="text" name="status_text" placeholder="e.g. Arrived at destination hub" required autofocus>
             <span class="field-hint">Use the carrier's wording where possible.</span>
         </div>
         <div class="form-group">
             <label>Location</label>
-            <input type="text" name="location" placeholder="City, airport, or sorting hub">
+            <input autocomplete="new-password" spellcheck="false" type="text" name="location" placeholder="City, airport, or sorting hub">
         </div>
         <div class="form-group">
             <label>Status type <span class="required">*</span></label>
@@ -45,7 +45,7 @@
         </div>
         <div class="form-group">
             <label>Notes</label>
-            <textarea name="notes" rows="4" class="auto-grow" placeholder="Add notes saved with this timeline update"></textarea>
+            <textarea autocomplete="new-password" spellcheck="false" name="notes" rows="4" class="auto-grow" placeholder="Add notes saved with this timeline update"></textarea>
         </div>
         <div class="form-actions" style="margin: 20px -22px -22px;">
             <a href="/shipments/{{ shipment_id }}" class="btn btn-secondary">Cancel</a>

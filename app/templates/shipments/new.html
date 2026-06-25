@@ -24,37 +24,37 @@
         <div class="grid-4">
             <div class="form-group">
                 <label>Sender Phone</label>
-                <input type="text" name="customer_phone" placeholder="e.g. 9876543210">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_phone" placeholder="e.g. 9876543210">
             </div>
             <div class="form-group">
                 <label>Sender Name <span class="required">*</span></label>
-                <input type="text" name="customer_name" placeholder="e.g. John Doe" required>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" placeholder="e.g. John Doe" required>
             </div>
             <div class="form-group">
                 <label>Receiver Name</label>
-                <input type="text" name="receiver_name" placeholder="e.g. Jane Smith">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_name" placeholder="e.g. Jane Smith">
             </div>
             <div class="form-group">
                 <label>Receiver Phone</label>
-                <input type="text" name="contact_or_reference_raw" placeholder="Optional">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="contact_or_reference_raw" placeholder="Optional">
             </div>
         </div>
         <div class="grid-4">
             <div class="form-group">
                 <label>Receiver City</label>
-                <input type="text" name="destination_city" placeholder="e.g. Toronto">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_city" placeholder="e.g. Toronto">
             </div>
             <div class="form-group">
                 <label>Receiver State</label>
-                <input type="text" name="receiver_state" placeholder="e.g. Ontario">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
             </div>
             <div class="form-group">
                 <label>Receiver ZIP</label>
-                <input type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
             </div>
             <div class="form-group">
                 <label>Destination Country <span class="required">*</span></label>
-                <input type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
             </div>
         </div>
         <datalist id="destination-country-options">
@@ -65,15 +65,15 @@
         <div class="grid-4 address-grid">
             <div class="form-group">
                 <label>Address Line 1</label>
-                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_1" placeholder="House / building"></textarea>
+                <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_1" placeholder="House / building"></textarea>
             </div>
             <div class="form-group">
                 <label>Address Line 2</label>
-                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_2" placeholder="Street / area"></textarea>
+                <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_2" placeholder="Street / area"></textarea>
             </div>
             <div class="form-group">
                 <label>Address Line 3</label>
-                <textarea class="auto-grow address-input" rows="1" name="receiver_address_line_3" placeholder="Landmark / optional"></textarea>
+                <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_3" placeholder="Landmark / optional"></textarea>
             </div>
         </div>
 
@@ -84,11 +84,11 @@
             <div class="item-detail-stack">
                 <div class="form-group">
                     <label>Item Category</label>
-                    <input type="text" name="item_category" placeholder="medicine, cloth, etc.">
+                    <input autocomplete="new-password" spellcheck="false" type="text" name="item_category" placeholder="medicine, cloth, etc.">
                 </div>
                 <div class="form-group">
                     <label>Raw Items</label>
-                    <textarea id="item_raw_text_input" class="auto-grow item-raw-input" rows="3" placeholder="Paste item list here, then click Add items"></textarea>
+                    <textarea autocomplete="new-password" spellcheck="false" id="item_raw_text_input" class="auto-grow item-raw-input" rows="3" placeholder="Paste item list here, then click Add items"></textarea>
                     <div class="item-actions">
                         <button type="button" class="btn btn-secondary btn-sm" id="parse_items_btn">Add items</button>
                         <span class="field-hint" id="item_parse_status">Uses Gemini when an API key is configured.</span>
@@ -110,7 +110,7 @@
         <div class="grid-5">
             <div class="form-group">
                 <label>Vendor Partner</label>
-                <input type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
             </div>
             <div class="form-group">
                 <label>Courier Company <span class="required">*</span></label>
@@ -212,7 +212,7 @@
         <div class="grid-4">
             <div class="form-group">
                 <label>Main Tracking Number</label>
-                <input type="text" name="main_tracking_number" placeholder="e.g. 1234567890">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="main_tracking_number" placeholder="e.g. 1234567890">
             </div>
             <div class="form-group">
                 <label>Main Tracking Courier</label>
@@ -223,7 +223,7 @@
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) AWB Number</label>
-                <input type="text" name="lm_awb_number" placeholder="e.g. LM123456">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" placeholder="e.g. LM123456">
             </div>
             <div class="form-group">
                 <label>Last Mile (LM) Courier</label>
@@ -240,7 +240,7 @@
             </div>
             <div class="form-group">
                 <label>Status Notes</label>
-                <input type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
             <div class="form-group">
                 <label>Overall Status</label>
@@ -269,7 +269,7 @@
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Notes</h3>
         <div class="form-group">
-            <textarea class="auto-grow large-notes" rows="4" name="internal_notes" placeholder="Add customer, balance, or internal notes here"></textarea>
+            <textarea autocomplete="new-password" spellcheck="false" class="auto-grow large-notes" rows="4" name="internal_notes" placeholder="Add customer, balance, or internal notes here"></textarea>
         </div>
 
         <div class="form-actions">
@@ -492,8 +492,8 @@
         const row = document.createElement('div');
         row.className = 'item-row';
         row.innerHTML = `
-            <input type="text" data-item-name placeholder="Item name">
-            <input type="text" data-item-quantity placeholder="Qty">
+            <input autocomplete="new-password" spellcheck="false" type="text" data-item-name placeholder="Item name">
+            <input autocomplete="new-password" spellcheck="false" type="text" data-item-quantity placeholder="Qty">
             <button type="button" class="btn btn-secondary btn-sm" data-remove-item>Remove</button>
         `;
         row.querySelector('[data-item-name]').value = item.name || '';
