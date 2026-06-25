@@ -35,6 +35,7 @@ DEFAULT_COURIERS = [
     "FedEx",
     "IndiaPost",
     "DPD",
+    "MAWW",
 ]
 
 def get_courier_options(db: Session) -> list[str]:
