@@ -98,12 +98,20 @@
                 {% set main_tracking_site_url = tracking_site_url(main_courier, main_tracking_number) %}
                 {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
                 {% set preview = shipment_previews.get(s.id, {}) %}
-                <tr class="shipment-row">
+                {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else 'yellow') %}
+                <tr class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
                     <td>
-                        <a href="/shipments/{{ s.id }}" class="row-open-link">
-                            <span class="cell-primary">#{{ s.id }}</span>
-                            <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
-                        </a>
+                        <div class="booking-cell-stack">
+                            <div class="row-color-picker" aria-label="Row highlight color">
+                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="green" class="row-color-dot row-color-dot-green{% if row_color_effective == 'green' %} is-selected{% endif %}" title="Mark green"></button>
+                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="yellow" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
+                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="red" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
+                            </div>
+                            <a href="/shipments/{{ s.id }}" class="row-open-link">
+                                <span class="cell-primary">#{{ s.id }}</span>
+                                <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                            </a>
+                        </div>
                     </td>
                     <td class="hover-preview-cell">
                         <a href="/shipments/{{ s.id }}" class="row-open-link">

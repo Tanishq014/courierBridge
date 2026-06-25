@@ -14,12 +14,19 @@ Base.metadata.create_all(bind=engine)
 
 def ensure_lightweight_migrations():
     try:
-        inspector = inspect(engine)
-        if "tracking_events" in inspector.get_table_names():
-            columns = {column["name"] for column in inspector.get_columns("tracking_events")}
-            if "notes" not in columns:
-                with engine.begin() as connection:
+        with engine.begin() as connection:
+            if engine.dialect.name == "sqlite":
+                connection.execute(text("PRAGMA journal_mode=OFF"))
+            inspector = inspect(connection)
+            table_names = inspector.get_table_names()
+            if "tracking_events" in table_names:
+                columns = {column["name"] for column in inspector.get_columns("tracking_events")}
+                if "notes" not in columns:
                     connection.execute(text("ALTER TABLE tracking_events ADD COLUMN notes VARCHAR"))
+            if "shipments" in table_names:
+                columns = {column["name"] for column in inspector.get_columns("shipments")}
+                if "row_color" not in columns:
+                    connection.execute(text("ALTER TABLE shipments ADD COLUMN row_color VARCHAR"))
     except Exception:
         # Keep startup available even if a non-SQLite database handles migrations externally.
         pass

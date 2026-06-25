@@ -1614,6 +1614,57 @@ body.sidebar-collapsed .sidebar-toggle {
     font-size: 12px;
 }
 
+
+.shipment-row.row-highlight-green {
+    background: #edf8ee;
+}
+
+.shipment-row.row-highlight-yellow {
+    background: #fff8d9;
+}
+
+.shipment-row.row-highlight-red {
+    background: #fff0ee;
+}
+
+.booking-cell-stack {
+    display: grid;
+    gap: 3px;
+    align-items: start;
+}
+
+.row-color-picker {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.row-color-dot {
+    width: 13px;
+    height: 13px;
+    padding: 0;
+    border: 1px solid rgba(15, 25, 20, 0.24);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.row-color-dot-green {
+    background: #40b66b;
+}
+
+.row-color-dot-yellow {
+    background: #f0c233;
+}
+
+.row-color-dot-red {
+    background: #e35b4f;
+}
+
+.row-color-dot.is-selected {
+    outline: 2px solid #23362b;
+    outline-offset: 1px;
+}
+
 .shipment-row.row-is-dirty {
     background: #fffaf0;
 }
