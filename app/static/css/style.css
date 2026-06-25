@@ -1792,3 +1792,34 @@ body.sidebar-collapsed .sidebar-toggle {
 .timeline-delete-form {
     margin-top: 7px;
 }
+
+.row-default-actions,
+.row-dirty-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.row-default-actions[hidden],
+.row-dirty-actions[hidden] {
+    display: none !important;
+}
+
+.row-notes-input {
+    width: 100%;
+    min-height: 42px;
+    max-height: 140px;
+    padding: 6px 7px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    color: var(--ink-soft);
+    background: #fff;
+    font-size: 11px;
+    line-height: 1.35;
+    resize: vertical;
+}
+
+.row-notes-input::placeholder {
+    color: var(--muted);
+}

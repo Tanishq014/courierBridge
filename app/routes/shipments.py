@@ -635,6 +635,7 @@ def quick_update_shipment(
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    internal_notes: str = Form(""),
     next_url: str = Form("/shipments")
 ):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
@@ -650,6 +651,7 @@ def quick_update_shipment(
     shipment.status_raw_text = new_notes
     if new_status != old_status or new_notes != old_notes:
         add_status_timeline_event(db, shipment, new_status, new_notes, "row_status_update")
+    shipment.internal_notes = internal_notes.strip()
 
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)

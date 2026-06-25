@@ -188,13 +188,19 @@
                         <span class="cell-secondary">Cost ₹{{ '%.2f'|format(s.self_cost or 0) }} · Profit ₹{{ '%.2f'|format(s.service_value or 0) }}</span>
                     </td>
                     <td class="notes-cell">
-                        {{ s.internal_notes or s.customer_notes or s.balance_notes or '—' }}
+                        <textarea form="{{ row_form_id }}" name="internal_notes" class="row-edit-field row-notes-input" data-initial="{{ s.internal_notes or '' }}" rows="2" placeholder="Notes">{{ s.internal_notes or '' }}</textarea>
                     </td>
                     <td>
                         <div class="button-row row-actions" data-row-actions>
-                            <span class="row-changed-label" hidden>Changed</span>
-                            <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save" hidden>Save</button>
-                            <button type="button" class="btn btn-sm btn-secondary row-discard" hidden>Discard</button>
+                            <div class="row-default-actions">
+                                <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a>
+                                <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                            </div>
+                            <div class="row-dirty-actions" hidden>
+                                <span class="row-changed-label">Changed</span>
+                                <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save">Save</button>
+                                <button type="button" class="btn btn-sm btn-secondary row-discard">Discard</button>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -257,6 +263,8 @@
         const fields = Array.from(row.querySelectorAll('.row-edit-field'));
         const save = row.querySelector('.row-save');
         const discard = row.querySelector('.row-discard');
+        const defaultActions = row.querySelector('.row-default-actions');
+        const dirtyActions = row.querySelector('.row-dirty-actions');
         const changedLabel = row.querySelector('.row-changed-label');
         const trackingLines = Array.from(row.querySelectorAll('.tracking-line'));
 
@@ -276,14 +284,23 @@
             });
         };
 
+        const resizeRowTextarea = field => {
+            if (field.tagName !== 'TEXTAREA') return;
+            field.style.height = 'auto';
+            field.style.height = field.scrollHeight + 'px';
+        };
+
         const updateRowState = () => {
             let changed = false;
             fields.forEach(field => {
+                resizeRowTextarea(field);
                 const fieldChanged = valueOf(field) !== (field.dataset.initial || '');
                 field.classList.toggle('is-dirty', fieldChanged);
                 changed = changed || fieldChanged;
             });
             row.classList.toggle('row-is-dirty', changed);
+            if (defaultActions) defaultActions.hidden = changed;
+            if (dirtyActions) dirtyActions.hidden = !changed;
             if (save) save.hidden = !changed;
             if (discard) discard.hidden = !changed;
             if (changedLabel) changedLabel.hidden = !changed;
