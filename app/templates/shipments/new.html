@@ -35,38 +35,11 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_name" placeholder="e.g. Jane Smith">
             </div>
             <div class="form-group">
-                <label>Receiver Phone</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="contact_or_reference_raw" placeholder="Optional">
-            </div>
-        </div>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Receiver City</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_city" placeholder="e.g. Toronto">
-            </div>
-            <div class="form-group">
-                <label>Receiver State</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
-            </div>
-            <div class="form-group">
-                <label>Receiver ZIP</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
-            </div>
-            <div class="form-group">
-                <label>Destination Country <span class="required">*</span></label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
-            </div>
-        </div>
-        <datalist id="destination-country-options">
-            {% for option in country_options %}
-            <option value="{{ option }}"></option>
-            {% endfor %}
-        </datalist>
-        <div class="grid-4 address-grid">
-            <div class="form-group">
                 <label>Address Line 1</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_1" placeholder="House / building"></textarea>
             </div>
+        </div>
+        <div class="grid-4">
             <div class="form-group">
                 <label>Address Line 2</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_2" placeholder="Street / area"></textarea>
@@ -75,6 +48,29 @@
                 <label>Address Line 3</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_3" placeholder="Landmark / optional"></textarea>
             </div>
+            <div class="form-group">
+                <label>Receiver City</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_city" placeholder="e.g. Toronto">
+            </div>
+            <div class="form-group">
+                <label>Receiver State</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
+            </div>
+        </div>
+        <div class="grid-4">
+            <div class="form-group">
+                <label>Receiver ZIP</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
+            </div>
+            <div class="form-group">
+                <label>Destination Country <span class="required">*</span></label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
+            </div>
+            <div class="form-group">
+                <label>Receiver Phone</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="contact_or_reference_raw" placeholder="Optional">
+            </div>
+            <div class="form-group" style="visibility: hidden;"></div>
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Item Details</h3>
