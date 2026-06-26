@@ -95,7 +95,8 @@ def get_courier_options(db: Session) -> list[str]:
 def get_service_options(db: Session) -> list[str]:
     vendor_partners = [row[0] for row in db.query(Shipment.vendor_partner).distinct().all() if row[0]]
     shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
-    return sorted({s.strip() for s in vendor_partners + shipment_couriers if s and s.strip()}, key=str.lower)
+    tn_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
+    return sorted({s.strip() for s in vendor_partners + shipment_couriers + tn_couriers if s and s.strip()}, key=str.lower)
 
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
@@ -374,7 +375,8 @@ def list_shipments(
     if service:
         query = query.filter(or_(
             Shipment.vendor_partner == service,
-            Shipment.courier_company == service
+            Shipment.courier_company == service,
+            Shipment.tracking_numbers.any(TrackingNumber.courier_name == service)
         ))
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
     shipment_previews = {}

@@ -589,7 +589,7 @@ tbody tr:last-child td {
 
 .filter-form {
     display: grid;
-    grid-template-columns: minmax(240px, 2fr) minmax(170px, 1fr) auto;
+    grid-template-columns: minmax(160px, 2fr) repeat(4, minmax(120px, 1fr)) auto;
     gap: 12px;
     align-items: end;
 }
@@ -1716,7 +1716,7 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
 }
 
 .shipment-filter-form {
-    grid-template-columns: minmax(180px, 1.2fr) minmax(135px, 0.75fr) minmax(135px, 0.75fr) auto;
+    grid-template-columns: minmax(160px, 1.5fr) repeat(4, minmax(110px, 1fr)) auto;
     gap: 8px;
 }
 
