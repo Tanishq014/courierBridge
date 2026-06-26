@@ -142,9 +142,7 @@
                             </a>
                             {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
                             {% if wa_phone %}
-                                {% set wa_url = main_tracking_url or main_tracking_site_url or '' %}
-                                {% set wa_message = "Here is your tracking link: " ~ wa_url ~ " and AWB: " ~ main_tracking_number %}
-                                <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="{{ wa_message }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
+                                <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
                                     {{ wa_phone }}
                                 </a>
                             {% else %}
@@ -277,9 +275,9 @@
     function openWhatsAppApp(phone, message) {
         const normalizedPhone = normalizeWhatsappPhone(phone);
         if (!normalizedPhone) return false;
-        const encodedMessage = encodeURIComponent(message || '');
-        const appUrl = `whatsapp://send?phone=${normalizedPhone}&text=${encodedMessage}`;
-        const webUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
+        const encodedMessage = message ? encodeURIComponent(message) : '';
+        const appUrl = `whatsapp://send?phone=${normalizedPhone}${encodedMessage ? '&text=' + encodedMessage : ''}`;
+        const webUrl = `https://wa.me/${normalizedPhone}${encodedMessage ? '?text=' + encodedMessage : ''}`;
         let fallbackTimer = null;
         const cancelFallback = () => {
             if (fallbackTimer) clearTimeout(fallbackTimer);

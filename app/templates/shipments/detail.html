@@ -44,22 +44,7 @@
             <div class="detail-item"><span class="detail-label">Sender</span><span class="detail-value">{{ shipment.customer_name }}</span></div>
             <div class="detail-item"><span class="detail-label">Sender phone</span><span class="detail-value">
                 {% if shipment.customer_phone %}
-                    {% set primary_tn = namespace(item=none) %}
-                    {% for tn in shipment.tracking_numbers %}
-                        {% if tn.is_primary %}{% set primary_tn.item = tn %}{% endif %}
-                    {% endfor %}
-                    {% if not primary_tn.item and shipment.tracking_numbers %}{% set primary_tn.item = shipment.tracking_numbers[0] %}{% endif %}
-
-                    {% set primary_tn_url = '' %}
-                    {% if primary_tn.item %}
-                        {% set effective_tn_courier = primary_tn.item.courier_name or (shipment.courier_company if primary_tn.item.tracking_type == 'main_awb' else '') %}
-                        {% set tn_url = tracking_url(effective_tn_courier, primary_tn.item.tracking_number, tracking_type=primary_tn.item.tracking_type) %}
-                        {% set tn_site_url = tracking_site_url(effective_tn_courier, primary_tn.item.tracking_number) %}
-                        {% set primary_tn_url = tn_url or tn_site_url or '' %}
-                    {% endif %}
-
-                    {% set wa_message = "Here is your tracking link: " ~ primary_tn_url ~ " and AWB: " ~ (primary_tn.item.tracking_number if primary_tn.item else '') %}
-                    <a href="#" class="whatsapp-app-link" data-whatsapp-phone="{{ shipment.customer_phone }}" data-whatsapp-message="{{ wa_message }}" style="text-decoration: underline; color: inherit;">
+                    <a href="#" class="whatsapp-app-link" data-whatsapp-phone="{{ shipment.customer_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit;">
                         {{ shipment.customer_phone }}
                     </a>
                 {% else %}
@@ -202,9 +187,9 @@
     function openWhatsAppApp(phone, message) {
         const normalizedPhone = normalizeWhatsappPhone(phone);
         if (!normalizedPhone) return false;
-        const encodedMessage = encodeURIComponent(message || '');
-        const appUrl = `whatsapp://send?phone=${normalizedPhone}&text=${encodedMessage}`;
-        const webUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
+        const encodedMessage = message ? encodeURIComponent(message) : '';
+        const appUrl = `whatsapp://send?phone=${normalizedPhone}${encodedMessage ? '&text=' + encodedMessage : ''}`;
+        const webUrl = `https://wa.me/${normalizedPhone}${encodedMessage ? '?text=' + encodedMessage : ''}`;
         let fallbackTimer = null;
         const cancelFallback = () => {
             if (fallbackTimer) clearTimeout(fallbackTimer);
