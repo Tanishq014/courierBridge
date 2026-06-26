@@ -43,7 +43,7 @@
                         <span class="badge badge-success">Settled</span>
                         {% endif %}
                     </td>
-                    <td><a href="/customers/{{ c.phone }}" class="btn btn-sm btn-secondary">View history</a></td>
+                    <td><a href="{{ c.history_url }}" class="btn btn-sm btn-secondary">View history</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

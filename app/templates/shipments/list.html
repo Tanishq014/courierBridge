@@ -17,8 +17,9 @@
 <section class="card filter-card">
     <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
         <div>
-            <label for="shipment-search">Search ledger</label>
-            <input autocomplete="new-password" spellcheck="false" id="shipment-search" type="text" name="q" value="{{ q }}" placeholder="Customer, phone, destination or reference">
+            <label for="ledger-filter-input">Search ledger</label>
+            <input autocomplete="off" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')" id="ledger-filter-input" type="text" value="{{ q }}" placeholder="Customer, phone, destination or reference">
+            <input id="shipment-query-value" type="hidden" name="q" value="{{ q }}">
         </div>
         <div>
             <label for="shipment-status">Shipment status</label>
@@ -233,10 +234,12 @@
 (() => {
     const filterForm = document.querySelector('.shipment-filter-form');
     if (filterForm) {
-        const searchInput = filterForm.querySelector('input[name="q"]');
+        const searchInput = document.getElementById('ledger-filter-input');
+        const searchValue = document.getElementById('shipment-query-value');
         const dropdowns = filterForm.querySelectorAll('select');
         let searchTimer = null;
         const submitAndRefocus = () => {
+            if (searchInput && searchValue) searchValue.value = searchInput.value;
             sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
             filterForm.requestSubmit();
         };
@@ -248,6 +251,7 @@
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
             }
             searchInput.addEventListener('input', () => {
+                if (searchValue) searchValue.value = searchInput.value;
                 clearTimeout(searchTimer);
                 searchTimer = setTimeout(submitAndRefocus, 500);
             });

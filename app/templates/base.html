@@ -90,7 +90,12 @@
                 }
             };
 
-            sidebar.addEventListener('mouseenter', () => setSidebarHover(true));
+            sidebar.addEventListener('pointermove', event => {
+                if (!document.body.classList.contains('sidebar-collapsed')) return;
+                if (document.body.classList.contains('sidebar-hovering')) return;
+                const collapsedWidth = parseInt(getComputedStyle(root).getPropertyValue('--sidebar-collapsed-width'), 10) || 58;
+                if (event.clientX <= collapsedWidth) setSidebarHover(true);
+            });
             sidebar.addEventListener('mouseleave', () => setSidebarHover(false));
 
             toggle.addEventListener('click', () => {
