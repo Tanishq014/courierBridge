@@ -19,3 +19,5 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-3.1-flash-lite
+      - key: PYTHON_VERSION
+        value: 3.12.4
