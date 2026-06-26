@@ -17,7 +17,7 @@
 
 <div class="card form-card">
     <form method="POST" action="/shipments/new" class="shipment-form compact-shipment-form" id="new-shipment-form">
-        
+
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
         </div>
@@ -124,14 +124,14 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
             </div>
             <div class="form-group">
-                <label>Main Tracking Courier <span class="required">*</span></label>
+                <label>First Courier Company <span class="required">*</span></label>
                 <select name="main_tracking_courier" id="main_tracking_courier" required>
                     <option value="">Select courier</option>
                     {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label>Main Tracking Number</label>
+                <label>First Courier Number</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="main_tracking_number" placeholder="e.g. 1234567890">
             </div>
             <div class="form-group">
@@ -151,9 +151,14 @@
                     <option value="booked">Booked</option>
                     <option value="packed">Packed</option>
                     <option value="bagged">Bagged</option>
+                    <option value="in_scan">In Scan</option>
+                    <option value="bagging">Bagging</option>
                     <option value="received">Received</option>
                     <option value="in_transit">In Transit</option>
                     <option value="customs">Customs</option>
+                    <option value="hand_over_to_airline">Hand over to airline</option>
+                    <option value="at_destination">At destination</option>
+                    <option value="custom_clearance">Custom Clearance</option>
                     <option value="at_lm_partner">At LM Partner</option>
                     <option value="out_for_delivery">Out for Delivery</option>
                     <option value="undelivered">Undelivered</option>
@@ -175,9 +180,15 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
         </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;">
-            <label style="margin: 0; font-weight: 500;">Final delivery tracking pending</label>
+        <div style="display: flex; gap: 1rem;">
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;">
+                <label style="margin: 0; font-weight: 500;">Final delivery tracking pending</label>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="custom_duty" value="true" style="width: auto;">
+                <label style="margin: 0; font-weight: 500;">Custom duty</label>
+            </div>
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
@@ -226,7 +237,7 @@
     const receivedInput = document.getElementById('received_amount');
     const selfCostInput = document.getElementById('self_cost');
     const otherExpInput = document.getElementById('other_expense');
-    
+
     const balanceDisplay = document.getElementById('balance_display');
     const profitDisplay = document.getElementById('profit_display');
 
@@ -235,12 +246,12 @@
         const received = parseFloat(receivedInput.value) || 0;
         const selfCost = parseFloat(selfCostInput.value) || 0;
         const otherExp = parseFloat(otherExpInput.value) || 0;
-        
+
         balanceDisplay.textContent = (billed - received).toFixed(2);
-        
+
         const profit = billed - selfCost - otherExp;
         profitDisplay.textContent = profit.toFixed(2);
-        
+
         const profitContainer = profitDisplay.parentElement;
         if (profit > 0) {
             profitContainer.style.color = 'var(--success-text)';
@@ -260,7 +271,7 @@
         const form = current.form;
         if (!form) return;
         const elements = Array.from(form.elements).filter(el => !el.disabled && el.type !== 'hidden' && el.tabIndex !== -1);
-        
+
         if (direction === 'next') {
             const index = elements.indexOf(current);
             if (index > -1 && index < elements.length - 1) elements[index + 1].focus();
@@ -334,9 +345,9 @@
         }
 
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            if (e.target.tagName === 'TEXTAREA') return; 
-            if (e.target.tagName === 'SELECT') return; 
-            
+            if (e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'SELECT') return;
+
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 let isAtBoundary = false;
                 try {
@@ -402,18 +413,37 @@
         if (basisDisplay) basisDisplay.value = basis === 'volumetric' ? 'Volumetric' : 'Actual';
     }
 
+    let billedManuallyEdited = false;
+    let selfCostManuallyEdited = false;
+
+    if (billedInput) {
+        billedInput.addEventListener('input', () => { billedManuallyEdited = true; updateCalculations(); });
+    }
+    if (selfCostInput) {
+        selfCostInput.addEventListener('input', () => { selfCostManuallyEdited = true; updateCalculations(); });
+    }
+
+    function extractRateJS(text) {
+        if (!text) return 0;
+        let match = text.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(?:\/kg|per\s*kg|kg)/);
+        if (match) return parseFloat(match[1]);
+        let matchPlain = text.match(/^\s*(\d+(?:\.\d+)?)\s*$/);
+        if (matchPlain) return parseFloat(matchPlain[1]);
+        return 0;
+    }
+
     function updateRateAmounts() {
         const customerWeight = document.getElementById('customer_charged_weight');
         const customerRate = document.getElementById('customer_rate_text');
         const vendorWeight = document.getElementById('vendor_charged_weight');
         const vendorRate = document.getElementById('vendor_rate_text');
 
-        if (customerWeight && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
-            const amount = (parseFloat(customerWeight.value) || 0) * (parseFloat(customerRate.value) || 0);
+        if (!billedManuallyEdited && customerWeight && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
+            const amount = (parseFloat(customerWeight.value) || 0) * extractRateJS(customerRate.value);
             billedInput.value = amount ? amount.toFixed(2) : '0.00';
         }
-        if (vendorWeight && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
-            const amount = (parseFloat(vendorWeight.value) || 0) * (parseFloat(vendorRate.value) || 0);
+        if (!selfCostManuallyEdited && vendorWeight && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
+            const amount = (parseFloat(vendorWeight.value) || 0) * extractRateJS(vendorRate.value);
             selfCostInput.value = amount ? amount.toFixed(2) : '0.00';
         }
         updateCalculations();
@@ -436,7 +466,7 @@
     });
 
     updateWeightBasis();
-    updateRateAmounts();
+    updateCalculations();
     function normalizeCountryInput(field) {
         field.value = field.value.toUpperCase();
     }

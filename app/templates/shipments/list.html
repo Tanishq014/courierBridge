@@ -28,9 +28,14 @@
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
                 <option value="packed" {% if status == 'packed' %}selected{% endif %}>Packed</option>
                 <option value="bagged" {% if status == 'bagged' %}selected{% endif %}>Bagged</option>
+                <option value="in_scan" {% if status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                <option value="bagging" {% if status == 'bagging' %}selected{% endif %}>Bagging</option>
                 <option value="received" {% if status == 'received' %}selected{% endif %}>Received</option>
                 <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
                 <option value="customs" {% if status == 'customs' %}selected{% endif %}>Customs</option>
+                <option value="hand_over_to_airline" {% if status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                <option value="at_destination" {% if status == 'at_destination' %}selected{% endif %}>At destination</option>
+                <option value="custom_clearance" {% if status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
                 <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
                 <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
                 <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
@@ -50,9 +55,26 @@
                 {% endfor %}
             </select>
         </div>
+        <div>
+            <label for="shipment-service">Service</label>
+            <select id="shipment-service" name="service">
+                <option value="">All services</option>
+                {% for option in service_options %}
+                <option value="{{ option }}" {% if service == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="shipment-custom-duty">Custom duty</label>
+            <select id="shipment-custom-duty" name="custom_duty">
+                <option value="">All</option>
+                <option value="yes" {% if custom_duty == 'yes' %}selected{% endif %}>Yes</option>
+                <option value="no" {% if custom_duty == 'no' %}selected{% endif %}>No</option>
+            </select>
+        </div>
         <div class="button-row">
             <button type="submit" class="btn btn-primary">Apply filter</button>
-            {% if q or status or country %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
+            {% if q or status or country or custom_duty or service %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
         </div>
     </form>
 </section>
@@ -70,8 +92,8 @@
             <thead>
                 <tr>
                     <th>Booking</th>
-                    <th>Customer</th>
-                    <th>Route</th>
+                    <th>Sender</th>
+                    <th>Receiver</th>
                     <th>Tracking</th>
                     <th>Status</th>
                     <th>Weight</th>
@@ -114,10 +136,21 @@
                         </div>
                     </td>
                     <td class="hover-preview-cell">
-                        <a href="/shipments/{{ s.id }}" class="row-open-link">
-                            <span class="cell-primary">{{ s.customer_name }}</span>
-                            <span class="cell-secondary">{{ s.customer_phone or s.contact_or_reference_raw or 'No contact' }}</span>
-                        </a>
+                        <div style="display: flex; flex-direction: column;">
+                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
+                                <span class="cell-primary">{{ s.customer_name }}</span>
+                            </a>
+                            {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
+                            {% if wa_phone %}
+                                {% set wa_url = main_tracking_url or main_tracking_site_url or '' %}
+                                {% set wa_message = "Here is your tracking link: " ~ wa_url ~ " and AWB: " ~ main_tracking_number %}
+                                <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="{{ wa_message }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
+                                    {{ wa_phone }}
+                                </a>
+                            {% else %}
+                                <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
+                            {% endif %}
+                        </div>
                         <div class="cell-hover-card">
                             <div class="hover-title">Raw items</div>
                             {% if preview.get('item_raw_text') %}
@@ -128,8 +161,8 @@
                         </div>
                     </td>
                     <td class="hover-preview-cell">
-                        <span class="cell-primary">{{ s.destination_country }}</span>
-                        <span class="cell-secondary">{{ s.destination_city or '—' }}</span>
+                        <span class="cell-primary">{{ s.receiver_name or '—' }}</span>
+                        <span class="cell-secondary">{{ s.destination_country }}</span>
                         <div class="cell-hover-card route-hover-card">
                             <div class="hover-title">Receiver address</div>
                             <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
@@ -139,9 +172,9 @@
                     <td class="tracking-cell">
                         <div class="tracking-stack">
                             <div class="tracking-line" data-tracking-type="main_awb">
-                                <a class="tracking-label-link" href="{{ main_tracking_url or main_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="Main" data-track-label="Track Main" data-copy-number="{{ main_tracking_number }}" {% if main_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not main_tracking_url and not main_tracking_site_url %}hidden{% endif %}>Track Main</a><span class="tracking-label-text" {% if main_tracking_url or main_tracking_site_url %}hidden{% endif %}>Main</span>
-                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="Main tracking">
-                                <select form="{{ row_form_id }}" class="row-edit-field" name="main_tracking_courier" data-initial="{{ main_courier or '' }}" aria-label="Main tracking courier">
+                                <a class="tracking-label-link" href="{{ main_tracking_url or main_tracking_site_url or '#' }}" target="_blank" rel="noopener" data-default-label="First Courier" data-track-label="Track First Courier" data-copy-number="{{ main_tracking_number }}" {% if main_tracking_site_url %}data-copy-mode="true"{% else %}data-copy-mode="false"{% endif %} {% if not main_tracking_url and not main_tracking_site_url %}hidden{% endif %}>Track First Courier</a><span class="tracking-label-text" {% if main_tracking_url or main_tracking_site_url %}hidden{% endif %}>First Courier</span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="main_tracking_number" value="{{ main_tn.item.tracking_number if main_tn.item else '' }}" data-initial="{{ main_tn.item.tracking_number if main_tn.item else '' }}" placeholder="First Courier Number">
+                                <select form="{{ row_form_id }}" class="row-edit-field" name="main_tracking_courier" data-initial="{{ main_courier or '' }}" aria-label="First Courier Company">
                                     <option value="">Courier</option>
                                     {% if main_courier and main_courier not in courier_options %}<option value="{{ main_courier }}" selected>{{ main_courier }}</option>{% endif %}
                                     {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == main_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
@@ -169,9 +202,14 @@
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
                                 <option value="packed" {% if s.overall_status == 'packed' %}selected{% endif %}>Packed</option>
                                 <option value="bagged" {% if s.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
+                                <option value="in_scan" {% if s.overall_status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                                <option value="bagging" {% if s.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
                                 <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received</option>
                                 <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
                                 <option value="customs" {% if s.overall_status == 'customs' %}selected{% endif %}>Customs</option>
+                                <option value="hand_over_to_airline" {% if s.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                                <option value="at_destination" {% if s.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
+                                <option value="custom_clearance" {% if s.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
                                 <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
                                 <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
                                 <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
@@ -230,6 +268,41 @@
 {% block scripts %}
 <script>
 (() => {
+    function normalizeWhatsappPhone(phone) {
+        let digits = String(phone || '').replace(/\D/g, '');
+        if (digits.length === 10) digits = '91' + digits;
+        return digits;
+    }
+
+    function openWhatsAppApp(phone, message) {
+        const normalizedPhone = normalizeWhatsappPhone(phone);
+        if (!normalizedPhone) return false;
+        const encodedMessage = encodeURIComponent(message || '');
+        const appUrl = `whatsapp://send?phone=${normalizedPhone}&text=${encodedMessage}`;
+        const webUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
+        let fallbackTimer = null;
+        const cancelFallback = () => {
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+        };
+        window.addEventListener('blur', cancelFallback, { once: true });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) cancelFallback();
+        }, { once: true });
+        fallbackTimer = setTimeout(() => {
+            window.open(webUrl, '_blank', 'noopener');
+        }, 1200);
+        window.location.href = appUrl;
+        return true;
+    }
+
+    document.querySelectorAll('.whatsapp-app-link').forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            openWhatsAppApp(link.dataset.whatsappPhone, link.dataset.whatsappMessage || '');
+        });
+    });
+
     const filterForm = document.querySelector('.shipment-filter-form');
     if (filterForm) {
         const searchInput = document.getElementById('ledger-filter-input');

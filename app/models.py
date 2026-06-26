@@ -58,7 +58,8 @@ class Shipment(Base):
     
     # 7. Status & Tracking 
     status_raw_text = Column(String)
-    overall_status = Column(String, index=True, default="booked") # booked/received/in_transit/customs/out_for_delivery/delivered/rto/return_damage/exception/unknown
+    custom_duty = Column(Boolean, default=False)
+    overall_status = Column(String, index=True, default="booked") # booked/packed/bagged/in_scan/bagging/received/in_transit/customs/hand_over_to_airline/at_destination/custom_clearance/at_lm_partner/out_for_delivery/delivered/rto/return_damage/exception/unknown
     row_color = Column(String, nullable=True) # manual row highlight: green/yellow/red; blank uses status default
     requires_lm_awb = Column(Boolean, default=False)
     

@@ -91,6 +91,12 @@ def get_courier_options(db: Session) -> list[str]:
     tracking_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
     return sorted({c.strip() for c in DEFAULT_COURIERS + shipment_couriers + tracking_couriers if c and c.strip()}, key=str.lower)
 
+
+def get_service_options(db: Session) -> list[str]:
+    vendor_partners = [row[0] for row in db.query(Shipment.vendor_partner).distinct().all() if row[0]]
+    shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
+    return sorted({s.strip() for s in vendor_partners + shipment_couriers if s and s.strip()}, key=str.lower)
+
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
         "line_1": "",
@@ -299,20 +305,20 @@ def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, cou
     number = number.strip() if number else ""
     if not number:
         return
-        
+
     if t_type == "main_awb":
         is_primary = True
     elif t_type == "lm_awb":
         is_primary = False
-        
+
     if is_primary:
         db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).update({"is_primary": False})
-        
+
     tn = db.query(TrackingNumber).filter(
         TrackingNumber.shipment_id == shipment_id,
         TrackingNumber.tracking_type == t_type
     ).first()
-    
+
     if tn:
         tn.tracking_number = number
         if courier:
@@ -330,14 +336,16 @@ def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, cou
 
 @router.get("")
 def list_shipments(
-    request: Request, 
+    request: Request,
     db: Session = Depends(get_db),
     q: str = "",
     status: str = "",
-    country: str = ""
+    country: str = "",
+    custom_duty: str = "",
+    service: str = ""
 ):
     query = db.query(Shipment).outerjoin(TrackingNumber)
-    
+
     if q:
         query = query.filter(
             or_(
@@ -349,7 +357,9 @@ def list_shipments(
                 TrackingNumber.tracking_number.ilike(f"%{q}%"),
                 Shipment.courier_company.ilike(f"%{q}%"),
                 Shipment.vendor_partner.ilike(f"%{q}%"),
-                Shipment.status_raw_text.ilike(f"%{q}%")
+                Shipment.status_raw_text.ilike(f"%{q}%"),
+                Shipment.internal_notes.ilike(f"%{q}%"),
+                Shipment.customer_notes.ilike(f"%{q}%")
             )
         )
     if status:
@@ -357,7 +367,15 @@ def list_shipments(
     normalized_country_filter = normalize_country(country)
     if normalized_country_filter:
         query = query.filter(Shipment.destination_country == normalized_country_filter)
-        
+    if custom_duty == "yes":
+        query = query.filter(Shipment.custom_duty == True)
+    elif custom_duty == "no":
+        query = query.filter(Shipment.custom_duty == False)
+    if service:
+        query = query.filter(or_(
+            Shipment.vendor_partner == service,
+            Shipment.courier_company == service
+        ))
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
     shipment_previews = {}
     for shipment in shipments:
@@ -368,17 +386,21 @@ def list_shipments(
             "address": format_receiver_address(receiver_address),
         }
     courier_options = get_courier_options(db)
+    service_options = get_service_options(db)
     country_options = get_country_options(db)
-    
+
     return templates.TemplateResponse("shipments/list.html", {
         "request": request,
         "shipments": shipments,
         "shipment_previews": shipment_previews,
         "courier_options": courier_options,
+        "service_options": service_options,
         "country_options": country_options,
         "q": q,
         "status": status,
-        "country": normalized_country_filter
+        "country": normalized_country_filter,
+        "custom_duty": custom_duty,
+        "service": service,
     })
 
 @router.get("/new")
@@ -389,6 +411,7 @@ def new_shipment_form(request: Request, db: Session = Depends(get_db)):
         "today": today,
         "item_raw_text": "",
         "courier_options": get_courier_options(db),
+        "service_options": get_service_options(db),
         "country_options": get_country_options(db)
     })
 
@@ -408,9 +431,9 @@ def create_shipment(
     customer_phone: str = Form(""),
     name_country_raw: str = Form(""),
     contact_or_reference_raw: str = Form(""),
-    
+
     item_raw_text: str = Form(""),
-    
+
     dead_weight: str = Form("0.0"),
     volumetric_weight: str = Form("0.0"),
     volumetric_length: str = Form(""),
@@ -419,7 +442,7 @@ def create_shipment(
     weight_basis: str = Form("actual"),
     dead_weight_unit: str = Form("KG"),
     volumetric_weight_unit: str = Form("KG"),
-    
+
     customer_rate_text: str = Form(""),
     customer_charged_weight: str = Form(""),
     customer_charged_weight_unit: str = Form("KG"),
@@ -428,40 +451,41 @@ def create_shipment(
     vendor_charged_weight_unit: str = Form("KG"),
     courier_company: str = Form(""),
     vendor_partner: str = Form(""),
-    
+
     promised_days_text: str = Form(""),
     promised_days_number: str = Form(""),
-    
+
     billed_amount: str = Form("0.0"),
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
-    
+
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
     requires_lm_awb: bool = Form(False),
-    
+    custom_duty: bool = Form(False),
+
     booking_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
-    
+
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
     balance_notes: str = Form(""),
     raw_excel_notes: str = Form(""),
     raw_excel_row_text: str = Form("")
 ):
-    parsed_billed = calculate_rate_amount(customer_charged_weight, customer_rate_text) or parse_decimal(billed_amount)
+    parsed_billed = parse_decimal(billed_amount) if (billed_amount and billed_amount.strip()) else calculate_rate_amount(customer_charged_weight, customer_rate_text)
     parsed_received = parse_decimal(received_amount)
-    parsed_self_cost = calculate_rate_amount(vendor_charged_weight, vendor_rate_text) or parse_decimal(self_cost)
+    parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
-    
+
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
     balance_amount = parsed_billed - parsed_received
-    
+
     parsed_booking_date = now_ist()
     if booking_date and booking_date.strip():
         try:
@@ -473,6 +497,13 @@ def create_shipment(
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
     normalized_vendor_partner = normalize_proper_case(vendor_partner)
+
+    customer_name = normalize_proper_case(customer_name)
+    receiver_name = normalize_proper_case(receiver_name)
+    receiver_address_line_1 = normalize_proper_case(receiver_address_line_1)
+    receiver_address_line_2 = normalize_proper_case(receiver_address_line_2)
+    receiver_address_line_3 = normalize_proper_case(receiver_address_line_3)
+    status_raw_text = normalize_proper_case(status_raw_text)
     dead_weight_value = parse_float(dead_weight)
     volumetric_weight_value = calculate_volumetric_weight(volumetric_length, volumetric_width, volumetric_height) or parse_float(volumetric_weight)
     weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "actual"
@@ -533,6 +564,7 @@ def create_shipment(
         status_raw_text=status_raw_text,
         overall_status=overall_status,
         requires_lm_awb=requires_lm_awb,
+        custom_duty=custom_duty,
         internal_notes=internal_notes,
         customer_notes=customer_notes,
         balance_notes=balance_notes,
@@ -540,27 +572,27 @@ def create_shipment(
         raw_excel_row_text=raw_excel_row_text,
         last_status_text=status_raw_text
     )
-    
+
     if status_raw_text and status_raw_text.strip():
         shipment.last_status_text = status_raw_text
         shipment.last_status_at = parsed_booking_date
-    
+
     if overall_status == "delivered":
         shipment.delivered_at = parsed_booking_date
-        
+
     db.add(shipment)
     db.commit()
     db.refresh(shipment)
 
     if overall_status or status_raw_text.strip():
         add_status_timeline_event(db, shipment, overall_status or "booked", status_raw_text, "shipment_create")
-    
+
     # Tracking numbers
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
     db.commit()
-    
-    return RedirectResponse(url=f"/shipments/{shipment.id}", status_code=303)
+
+    return RedirectResponse(url="/shipments", status_code=303)
 
 @router.post("/{shipment_id}/quick-update")
 def quick_update_shipment(
@@ -604,7 +636,7 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
-        
+
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
     rate_details = parse_rate_details(shipment.raw_excel_notes)
@@ -626,10 +658,10 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
-        
+
     main_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "main_awb"), None)
     lm_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "lm_awb"), None)
-        
+
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
     rate_details = parse_rate_details(shipment.raw_excel_notes)
@@ -646,6 +678,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
         "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text),
         "courier_options": get_courier_options(db),
+        "service_options": get_service_options(db),
         "country_options": get_country_options(db)
     })
 
@@ -666,9 +699,9 @@ def update_shipment(
     customer_phone: str = Form(""),
     name_country_raw: str = Form(""),
     contact_or_reference_raw: str = Form(""),
-    
+
     item_raw_text: str = Form(""),
-    
+
     dead_weight: str = Form("0.0"),
     volumetric_weight: str = Form("0.0"),
     volumetric_length: str = Form(""),
@@ -677,7 +710,7 @@ def update_shipment(
     weight_basis: str = Form("actual"),
     dead_weight_unit: str = Form("KG"),
     volumetric_weight_unit: str = Form("KG"),
-    
+
     customer_rate_text: str = Form(""),
     customer_charged_weight: str = Form(""),
     customer_charged_weight_unit: str = Form("KG"),
@@ -686,25 +719,26 @@ def update_shipment(
     vendor_charged_weight_unit: str = Form("KG"),
     courier_company: str = Form(""),
     vendor_partner: str = Form(""),
-    
+
     promised_days_text: str = Form(""),
     promised_days_number: str = Form(""),
-    
+
     billed_amount: str = Form("0.0"),
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
-    
+
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
     requires_lm_awb: bool = Form(False),
-    
+    custom_duty: bool = Form(False),
+
     booking_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
-    
+
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
     balance_notes: str = Form(""),
@@ -717,26 +751,33 @@ def update_shipment(
 
     old_status = shipment.overall_status or "booked"
     old_notes = shipment.status_raw_text or ""
-        
-    parsed_billed = calculate_rate_amount(customer_charged_weight, customer_rate_text) or parse_decimal(billed_amount)
+
+    parsed_billed = parse_decimal(billed_amount) if (billed_amount and billed_amount.strip()) else calculate_rate_amount(customer_charged_weight, customer_rate_text)
     parsed_received = parse_decimal(received_amount)
-    parsed_self_cost = calculate_rate_amount(vendor_charged_weight, vendor_rate_text) or parse_decimal(self_cost)
+    parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
-        
+
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
     balance_amount = parsed_billed - parsed_received
-    
+
     if booking_date and booking_date.strip():
         try:
             shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
         except ValueError:
             pass
-    
+
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
     normalized_vendor_partner = normalize_proper_case(vendor_partner)
+
+    customer_name = normalize_proper_case(customer_name)
+    receiver_name = normalize_proper_case(receiver_name)
+    receiver_address_line_1 = normalize_proper_case(receiver_address_line_1)
+    receiver_address_line_2 = normalize_proper_case(receiver_address_line_2)
+    receiver_address_line_3 = normalize_proper_case(receiver_address_line_3)
+    status_raw_text = normalize_proper_case(status_raw_text)
     dead_weight_value = parse_float(dead_weight)
     volumetric_weight_value = calculate_volumetric_weight(volumetric_length, volumetric_width, volumetric_height) or parse_float(volumetric_weight)
     weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "actual"
@@ -757,9 +798,9 @@ def update_shipment(
     shipment.customer_phone = customer_phone
     shipment.name_country_raw = name_country_raw
     shipment.contact_or_reference_raw = contact_or_reference_raw
-    
+
     shipment.parcel_description = ""
-    
+
     shipment.dead_weight = dead_weight_value
     shipment.volumetric_weight = volumetric_weight_value
     shipment.charged_weight = 0.0
@@ -767,15 +808,15 @@ def update_shipment(
     shipment.dead_weight_text = "KG"
     shipment.volumetric_weight_text = "KG"
     shipment.charged_weight_text = ""
-    
+
     shipment.customer_rate_text = customer_rate_text
     shipment.vendor_rate_text = vendor_rate_text
     shipment.courier_company = main_tracking_courier
     shipment.vendor_partner = normalized_vendor_partner
-    
+
     shipment.promised_days_text = promised_days_text
     shipment.promised_days_number = parse_int(promised_days_number)
-    
+
     shipment.billed_amount = parsed_billed
     shipment.received_amount = parsed_received
     shipment.self_cost = parsed_self_cost
@@ -783,7 +824,7 @@ def update_shipment(
     shipment.total_cost = total_cost
     shipment.service_value = service_value
     shipment.balance_amount = balance_amount
-    
+
     new_status = overall_status.strip() or old_status
     new_notes = status_raw_text.strip()
     shipment.status_raw_text = new_notes
@@ -791,7 +832,8 @@ def update_shipment(
     if new_status != old_status or new_notes != old_notes:
         add_status_timeline_event(db, shipment, new_status, new_notes, "shipment_edit")
     shipment.requires_lm_awb = requires_lm_awb
-    
+    shipment.custom_duty = custom_duty
+
     shipment.internal_notes = internal_notes
     shipment.customer_notes = customer_notes
     shipment.balance_notes = balance_notes
@@ -809,9 +851,9 @@ def update_shipment(
         "vendor_charged_weight_unit": vendor_charged_weight_unit,
     })
     shipment.raw_excel_row_text = raw_excel_row_text
-    
+
     upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
-    
+
     db.commit()
-    return RedirectResponse(url=f"/shipments/{shipment.id}", status_code=303)
+    return RedirectResponse(url="/shipments", status_code=303)

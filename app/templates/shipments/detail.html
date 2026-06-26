@@ -15,8 +15,8 @@
         <span class="badge
             {% if shipment.overall_status == 'delivered' %}badge-success
             {% elif shipment.overall_status in ['exception', 'rto', 'return_damage', 'undelivered'] %}badge-danger
-            {% elif shipment.overall_status == 'customs' %}badge-warning
-            {% elif shipment.overall_status in ['in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged'] %}badge-info
+            {% elif shipment.overall_status in ['customs', 'custom_clearance'] %}badge-warning
+            {% elif shipment.overall_status in ['in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged', 'bagging', 'in_scan', 'hand_over_to_airline', 'at_destination'] %}badge-info
             {% else %}badge-neutral{% endif %}">
             {{ shipment.overall_status | capitalize | replace('_', ' ') }}
         </span>
@@ -42,7 +42,30 @@
         </div>
         <div class="detail-list">
             <div class="detail-item"><span class="detail-label">Sender</span><span class="detail-value">{{ shipment.customer_name }}</span></div>
-            <div class="detail-item"><span class="detail-label">Sender phone</span><span class="detail-value">{{ shipment.customer_phone or 'Not provided' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Sender phone</span><span class="detail-value">
+                {% if shipment.customer_phone %}
+                    {% set primary_tn = namespace(item=none) %}
+                    {% for tn in shipment.tracking_numbers %}
+                        {% if tn.is_primary %}{% set primary_tn.item = tn %}{% endif %}
+                    {% endfor %}
+                    {% if not primary_tn.item and shipment.tracking_numbers %}{% set primary_tn.item = shipment.tracking_numbers[0] %}{% endif %}
+
+                    {% set primary_tn_url = '' %}
+                    {% if primary_tn.item %}
+                        {% set effective_tn_courier = primary_tn.item.courier_name or (shipment.courier_company if primary_tn.item.tracking_type == 'main_awb' else '') %}
+                        {% set tn_url = tracking_url(effective_tn_courier, primary_tn.item.tracking_number, tracking_type=primary_tn.item.tracking_type) %}
+                        {% set tn_site_url = tracking_site_url(effective_tn_courier, primary_tn.item.tracking_number) %}
+                        {% set primary_tn_url = tn_url or tn_site_url or '' %}
+                    {% endif %}
+
+                    {% set wa_message = "Here is your tracking link: " ~ primary_tn_url ~ " and AWB: " ~ (primary_tn.item.tracking_number if primary_tn.item else '') %}
+                    <a href="#" class="whatsapp-app-link" data-whatsapp-phone="{{ shipment.customer_phone }}" data-whatsapp-message="{{ wa_message }}" style="text-decoration: underline; color: inherit;">
+                        {{ shipment.customer_phone }}
+                    </a>
+                {% else %}
+                    Not provided
+                {% endif %}
+            </span></div>
             <div class="detail-item"><span class="detail-label">Receiver</span><span class="detail-value">{{ shipment.receiver_name or 'Same as customer' }}</span></div>
             <div class="detail-item"><span class="detail-label">Receiver phone</span><span class="detail-value">{{ shipment.contact_or_reference_raw or 'Not provided' }}</span></div>
             <div class="detail-item wide"><span class="detail-label">Receiver address</span><span class="detail-value">{{ receiver_address_text or 'Not provided' }}</span></div>
@@ -160,13 +183,44 @@
     <div class="dialog-body"><textarea autocomplete="new-password" spellcheck="false" id="waText" rows="10"></textarea></div>
     <div class="dialog-footer">
         <button onclick="document.getElementById('whatsappModal').close()" class="btn btn-secondary">Close</button>
-        <button onclick="copyWA()" class="btn btn-primary">Copy update</button>
+        <button onclick="copyWA()" class="btn btn-secondary">Copy update</button>
+        <button onclick="openGeneratedWhatsApp()" class="btn btn-primary">Open WhatsApp</button>
     </div>
 </dialog>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    const shipmentWhatsappPhone = {{ (shipment.customer_phone or '') | tojson }};
+
+    function normalizeWhatsappPhone(phone) {
+        let digits = String(phone || '').replace(/\D/g, '');
+        if (digits.length === 10) digits = '91' + digits;
+        return digits;
+    }
+
+    function openWhatsAppApp(phone, message) {
+        const normalizedPhone = normalizeWhatsappPhone(phone);
+        if (!normalizedPhone) return false;
+        const encodedMessage = encodeURIComponent(message || '');
+        const appUrl = `whatsapp://send?phone=${normalizedPhone}&text=${encodedMessage}`;
+        const webUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
+        let fallbackTimer = null;
+        const cancelFallback = () => {
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+        };
+        window.addEventListener('blur', cancelFallback, { once: true });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) cancelFallback();
+        }, { once: true });
+        fallbackTimer = setTimeout(() => {
+            window.open(webUrl, '_blank', 'noopener');
+        }, 1200);
+        window.location.href = appUrl;
+        return true;
+    }
+
     function generateWhatsApp() {
         const customer = {{ (shipment.customer_name or shipment.name_country_raw or 'Customer') | tojson }};
         const dest = {{ shipment.destination_country | tojson }};
@@ -185,11 +239,24 @@
         document.getElementById('whatsappModal').showModal();
     }
 
+    function openGeneratedWhatsApp() {
+        const text = document.getElementById('waText').value;
+        openWhatsAppApp(shipmentWhatsappPhone, text);
+        document.getElementById('whatsappModal').close();
+    }
+
     async function copyWA() {
         const text = document.getElementById('waText').value;
         await navigator.clipboard.writeText(text);
         document.getElementById('whatsappModal').close();
     }
+
+    document.querySelectorAll('.whatsapp-app-link').forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            openWhatsAppApp(link.dataset.whatsappPhone, link.dataset.whatsappMessage || '');
+        });
+    });
 
     document.querySelectorAll('.copy-tracking-link').forEach(link => {
         link.addEventListener('click', event => {

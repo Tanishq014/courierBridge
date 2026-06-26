@@ -14,7 +14,7 @@
 
 <div class="card form-card">
     <form method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form compact-shipment-form">
-        
+
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
             <div class="form-group inline-date">
@@ -125,7 +125,7 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ shipment.vendor_partner or '' }}" placeholder="e.g. Nikhil, Self">
             </div>
             <div class="form-group">
-                <label>Main Tracking Courier <span class="required">*</span></label>
+                <label>First Courier Company <span class="required">*</span></label>
                 <select name="main_tracking_courier" id="main_tracking_courier" required>
                     {% set current_main_courier = main_awb.courier_name if main_awb and main_awb.courier_name else shipment.courier_company %}
                     <option value="">Select courier</option>
@@ -134,7 +134,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Main Tracking Number</label>
+                <label>First Courier Number</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="main_tracking_number" value="{{ main_awb.tracking_number if main_awb else '' }}">
             </div>
             <div class="form-group">
@@ -156,9 +156,14 @@
                     <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
                     <option value="packed" {% if shipment.overall_status == 'packed' %}selected{% endif %}>Packed</option>
                     <option value="bagged" {% if shipment.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
+                    <option value="in_scan" {% if shipment.overall_status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                    <option value="bagging" {% if shipment.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
                     <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received</option>
                     <option value="in_transit" {% if shipment.overall_status == 'in_transit' %}selected{% endif %}>In Transit</option>
                     <option value="customs" {% if shipment.overall_status == 'customs' %}selected{% endif %}>Customs</option>
+                    <option value="hand_over_to_airline" {% if shipment.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                    <option value="at_destination" {% if shipment.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
+                    <option value="custom_clearance" {% if shipment.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
                     <option value="at_lm_partner" {% if shipment.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM Partner</option>
                     <option value="out_for_delivery" {% if shipment.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
                     <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
@@ -180,9 +185,15 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" value="{{ shipment.status_raw_text or '' }}" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
         </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;" {% if shipment.requires_lm_awb %}checked{% endif %}>
-            <label style="margin: 0; font-weight: 500;">Final delivery tracking pending</label>
+        <div style="display: flex; gap: 1rem;">
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;" {% if shipment.requires_lm_awb %}checked{% endif %}>
+                <label style="margin: 0; font-weight: 500;">Final delivery tracking pending</label>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="custom_duty" value="true" style="width: auto;" {% if shipment.custom_duty %}checked{% endif %}>
+                <label style="margin: 0; font-weight: 500;">Custom duty</label>
+            </div>
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
@@ -231,7 +242,7 @@
     const receivedInput = document.getElementById('received_amount');
     const selfCostInput = document.getElementById('self_cost');
     const otherExpInput = document.getElementById('other_expense');
-    
+
     const balanceDisplay = document.getElementById('balance_display');
     const profitDisplay = document.getElementById('profit_display');
 
@@ -240,12 +251,12 @@
         const received = parseFloat(receivedInput.value) || 0;
         const selfCost = parseFloat(selfCostInput.value) || 0;
         const otherExp = parseFloat(otherExpInput.value) || 0;
-        
+
         balanceDisplay.textContent = (billed - received).toFixed(2);
-        
+
         const profit = billed - selfCost - otherExp;
         profitDisplay.textContent = profit.toFixed(2);
-        
+
         const profitContainer = profitDisplay.parentElement;
         if (profit > 0) {
             profitContainer.style.color = 'var(--success-text)';
@@ -265,7 +276,7 @@
         const form = current.form;
         if (!form) return;
         const elements = Array.from(form.elements).filter(el => !el.disabled && el.type !== 'hidden' && el.tabIndex !== -1);
-        
+
         if (direction === 'next') {
             const index = elements.indexOf(current);
             if (index > -1 && index < elements.length - 1) elements[index + 1].focus();
@@ -339,9 +350,9 @@
         }
 
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            if (e.target.tagName === 'TEXTAREA') return; 
-            if (e.target.tagName === 'SELECT') return; 
-            
+            if (e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'SELECT') return;
+
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 let isAtBoundary = false;
                 try {
@@ -407,18 +418,48 @@
         if (basisDisplay) basisDisplay.value = basis === 'volumetric' ? 'Volumetric' : 'Actual';
     }
 
+    function extractRateJS(text) {
+        if (!text) return 0;
+        let match = text.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(?:\/kg|per\s*kg|kg)/);
+        if (match) return parseFloat(match[1]);
+        let matchPlain = text.match(/^\s*(\d+(?:\.\d+)?)\s*$/);
+        if (matchPlain) return parseFloat(matchPlain[1]);
+        return 0;
+    }
+
+    const initialBilled = billedInput ? parseFloat(billedInput.value) || 0 : 0;
+    const cWeightEl = document.getElementById('customer_charged_weight');
+    const cRateEl = document.getElementById('customer_rate_text');
+    const initialCalcBilled = (parseFloat(cWeightEl ? cWeightEl.value : 0) || 0) * extractRateJS(cRateEl ? cRateEl.value : '');
+    let billedManuallyEdited = (initialBilled > 0 && initialBilled !== parseFloat((initialCalcBilled || 0).toFixed(2)));
+
+    const initialSelfCost = selfCostInput ? parseFloat(selfCostInput.value) || 0 : 0;
+    const vWeightEl = document.getElementById('vendor_charged_weight');
+    const vRateEl = document.getElementById('vendor_rate_text');
+    const initialCalcSelfCost = (parseFloat(vWeightEl ? vWeightEl.value : 0) || 0) * extractRateJS(vRateEl ? vRateEl.value : '');
+    let selfCostManuallyEdited = (initialSelfCost > 0 && initialSelfCost !== parseFloat((initialCalcSelfCost || 0).toFixed(2)));
+
+    if (billedInput) {
+        billedInput.addEventListener('input', () => { billedManuallyEdited = true; updateCalculations(); });
+    }
+    if (selfCostInput) {
+        selfCostInput.addEventListener('input', () => { selfCostManuallyEdited = true; updateCalculations(); });
+    }
+
+
+
     function updateRateAmounts() {
         const customerWeight = document.getElementById('customer_charged_weight');
         const customerRate = document.getElementById('customer_rate_text');
         const vendorWeight = document.getElementById('vendor_charged_weight');
         const vendorRate = document.getElementById('vendor_rate_text');
 
-        if (customerWeight && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
-            const amount = (parseFloat(customerWeight.value) || 0) * (parseFloat(customerRate.value) || 0);
+        if (!billedManuallyEdited && customerWeight && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
+            const amount = (parseFloat(customerWeight.value) || 0) * extractRateJS(customerRate.value);
             billedInput.value = amount ? amount.toFixed(2) : '0.00';
         }
-        if (vendorWeight && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
-            const amount = (parseFloat(vendorWeight.value) || 0) * (parseFloat(vendorRate.value) || 0);
+        if (!selfCostManuallyEdited && vendorWeight && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
+            const amount = (parseFloat(vendorWeight.value) || 0) * extractRateJS(vendorRate.value);
             selfCostInput.value = amount ? amount.toFixed(2) : '0.00';
         }
         updateCalculations();
@@ -441,7 +482,7 @@
     });
 
     updateWeightBasis();
-    updateRateAmounts();
+    updateCalculations();
     function normalizeCountryInput(field) {
         field.value = field.value.toUpperCase();
     }

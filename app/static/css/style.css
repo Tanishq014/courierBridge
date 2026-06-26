@@ -1888,3 +1888,8 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     border-radius: 12px;
     background: #fff;
 }
+/* Capitalize text fields while typing */
+.shipment-form input[type="text"]:not([name="main_tracking_number"]):not([name="lm_awb_number"]):not(.country-normalized-input),
+.shipment-form textarea {
+    text-transform: capitalize;
+}
