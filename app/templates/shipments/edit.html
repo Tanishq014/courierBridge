@@ -121,6 +121,10 @@
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Tracking & Status</h3>
         <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
+                <label>Handed over to</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ shipment.vendor_partner or '' }}" placeholder="e.g. Nikhil, Self">
+            </div>
+            <div class="form-group">
                 <label>Main Tracking Courier <span class="required">*</span></label>
                 <select name="main_tracking_courier" id="main_tracking_courier" required>
                     {% set current_main_courier = main_awb.courier_name if main_awb and main_awb.courier_name else shipment.courier_company %}
@@ -145,10 +149,6 @@
             <div class="form-group">
                 <label>Last Mile (LM) AWB Number</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" value="{{ lm_awb.tracking_number if lm_awb else '' }}">
-            </div>
-            <div class="form-group">
-                <label>Service</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ shipment.vendor_partner or '' }}" placeholder="e.g. Nikhil, Self">
             </div>
             <div class="form-group">
                 <label>Current Status</label>
