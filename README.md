@@ -60,8 +60,6 @@ COURIERBRIDGE_DATABASE_URL=postgresql+psycopg://...
 COURIERBRIDGE_REQUIRE_AUTH=true
 COURIERBRIDGE_ACCESS_PASSWORD=your-strong-login-password
 COURIERBRIDGE_SECRET_KEY=generate-a-long-random-secret
-GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Production auth fails closed: if `COURIERBRIDGE_REQUIRE_AUTH=true` but the password or secret key is missing, the app will not serve shipment/customer data. Only `/health`, `/static`, and `/login` are reachable.

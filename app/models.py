@@ -24,7 +24,6 @@ class Shipment(Base):
     contact_or_reference_raw = Column(String)
     
     # 2. Content & Items
-    item_category = Column(String)
     parcel_description = Column(String)
     
     # 3. Weight & Rates (Messy strings + Numeric)

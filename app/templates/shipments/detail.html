@@ -8,8 +8,7 @@
         <div class="eyebrow">Shipment #{{ shipment.id }}</div>
         <h1>{{ shipment.customer_name }} → {{ shipment.destination_country }}</h1>
         <p class="page-description">
-            Booked {{ shipment.booking_date.strftime('%d %b %Y') }} · {{ shipment.courier_company }}
-            {% if shipment.vendor_partner %} via {{ shipment.vendor_partner }}{% endif %}
+            Booked {{ shipment.booking_date.strftime('%d %b %Y') }} - {{ shipment.courier_company }}{% if shipment.vendor_partner %} - Service {{ shipment.vendor_partner }}{% endif %}
         </p>
     </div>
     <div class="page-actions">
@@ -42,113 +41,36 @@
             </div>
         </div>
         <div class="detail-list">
-            <div class="detail-item">
-                <span class="detail-label">Sender</span>
-                <span class="detail-value">{{ shipment.customer_name }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Sender phone</span>
-                <span class="detail-value">{{ shipment.customer_phone or 'Not provided' }}</span>
-            </div>
-            <div class="detail-item wide">
-                <span class="detail-label">Receiver address</span>
-                <span class="detail-value">{{ receiver_address_text or 'Not provided' }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Receiver</span>
-                <span class="detail-value">{{ shipment.receiver_name or 'Same as customer' }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Destination</span>
-                <span class="detail-value">{{ shipment.destination_city or '—' }}, {{ shipment.destination_country }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Contents</span>
-                <span class="detail-value">{{ shipment.item_category or 'Not specified' }}</span>
-            </div>
-            <div class="detail-item wide">
-                <span class="detail-label">Item details</span>
-                <span class="detail-value">
-                    {% if item_details %}
-                        {% for item in item_details %}
-                            {{ item.name }}{% if item.quantity %} × {{ item.quantity }}{% endif %}{% if not loop.last %}<br>{% endif %}
-                        {% endfor %}
-                    {% else %}
-                        Not provided
-                    {% endif %}
-                </span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Promised timeline</span>
-                <span class="detail-value">{{ shipment.promised_days_text or shipment.promised_days_number or 'Not set' }}</span>
-            </div>
-            <div class="detail-item wide">
-                <span class="detail-label">Status notes</span>
-                <span class="detail-value">{{ shipment.status_raw_text or shipment.last_status_text or 'No status notes added' }}</span>
-            </div>
-            <div class="detail-item wide">
-                <span class="detail-label">Internal notes</span>
-                <span class="detail-value">{{ shipment.internal_notes or shipment.customer_notes or 'No notes added' }}</span>
-            </div>
+            <div class="detail-item"><span class="detail-label">Sender</span><span class="detail-value">{{ shipment.customer_name }}</span></div>
+            <div class="detail-item"><span class="detail-label">Sender phone</span><span class="detail-value">{{ shipment.customer_phone or 'Not provided' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Receiver</span><span class="detail-value">{{ shipment.receiver_name or 'Same as customer' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Receiver phone</span><span class="detail-value">{{ shipment.contact_or_reference_raw or 'Not provided' }}</span></div>
+            <div class="detail-item wide"><span class="detail-label">Receiver address</span><span class="detail-value">{{ receiver_address_text or 'Not provided' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Destination</span><span class="detail-value">{{ shipment.destination_city or '-' }}, {{ shipment.destination_country }}</span></div>
+            <div class="detail-item"><span class="detail-label">Promised timeline</span><span class="detail-value">{{ shipment.promised_days_text or shipment.promised_days_number or 'Not set' }}</span></div>
+            <div class="detail-item wide"><span class="detail-label">Raw items</span><span class="detail-value">{{ item_raw_text or 'Not provided' }}</span></div>
+            <div class="detail-item wide"><span class="detail-label">Status notes</span><span class="detail-value">{{ shipment.status_raw_text or shipment.last_status_text or 'No status notes added' }}</span></div>
+            <div class="detail-item wide"><span class="detail-label">Internal notes</span><span class="detail-value">{{ shipment.internal_notes or shipment.customer_notes or 'No notes added' }}</span></div>
         </div>
     </section>
+
 
     <section class="card">
         <div class="card-header">
             <div>
-                <h3>Weight & commercials</h3>
-                <p class="card-subtitle">Shipment basis, cost, and collections.</p>
+                <h3>Weight & rates</h3>
+                <p class="card-subtitle">Dead, volumetric, billing and self-charged basis.</p>
             </div>
         </div>
         <div class="detail-list">
-            <div class="detail-item">
-                <span class="detail-label">Dead weight</span>
-                <span class="detail-value">{{ shipment.dead_weight or '—' }}{% if shipment.dead_weight %} {{ (shipment.dead_weight_text or 'KG')|upper }}{% endif %}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Volumetric weight</span>
-                <span class="detail-value">{{ shipment.volumetric_weight or '—' }}{% if shipment.volumetric_weight %} {{ (shipment.volumetric_weight_text or 'KG')|upper }}{% endif %}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Rate basis</span>
-                <span class="detail-value">{{ shipment.weight_basis | capitalize }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Customer charged</span>
-                <span class="detail-value">{{ rate_details.customer_charged_weight or '—' }}{% if rate_details.customer_charged_weight %} {{ rate_details.customer_charged_weight_unit }}{% endif %}{% if customer_per_kg_rate %} · ₹{{ customer_per_kg_rate }}/KG{% endif %}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Vendor charged</span>
-                <span class="detail-value">{{ rate_details.vendor_charged_weight or '—' }}{% if rate_details.vendor_charged_weight %} {{ rate_details.vendor_charged_weight_unit }}{% endif %}{% if vendor_per_kg_rate %} · ₹{{ vendor_per_kg_rate }}/KG{% endif %}</span>
-            </div>
-        </div>
-        <div class="financial-strip">
-            <div class="financial-item">
-                <span class="detail-label">Billed</span>
-                <strong>₹{{ '%.2f'|format(shipment.billed_amount or 0) }}</strong>
-            </div>
-            <div class="financial-item">
-                <span class="detail-label">Received</span>
-                <strong>₹{{ '%.2f'|format(shipment.received_amount or 0) }}</strong>
-            </div>
-            <div class="financial-item">
-                <span class="detail-label">Balance</span>
-                <strong class="{% if shipment.balance_amount > 0 %}text-danger{% else %}text-success{% endif %}">₹{{ '%.2f'|format(shipment.balance_amount or 0) }}</strong>
-            </div>
-        </div>
-        <div class="financial-strip">
-            <div class="financial-item">
-                <span class="detail-label">Self cost</span>
-                <strong>₹{{ '%.2f'|format(shipment.self_cost or 0) }}</strong>
-            </div>
-            <div class="financial-item">
-                <span class="detail-label">Other expense</span>
-                <strong>₹{{ '%.2f'|format(shipment.other_expense or 0) }}</strong>
-            </div>
-            <div class="financial-item">
-                <span class="detail-label">Service value</span>
-                <strong class="text-success">₹{{ '%.2f'|format(shipment.service_value or 0) }}</strong>
-            </div>
+            <div class="detail-item"><span class="detail-label">Dead weight</span><span class="detail-value">{{ shipment.dead_weight or '-' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Volumetric L x W x H</span><span class="detail-value">{{ volumetric_dimensions.length or '-' }} x {{ volumetric_dimensions.width or '-' }} x {{ volumetric_dimensions.height or '-' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Volumetric weight</span><span class="detail-value">{{ shipment.volumetric_weight or '-' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Weight basis</span><span class="detail-value">{{ shipment.weight_basis | capitalize }}</span></div>
+            <div class="detail-item"><span class="detail-label">Customer charged weight</span><span class="detail-value">{{ rate_details.customer_charged_weight or '-' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Customer charged rate</span><span class="detail-value">{% if customer_per_kg_rate %}Rs {{ customer_per_kg_rate }}{% else %}-{% endif %}</span></div>
+            <div class="detail-item"><span class="detail-label">Self charged weight</span><span class="detail-value">{{ rate_details.vendor_charged_weight or '-' }}</span></div>
+            <div class="detail-item"><span class="detail-label">Self charged rate</span><span class="detail-value">{% if vendor_per_kg_rate %}Rs {{ vendor_per_kg_rate }}{% else %}-{% endif %}</span></div>
         </div>
     </section>
 </div>
@@ -165,7 +87,7 @@
         {% if shipment.tracking_numbers %}
         <div class="table-scroll">
             <table>
-                <thead><tr><th>Type</th><th>Courier</th><th>Tracking number</th><th>Role</th><th></th></tr></thead>
+                <thead><tr><th>Type</th><th>Courier</th><th>Tracking number</th><th>Role</th><th>Service</th><th></th></tr></thead>
                 <tbody>
                     {% for tn in shipment.tracking_numbers %}
                     <tr>
@@ -175,10 +97,9 @@
                         {% set tn_url = tracking_url(effective_tn_courier, tn.tracking_number, tracking_type=tn.tracking_type) %}
                         {% set tn_site_url = tracking_site_url(effective_tn_courier, tn.tracking_number) %}
                         {% set tn_open_url = tn_url or tn_site_url %}
-                        <td class="mono">
-                            {% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}
-                        </td>
+                        <td class="mono">{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}</td>
                         <td>{% if tn.is_primary %}<span class="badge badge-info">Primary</span>{% else %}<span class="cell-secondary">Secondary</span>{% endif %}</td>
+                        <td>{{ shipment.vendor_partner or 'Direct' }}</td>
                         <td>{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">Track ↗</a>{% else %}<a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a>{% endif %}</td>
                     </tr>
                     {% endfor %}
@@ -188,9 +109,19 @@
         {% else %}
         <div class="empty-state compact"><div><div class="empty-icon">⌁</div><h3>No tracking numbers</h3><p>Add a carrier reference to begin tracking.</p></div></div>
         {% endif %}
-        {% if shipment.requires_lm_awb %}
-        <div class="notice" style="margin: 0 20px 20px;"><span>!</span>This shipment expects a last-mile AWB.</div>
-        {% endif %}
+        {% if shipment.requires_lm_awb %}<div class="notice" style="margin: 0 20px 20px;"><span>!</span>This shipment expects a last-mile AWB.</div>{% endif %}
+    </section>
+
+    <section class="card">
+        <div class="card-header"><div><h3>Money</h3><p class="card-subtitle">Customer billing, collections, cost, and profit.</p></div></div>
+        <div class="financial-strip">
+            <div class="financial-item"><span class="detail-label">Billed</span><strong>Rs {{ '%.2f'|format(shipment.billed_amount or 0) }}</strong></div>
+            <div class="financial-item"><span class="detail-label">Received</span><strong>Rs {{ '%.2f'|format(shipment.received_amount or 0) }}</strong></div>
+            <div class="financial-item"><span class="detail-label">Balance</span><strong class="{% if shipment.balance_amount > 0 %}text-danger{% else %}text-success{% endif %}">Rs {{ '%.2f'|format(shipment.balance_amount or 0) }}</strong></div>
+            <div class="financial-item"><span class="detail-label">Self cost</span><strong>Rs {{ '%.2f'|format(shipment.self_cost or 0) }}</strong></div>
+            <div class="financial-item"><span class="detail-label">Other expense</span><strong>Rs {{ '%.2f'|format(shipment.other_expense or 0) }}</strong></div>
+            <div class="financial-item"><span class="detail-label">Profit</span><strong class="{% if shipment.service_value and shipment.service_value > 0 %}text-success{% elif shipment.service_value and shipment.service_value < 0 %}text-danger{% endif %}">Rs {{ '%.2f'|format(shipment.service_value or 0) }}</strong></div>
+        </div>
     </section>
 
     <section class="card">
@@ -209,7 +140,7 @@
                 <div class="timeline-rail"><span class="timeline-dot"></span></div>
                 <div class="timeline-content">
                     <div class="timeline-title">{{ ev.status_text }}</div>
-                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} · {{ ev.normalized_status | replace('_', ' ') | title }}{% if ev.source %} · {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
+                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} - {{ ev.normalized_status | replace('_', ' ') | title }}{% if ev.source %} - {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
                     {% if ev.notes %}<div class="timeline-notes">{{ ev.notes }}</div>{% endif %}
                     <form method="POST" action="/tracking/event/{{ ev.id }}/delete" class="timeline-delete-form" onsubmit="return confirm('Delete this timeline update?');">
                         <button type="submit" class="btn btn-sm btn-secondary">Delete</button>
@@ -219,7 +150,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="empty-state compact"><div><div class="empty-icon">↗</div><h3>No tracking events</h3><p>Add the first event when a carrier update arrives.</p></div></div>
+        <div class="empty-state compact"><div><div class="empty-icon">open</div><h3>No tracking events</h3><p>Add the first event when a carrier update arrives.</p></div></div>
         {% endif %}
     </section>
 </div>

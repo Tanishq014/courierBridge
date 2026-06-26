@@ -18,9 +18,6 @@ def parse_quick_add(
     request: Request,
     raw_text: str = Form(...)
 ):
-    # This is a placeholder for AI parsing
-    # TODO: Integrate with Gemini API to parse raw_text into JSON
-    
     # Rule-based mock parsing for MVP
     # Example: "rahul 98765 canada 2.4kg charge 3200 cost 2450 india awb dtdc123 eta 7-10 days pending"
     
@@ -28,7 +25,6 @@ def parse_quick_add(
         "customer_name": "Mock Name",
         "name_country_raw": "Mock Name / Canada",
         "destination_country": "CANADA",
-        "item_category": "documents",
         "charged_weight": 2.4,
         "billed_amount": 3200,
         "self_cost": 2450,

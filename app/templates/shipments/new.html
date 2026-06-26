@@ -35,38 +35,11 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_name" placeholder="e.g. Jane Smith">
             </div>
             <div class="form-group">
-                <label>Receiver Phone</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="contact_or_reference_raw" placeholder="Optional">
-            </div>
-        </div>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Receiver City</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_city" placeholder="e.g. Toronto">
-            </div>
-            <div class="form-group">
-                <label>Receiver State</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
-            </div>
-            <div class="form-group">
-                <label>Receiver ZIP</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
-            </div>
-            <div class="form-group">
-                <label>Destination Country <span class="required">*</span></label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
-            </div>
-        </div>
-        <datalist id="destination-country-options">
-            {% for option in country_options %}
-            <option value="{{ option }}"></option>
-            {% endfor %}
-        </datalist>
-        <div class="grid-4 address-grid">
-            <div class="form-group">
                 <label>Address Line 1</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_1" placeholder="House / building"></textarea>
             </div>
+        </div>
+        <div class="grid-4">
             <div class="form-group">
                 <label>Address Line 2</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_2" placeholder="Street / area"></textarea>
@@ -75,148 +48,91 @@
                 <label>Address Line 3</label>
                 <textarea autocomplete="new-password" spellcheck="false" class="auto-grow address-input" rows="1" name="receiver_address_line_3" placeholder="Landmark / optional"></textarea>
             </div>
-        </div>
-
-        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Item Details</h3>
-        <input type="hidden" name="item_details_json" id="item_details_json" value="[]">
-        <input type="hidden" name="item_raw_text" id="item_raw_text_hidden" value="">
-        <div class="item-details-layout">
-            <div class="item-detail-stack">
-                <div class="form-group">
-                    <label>Item Category</label>
-                    <input autocomplete="new-password" spellcheck="false" type="text" name="item_category" placeholder="medicine, cloth, etc.">
-                </div>
-                <div class="form-group">
-                    <label>Raw Items</label>
-                    <textarea autocomplete="new-password" spellcheck="false" id="item_raw_text_input" class="auto-grow item-raw-input" rows="3" placeholder="Paste item list here, then click Add items"></textarea>
-                    <div class="item-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" id="parse_items_btn">Add items</button>
-                        <span class="field-hint" id="item_parse_status">Uses Gemini when an API key is configured.</span>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label>Receiver City</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_city" placeholder="e.g. Toronto">
             </div>
-            <div class="item-table-card item-table-align-category">
-                <div class="item-table-header">
-                    <span>Item name</span>
-                    <span>Quantity</span>
-                    <span></span>
-                </div>
-                <div id="item_rows" class="item-rows"></div>
-                <button type="button" class="btn btn-secondary btn-sm" id="add_item_row_btn">Add row manually</button>
+            <div class="form-group">
+                <label>Receiver State</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
+            </div>
+        </div>
+        <div class="grid-4">
+            <div class="form-group">
+                <label>Receiver ZIP</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
+            </div>
+            <div class="form-group">
+                <label>Destination Country <span class="required">*</span></label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
+            </div>
+            <div class="form-group">
+                <label>Receiver Phone</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="contact_or_reference_raw" placeholder="Optional">
+            </div>
+            <div class="form-group">
+                <label>Raw Items</label>
+                <textarea autocomplete="new-password" spellcheck="false" name="item_raw_text" class="auto-grow item-raw-input" rows="1" placeholder="Paste item list here"></textarea>
             </div>
         </div>
 
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Weight & Rates</h3>
-        <div class="grid-5">
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
-                <label>Vendor Partner</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
+                <label>Dead Weight</label>
+                <input type="number" step="0.01" name="dead_weight" id="dead_weight" value="0.0">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label style="display: flex; justify-content: space-between; align-items: center;">
+                    Volumetric L W H
+                    <span class="field-hint" style="font-size: 0.75rem; font-weight: normal; margin: 0;">(Vol: <span id="volumetric_display">0.00</span>)</span>
+                </label>
+                <div class="dimension-inputs" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.25rem;">
+                    <input type="number" step="0.01" name="volumetric_length" id="volumetric_length" placeholder="L" aria-label="Volumetric length">
+                    <input type="number" step="0.01" name="volumetric_width" id="volumetric_width" placeholder="W" aria-label="Volumetric width">
+                    <input type="number" step="0.01" name="volumetric_height" id="volumetric_height" placeholder="H" aria-label="Volumetric height">
+                </div>
+                <input type="hidden" name="volumetric_weight" id="volumetric_weight" value="0.0">
             </div>
             <div class="form-group">
-                <label>Courier Company <span class="required">*</span></label>
-                <select name="courier_company" required>
+                <label>Weight Basis</label>
+                <input type="hidden" name="weight_basis" id="weight_basis" value="actual">
+                <input type="text" id="weight_basis_display" value="Actual" readonly style="font-size: 0.85rem; padding: 0.4rem;">
+            </div>
+            <div class="form-group">
+                <label>Customer Charged Weight</label>
+                <input type="number" step="0.01" name="customer_charged_weight" id="customer_charged_weight" placeholder="23">
+            </div>
+            <div class="form-group">
+                <label>Customer Charged Rate</label>
+                <input type="number" step="0.01" name="customer_rate_text" id="customer_rate_text" placeholder="600">
+            </div>
+            <div class="form-group">
+                <label>Self Charged Weight</label>
+                <input type="number" step="0.01" name="vendor_charged_weight" id="vendor_charged_weight" placeholder="21">
+            </div>
+            <div class="form-group">
+                <label>Self Charged Rate</label>
+                <input type="number" step="0.01" name="vendor_rate_text" id="vendor_rate_text" placeholder="602">
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Tracking & Status</h3>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
+            <div class="form-group">
+                <label>Main Tracking Courier <span class="required">*</span></label>
+                <select name="main_tracking_courier" id="main_tracking_courier" required>
                     <option value="">Select courier</option>
                     {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label>Dead Weight</label>
-                <div class="input-with-unit">
-                    <input type="number" step="0.01" name="dead_weight" value="0.0">
-                    <select name="dead_weight_unit" class="unit-select">
-                        <option value="KG" selected>KG</option>
-                        <option value="G">G</option>
-                        <option value="LB">LB</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Volumetric Weight</label>
-                <div class="input-with-unit">
-                    <input type="number" step="0.01" name="volumetric_weight" value="0.0">
-                    <select name="volumetric_weight_unit" class="unit-select">
-                        <option value="KG" selected>KG</option>
-                        <option value="G">G</option>
-                        <option value="LB">LB</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Weight Basis</label>
-                <select name="weight_basis">
-                    <option value="actual">Actual</option>
-                    <option value="volumetric">Volumetric</option>
-                </select>
-            </div>
-        </div>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Customer Charged Weight</label>
-                <div class="input-with-unit">
-                    <input type="number" step="0.01" name="customer_charged_weight" id="customer_charged_weight" placeholder="23">
-                    <select name="customer_charged_weight_unit" id="customer_charged_weight_unit" class="unit-select">
-                        <option value="KG" selected>KG</option>
-                        <option value="G">G</option>
-                        <option value="LB">LB</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Customer Per KG Rate</label>
-                <input type="number" step="0.01" name="customer_rate_text" id="customer_rate_text" placeholder="600">
-            </div>
-            <div class="form-group">
-                <label>Vendor Charged Weight</label>
-                <div class="input-with-unit">
-                    <input type="number" step="0.01" name="vendor_charged_weight" id="vendor_charged_weight" placeholder="21">
-                    <select name="vendor_charged_weight_unit" id="vendor_charged_weight_unit" class="unit-select">
-                        <option value="KG" selected>KG</option>
-                        <option value="G">G</option>
-                        <option value="LB">LB</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Vendor Per KG Rate</label>
-                <input type="number" step="0.01" name="vendor_rate_text" id="vendor_rate_text" placeholder="602">
-            </div>
-        </div>
-
-        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
-        <div class="money-grid">
-            <div class="form-group">
-                <label>Billed Amount (Customer)</label>
-                <input type="number" step="0.01" name="billed_amount" value="0.0" id="billed_amount">
-            </div>
-            <div class="form-group">
-                <label>Received Amount (Paid)</label>
-                <input type="number" step="0.01" name="received_amount" value="0.0" id="received_amount">
-            </div>
-            <div class="form-group" style="color: var(--danger-text); font-weight: bold;">
-                Balance: <span id="balance_display">0.00</span>
-            </div>
-            <div class="form-group">
-                <label>Self Cost (Vendor)</label>
-                <input type="number" step="0.01" name="self_cost" value="0.0" id="self_cost">
-            </div>
-            <div class="form-group">
-                <label>Other Expense</label>
-                <input type="number" step="0.01" name="other_expense" value="0.0" id="other_expense">
-            </div>
-            <div class="form-group" style="color: var(--success-text); font-weight: bold;">
-                Profit (SV): <span id="profit_display">0.00</span>
-            </div>
-        </div>
-
-        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Tracking & Status</h3>
-        <div class="grid-4">
-            <div class="form-group">
                 <label>Main Tracking Number</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="main_tracking_number" placeholder="e.g. 1234567890">
             </div>
             <div class="form-group">
-                <label>Main Tracking Courier</label>
-                <select name="main_tracking_courier">
+                <label>Last Mile (LM) Courier</label>
+                <select name="lm_awb_courier">
                     <option value="">Select courier</option>
                     {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
                 </select>
@@ -226,24 +142,11 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" placeholder="e.g. LM123456">
             </div>
             <div class="form-group">
-                <label>Last Mile (LM) Courier</label>
-                <select name="lm_awb_courier">
-                    <option value="">Select courier</option>
-                    {% for courier in courier_options %}<option value="{{ courier }}">{{ courier }}</option>{% endfor %}
-                </select>
-            </div>
-        </div>
-        <div class="grid-3">
-            <div class="form-group">
-                <label>Promised Days</label>
-                <input type="number" name="promised_days_number" placeholder="Days">
+                <label>Service</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
             </div>
             <div class="form-group">
-                <label>Status Notes</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
-            </div>
-            <div class="form-group">
-                <label>Overall Status</label>
+                <label>Current Status</label>
                 <select name="overall_status">
                     <option value="booked">Booked</option>
                     <option value="packed">Packed</option>
@@ -262,13 +165,50 @@
                 </select>
             </div>
         </div>
+        <div class="grid-4">
+            <div class="form-group">
+                <label>Promised Days</label>
+                <input type="number" name="promised_days_number" placeholder="Days">
+            </div>
+            <div class="form-group" style="grid-column: span 3;">
+                <label>Status Notes</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
+            </div>
+        </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="checkbox" name="requires_lm_awb" value="true" style="width: auto;">
             <label style="margin: 0; font-weight: 500;">Final delivery tracking pending</label>
         </div>
 
-        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Notes</h3>
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Money</h3>
+        <div class="money-grid">
+            <div class="form-group">
+                <label>Billed Amount (Customer)</label>
+                <input type="number" step="0.01" name="billed_amount" value="0.0" id="billed_amount">
+            </div>
+            <div class="form-group">
+                <label>Received Amount (Paid)</label>
+                <input type="number" step="0.01" name="received_amount" value="0.0" id="received_amount">
+            </div>
+            <div class="form-group" style="color: var(--danger-text); font-weight: bold;">
+                Balance: <span id="balance_display">0.00</span>
+            </div>
+            <div class="form-group">
+                <label>Self Cost</label>
+                <input type="number" step="0.01" name="self_cost" value="0.0" id="self_cost">
+            </div>
+            <div class="form-group">
+                <label>Other Expense</label>
+                <input type="number" step="0.01" name="other_expense" value="0.0" id="other_expense">
+            </div>
+            <div class="form-group" style="font-weight: bold;">
+                Profit: <span id="profit_display">0.00</span>
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem;">Status & Notes</h3>
         <div class="form-group">
+            <label>Booking Notes</label>
             <textarea autocomplete="new-password" spellcheck="false" class="auto-grow large-notes" rows="4" name="internal_notes" placeholder="Add customer, balance, or internal notes here"></textarea>
         </div>
 
@@ -297,7 +237,18 @@
         const otherExp = parseFloat(otherExpInput.value) || 0;
         
         balanceDisplay.textContent = (billed - received).toFixed(2);
-        profitDisplay.textContent = (received - selfCost - otherExp).toFixed(2);
+        
+        const profit = billed - selfCost - otherExp;
+        profitDisplay.textContent = profit.toFixed(2);
+        
+        const profitContainer = profitDisplay.parentElement;
+        if (profit > 0) {
+            profitContainer.style.color = 'var(--success-text)';
+        } else if (profit < 0) {
+            profitContainer.style.color = 'var(--danger-text)';
+        } else {
+            profitContainer.style.color = 'inherit';
+        }
     }
 
     billedInput.addEventListener('input', updateCalculations);
@@ -428,34 +379,55 @@
         textarea.addEventListener('input', () => resizeTextarea(textarea));
     });
 
-    function weightInKg(weight, unit) {
-        const value = parseFloat(weight) || 0;
-        const normalizedUnit = String(unit || 'KG').toUpperCase();
-        if (normalizedUnit === 'G') return value / 1000;
-        if (normalizedUnit === 'LB') return value * 0.45359237;
-        return value;
+    function numericValue(id) {
+        const field = document.getElementById(id);
+        return field ? (parseFloat(field.value) || 0) : 0;
+    }
+
+    function updateWeightBasis() {
+        const length = numericValue('volumetric_length');
+        const width = numericValue('volumetric_width');
+        const height = numericValue('volumetric_height');
+        const deadWeight = numericValue('dead_weight');
+        const volumetricInput = document.getElementById('volumetric_weight');
+        const existingVolumetric = volumetricInput ? (parseFloat(volumetricInput.value) || 0) : 0;
+        const volumetric = length && width && height ? (length * width * height) / 5000 : existingVolumetric;
+        const basis = volumetric > deadWeight ? 'volumetric' : 'actual';
+        const volumetricDisplay = document.getElementById('volumetric_display');
+        const basisInput = document.getElementById('weight_basis');
+        const basisDisplay = document.getElementById('weight_basis_display');
+        if (volumetricInput && length && width && height) volumetricInput.value = volumetric.toFixed(2);
+        if (volumetricDisplay) volumetricDisplay.textContent = volumetric.toFixed(2);
+        if (basisInput) basisInput.value = basis;
+        if (basisDisplay) basisDisplay.value = basis === 'volumetric' ? 'Volumetric' : 'Actual';
     }
 
     function updateRateAmounts() {
         const customerWeight = document.getElementById('customer_charged_weight');
-        const customerUnit = document.getElementById('customer_charged_weight_unit');
         const customerRate = document.getElementById('customer_rate_text');
         const vendorWeight = document.getElementById('vendor_charged_weight');
-        const vendorUnit = document.getElementById('vendor_charged_weight_unit');
         const vendorRate = document.getElementById('vendor_rate_text');
 
-        if (customerWeight && customerUnit && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
-            const amount = weightInKg(customerWeight.value, customerUnit.value) * (parseFloat(customerRate.value) || 0);
+        if (customerWeight && customerRate && billedInput && (customerWeight.value || customerRate.value)) {
+            const amount = (parseFloat(customerWeight.value) || 0) * (parseFloat(customerRate.value) || 0);
             billedInput.value = amount ? amount.toFixed(2) : '0.00';
         }
-        if (vendorWeight && vendorUnit && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
-            const amount = weightInKg(vendorWeight.value, vendorUnit.value) * (parseFloat(vendorRate.value) || 0);
+        if (vendorWeight && vendorRate && selfCostInput && (vendorWeight.value || vendorRate.value)) {
+            const amount = (parseFloat(vendorWeight.value) || 0) * (parseFloat(vendorRate.value) || 0);
             selfCostInput.value = amount ? amount.toFixed(2) : '0.00';
         }
         updateCalculations();
     }
 
-    ['customer_charged_weight', 'customer_charged_weight_unit', 'customer_rate_text', 'vendor_charged_weight', 'vendor_charged_weight_unit', 'vendor_rate_text'].forEach(id => {
+    ['dead_weight', 'volumetric_length', 'volumetric_width', 'volumetric_height'].forEach(id => {
+        const field = document.getElementById(id);
+        if (field) {
+            field.addEventListener('input', updateWeightBasis);
+            field.addEventListener('change', updateWeightBasis);
+        }
+    });
+
+    ['customer_charged_weight', 'customer_rate_text', 'vendor_charged_weight', 'vendor_rate_text'].forEach(id => {
         const field = document.getElementById(id);
         if (field) {
             field.addEventListener('input', updateRateAmounts);
@@ -463,6 +435,7 @@
         }
     });
 
+    updateWeightBasis();
     updateRateAmounts();
     function normalizeCountryInput(field) {
         field.value = field.value.toUpperCase();
@@ -471,73 +444,5 @@
         field.addEventListener('input', () => normalizeCountryInput(field));
         field.addEventListener('change', () => normalizeCountryInput(field));
     });
-    const initialItems = {{ item_details | tojson }};
-    const itemRows = document.getElementById('item_rows');
-    const itemDetailsInput = document.getElementById('item_details_json');
-    const itemRawInput = document.getElementById('item_raw_text_input');
-    const itemRawHidden = document.getElementById('item_raw_text_hidden');
-    const itemStatus = document.getElementById('item_parse_status');
-
-    function syncItemDetails() {
-        const items = Array.from(itemRows.querySelectorAll('.item-row')).map(row => ({
-            name: row.querySelector('[data-item-name]').value.trim(),
-            quantity: row.querySelector('[data-item-quantity]').value.trim()
-        })).filter(item => item.name || item.quantity);
-
-        itemDetailsInput.value = JSON.stringify(items);
-        itemRawHidden.value = itemRawInput.value;
-    }
-
-    function addItemRow(item = {}) {
-        const row = document.createElement('div');
-        row.className = 'item-row';
-        row.innerHTML = `
-            <input autocomplete="new-password" spellcheck="false" type="text" data-item-name placeholder="Item name">
-            <input autocomplete="new-password" spellcheck="false" type="text" data-item-quantity placeholder="Qty">
-            <button type="button" class="btn btn-secondary btn-sm" data-remove-item>Remove</button>
-        `;
-        row.querySelector('[data-item-name]').value = item.name || '';
-        row.querySelector('[data-item-quantity]').value = item.quantity || '';
-        row.addEventListener('input', syncItemDetails);
-        row.querySelector('[data-remove-item]').addEventListener('click', () => {
-            row.remove();
-            if (!itemRows.children.length) addItemRow();
-            syncItemDetails();
-        });
-        itemRows.appendChild(row);
-        syncItemDetails();
-    }
-
-    function replaceItemRows(items) {
-        itemRows.innerHTML = '';
-        if (items && items.length) items.forEach(addItemRow);
-        else addItemRow();
-        syncItemDetails();
-    }
-
-    document.getElementById('add_item_row_btn').addEventListener('click', () => addItemRow());
-    itemRawInput.addEventListener('input', syncItemDetails);
-    document.getElementById('parse_items_btn').addEventListener('click', async () => {
-        const rawText = itemRawInput.value.trim();
-        if (!rawText) {
-            itemStatus.textContent = 'Paste raw item text first.';
-            return;
-        }
-        itemStatus.textContent = 'Parsing with Gemini...';
-        try {
-            const response = await fetch('/shipments/items/parse', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({raw_text: rawText})
-            });
-            const payload = await response.json();
-            if (!response.ok) throw new Error(payload.error || 'Unable to parse items.');
-            replaceItemRows(payload.items || []);
-            itemStatus.textContent = payload.items && payload.items.length ? `Added ${payload.items.length} item(s).` : 'No items found.';
-        } catch (err) {
-            itemStatus.textContent = err.message;
-        }
-    });
-    replaceItemRows(initialItems);
 </script>
 {% endblock %}
