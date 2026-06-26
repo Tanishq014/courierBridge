@@ -26,6 +26,8 @@
     --radius-md: 14px;
     --radius-lg: 20px;
     --sidebar-width: 248px;
+    --sidebar-expanded-width: 248px;
+    --sidebar-collapsed-width: 58px;
 
     /* Backwards-compatible aliases used in templates. */
     --primary-color: var(--brand);
@@ -92,6 +94,7 @@ button {
     background:
         linear-gradient(165deg, rgba(255, 255, 255, 0.06), transparent 42%),
         #123b30;
+    transition: width 140ms ease, padding 140ms ease, box-shadow 140ms ease;
 }
 
 .brand {
@@ -1482,7 +1485,7 @@ input[type="checkbox"] {
 }
 
 body.sidebar-collapsed {
-    --sidebar-width: 58px;
+    --sidebar-width: var(--sidebar-collapsed-width);
 }
 
 body.sidebar-collapsed .sidebar {
@@ -1501,6 +1504,31 @@ body.sidebar-collapsed .sidebar-toggle {
     align-self: center;
     margin-bottom: 0;
     padding: 4px 6px;
+}
+
+body.sidebar-collapsed.sidebar-hovering .sidebar {
+    width: var(--sidebar-expanded-width);
+    padding: 24px 16px;
+    box-shadow: 18px 0 34px rgba(23, 33, 27, 0.16);
+}
+
+body.sidebar-collapsed.sidebar-hovering .brand {
+    display: block;
+}
+
+body.sidebar-collapsed.sidebar-hovering .nav-label,
+body.sidebar-collapsed.sidebar-hovering .sidebar-footer {
+    display: block;
+}
+
+body.sidebar-collapsed.sidebar-hovering .nav-list {
+    display: grid;
+}
+
+body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
+    align-self: flex-end;
+    margin-bottom: 8px;
+    padding: 4px 8px;
 }
 .shipment-ledger-card .card-header {
     padding: 12px 14px 8px;

@@ -75,14 +75,29 @@
 
             const savedWidth = localStorage.getItem('courierbridge.sidebarWidth');
             const savedCollapsed = localStorage.getItem('courierbridge.sidebarCollapsed') === 'true';
-            if (savedWidth) root.style.setProperty('--sidebar-width', savedWidth + 'px');
+            if (savedWidth) {
+                root.style.setProperty('--sidebar-width', savedWidth + 'px');
+                root.style.setProperty('--sidebar-expanded-width', savedWidth + 'px');
+            }
             if (savedCollapsed) document.body.classList.add('sidebar-collapsed');
             toggle.textContent = savedCollapsed ? 'Show' : 'Hide';
+
+            const setSidebarHover = hovering => {
+                if (document.body.classList.contains('sidebar-collapsed') && hovering) {
+                    document.body.classList.add('sidebar-hovering');
+                } else {
+                    document.body.classList.remove('sidebar-hovering');
+                }
+            };
+
+            sidebar.addEventListener('mouseenter', () => setSidebarHover(true));
+            sidebar.addEventListener('mouseleave', () => setSidebarHover(false));
 
             toggle.addEventListener('click', () => {
                 const collapsed = document.body.classList.toggle('sidebar-collapsed');
                 localStorage.setItem('courierbridge.sidebarCollapsed', String(collapsed));
                 toggle.textContent = collapsed ? 'Show' : 'Hide';
+                setSidebarHover(false);
             });
 
             resizer.addEventListener('pointerdown', event => {
@@ -92,6 +107,7 @@
                 const onMove = moveEvent => {
                     const width = Math.min(360, Math.max(160, moveEvent.clientX));
                     root.style.setProperty('--sidebar-width', width + 'px');
+                    root.style.setProperty('--sidebar-expanded-width', width + 'px');
                     localStorage.setItem('courierbridge.sidebarWidth', String(width));
                 };
                 const onUp = upEvent => {
