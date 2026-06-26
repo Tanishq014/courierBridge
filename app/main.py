@@ -119,9 +119,11 @@ def ensure_lightweight_migrations():
                 columns = {column["name"] for column in inspector.get_columns("shipments")}
                 if "row_color" not in columns:
                     connection.execute(text("ALTER TABLE shipments ADD COLUMN row_color VARCHAR"))
-    except Exception:
-        # Keep startup available even if a non-SQLite database handles migrations externally.
-        pass
+                if "custom_duty" not in columns:
+                    default_val = "0" if engine.dialect.name == "sqlite" else "false"
+                    connection.execute(text(f"ALTER TABLE shipments ADD COLUMN custom_duty BOOLEAN DEFAULT {default_val}"))
+    except Exception as exc:
+        raise RuntimeError("Database lightweight migration failed") from exc
 
 
 ensure_lightweight_migrations()

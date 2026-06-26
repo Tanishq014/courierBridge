@@ -73,7 +73,7 @@
                     <td>
                         <span class="badge
                             {% if s.overall_status == 'exception' %}badge-danger
-                            {% elif s.overall_status == 'customs' %}badge-warning
+                            {% elif s.overall_status in ['customs', 'custom_clearance'] %}badge-warning
                             {% else %}badge-neutral{% endif %}">
                             {{ s.overall_status | capitalize | replace('_', ' ') }}
                         </span>

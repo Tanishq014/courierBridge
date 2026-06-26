@@ -8,7 +8,13 @@ from datetime import datetime, timezone
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+from fastapi.responses import RedirectResponse
+
 @router.get("/")
+def home():
+    return RedirectResponse(url="/shipments", status_code=303)
+
+@router.get("/dashboard")
 def dashboard(request: Request, db: Session = Depends(get_db)):
     active_shipments = db.query(Shipment).filter(Shipment.overall_status.notin_(["delivered", "rto", "return_damage"])).all()
     
