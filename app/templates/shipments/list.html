@@ -224,7 +224,7 @@
                     </td>
                     <td>
                         <span class="cell-primary">Dead {{ s.dead_weight or '—' }}</span>
-                        <span class="cell-secondary">Vol {{ s.volumetric_weight or '—' }} · {{ (s.weight_basis or 'dead')|title }}</span>
+                        <span class="cell-secondary">Vol {{ s.volumetric_weight or '—' }} · {{ 'Dead' if s.weight_basis == 'actual' else (s.weight_basis or 'dead')|title }}</span>
                     </td>
                     <td class="financial-cell">
                         <span class="cell-primary">Bill ₹{{ '%.2f'|format(s.billed_amount or 0) }}</span>
