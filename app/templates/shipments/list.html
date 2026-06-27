@@ -3,18 +3,16 @@
 {% block title %}Shipments | CourierBridge{% endblock %}
 
 {% block content %}
-<header class="page-header">
-    <div class="page-heading">
-        <div class="eyebrow">Operations ledger</div>
-        <h1>Shipments</h1>
-        <p class="page-description">Search, filter, and manage every active and completed booking.</p>
-    </div>
-    <div class="page-actions">
-        <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
-    </div>
-</header>
+<style>
+.custom-duty-toggle { display: flex; gap: 4px; margin-top: 6px; }
+.hidden-radio { display: none !important; }
+.custom-duty-toggle .btn-toggle { cursor: pointer; padding: 2px 8px; font-size: 10px; border-radius: 4px; background: #f1f5f9; color: #64748b; font-weight: 500; border: 1px solid transparent; transition: all 0.15s; }
+.hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.shipments-table th:nth-child(2), .shipments-table th:nth-child(3),
+.shipments-table td:nth-child(2), .shipments-table td:nth-child(3) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+</style>
 
-<section class="card filter-card">
+<section class="card filter-card" id="shipments-filter-card" {% if not (q or status or country or custom_duty or service) %}style="display: none;"{% endif %}>
     <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
         <div>
             <label for="ledger-filter-input">Search ledger</label>
@@ -26,20 +24,16 @@
             <select id="shipment-status" name="status">
                 <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
-                <option value="packed" {% if status == 'packed' %}selected{% endif %}>Packed</option>
-                <option value="bagged" {% if status == 'bagged' %}selected{% endif %}>Bagged</option>
-                <option value="in_scan" {% if status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                <option value="received" {% if status == 'received' %}selected{% endif %}>Received by Courier</option>
                 <option value="bagging" {% if status == 'bagging' %}selected{% endif %}>Bagging</option>
-                <option value="received" {% if status == 'received' %}selected{% endif %}>Received</option>
-                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
-                <option value="customs" {% if status == 'customs' %}selected{% endif %}>Customs</option>
                 <option value="hand_over_to_airline" {% if status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
                 <option value="at_destination" {% if status == 'at_destination' %}selected{% endif %}>At destination</option>
                 <option value="custom_clearance" {% if status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
+                <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
                 <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
-                <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                 <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
+                <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                 <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
                 <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return / damage</option>
                 <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
@@ -80,10 +74,14 @@
 </section>
 
 <section class="card table-card shipment-ledger-card">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
         <div>
             <h3>Shipment ledger</h3>
             <p class="card-subtitle">{{ shipments|length }} records shown · Click booking/customer to open; edit status and tracking directly.</p>
+        </div>
+        <div class="page-actions" style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';}else{fc.style.display='none';this.innerText='Show filters';}">{% if not (q or status or country or custom_duty or service) %}Show filters{% else %}Hide filters{% endif %}</button>
+            <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
         </div>
     </div>
     {% if shipments %}
@@ -94,6 +92,7 @@
                     <th>Booking</th>
                     <th>Sender</th>
                     <th>Receiver</th>
+                    <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
                     <th>Weight</th>
@@ -166,7 +165,17 @@
                             <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
                         </div>
                     </td>
-
+                    <td class="service-cell">
+                        <span class="cell-primary" style="display:block;">{{ s.vendor_partner or 'Direct' }}</span>
+                        <span style="display:block; font-size:9px; letter-spacing:0.05em; margin-top:8px; color:#94a3b8; text-transform:uppercase;">Custom Duty</span>
+                        <div class="custom-duty-toggle" style="margin-top:2px;">
+                            <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="false" id="duty-free-{{s.id}}" class="row-edit-field hidden-radio" {% if not s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if not s.custom_duty else 'false' }}">
+                            <label for="duty-free-{{s.id}}" class="btn-toggle">Free</label>
+                            
+                            <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="true" id="duty-paid-{{s.id}}" class="row-edit-field hidden-radio" {% if s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if s.custom_duty else 'false' }}">
+                            <label for="duty-paid-{{s.id}}" class="btn-toggle">Paid</label>
+                        </div>
+                    </td>
                     <td class="tracking-cell">
                         <div class="tracking-stack">
                             <div class="tracking-line" data-tracking-type="main_awb">
@@ -187,10 +196,6 @@
                                     {% for courier in courier_options %}<option value="{{ courier }}" {% if courier == lm_courier %}selected{% endif %}>{{ courier }}</option>{% endfor %}
                                 </select>
                             </div>
-                            <div class="tracking-line service-line">
-                                <span class="tracking-label-text">Service</span>
-                                <span class="cell-secondary">{{ s.vendor_partner or 'Direct' }}</span>
-                            </div>
                         </div>
                     </td>
                     <td class="status-cell">
@@ -198,20 +203,16 @@
                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
-                                <option value="packed" {% if s.overall_status == 'packed' %}selected{% endif %}>Packed</option>
-                                <option value="bagged" {% if s.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
-                                <option value="in_scan" {% if s.overall_status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                                <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
                                 <option value="bagging" {% if s.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
-                                <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received</option>
-                                <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
-                                <option value="customs" {% if s.overall_status == 'customs' %}selected{% endif %}>Customs</option>
                                 <option value="hand_over_to_airline" {% if s.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                                <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
                                 <option value="at_destination" {% if s.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
                                 <option value="custom_clearance" {% if s.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                                <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM partner</option>
+                                <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
                                 <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
-                                <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                                 <option value="delivered" {% if s.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                                 <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>RTO</option>
                                 <option value="return_damage" {% if s.overall_status == 'return_damage' %}selected{% endif %}>Return / damage</option>
                                 <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
@@ -335,11 +336,17 @@
         aramax: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
         aramex: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
         dpd: 'https://t.17track.net/en#nums={awb}',
+        maww: 'https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}',
+        nzpost: 'https://www.nzpost.co.nz/tools/tracking?trackid={awb}',
+        purolator: 'https://www.purolator.com/en/shipping/tracker?pin={awb}',
     };
     const copyAndOpenSites = {
     };
 
-    const valueOf = field => field.value || '';
+    const valueOf = field => {
+        if (field.type === 'radio' || field.type === 'checkbox') return field.checked ? 'true' : 'false';
+        return field.value || '';
+    };
     const normalizeCourier = courier => (courier || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const getTrackingAction = (courier, number, trackingType) => {
         const normalized = normalizeCourier(courier);
