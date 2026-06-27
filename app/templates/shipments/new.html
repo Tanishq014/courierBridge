@@ -149,20 +149,16 @@
                 <label>Current Status</label>
                 <select name="overall_status">
                     <option value="booked">Booked</option>
-                    <option value="packed">Packed</option>
-                    <option value="bagged">Bagged</option>
-                    <option value="in_scan">In Scan</option>
+                    <option value="received">Received by Courier</option>
                     <option value="bagging">Bagging</option>
-                    <option value="received">Received</option>
-                    <option value="in_transit">In Transit</option>
-                    <option value="customs">Customs</option>
                     <option value="hand_over_to_airline">Hand over to airline</option>
+                    <option value="in_transit">In Transit</option>
                     <option value="at_destination">At destination</option>
                     <option value="custom_clearance">Custom Clearance</option>
-                    <option value="at_lm_partner">At LM Partner</option>
+                    <option value="at_lm_partner">To LM Partner</option>
                     <option value="out_for_delivery">Out for Delivery</option>
-                    <option value="undelivered">Undelivered</option>
                     <option value="delivered">Delivered</option>
+                    <option value="undelivered">Undelivered</option>
                     <option value="rto">RTO</option>
                     <option value="return_damage">Return/Damage</option>
                     <option value="exception">Exception</option>
@@ -373,7 +369,7 @@
     document.addEventListener('focusin', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
             try {
-                e.target.select();
+                setTimeout(() => { e.target.select(); }, 0);
             } catch (err) {
                 // Ignore errors on input types that don't support selection (like date)
             }

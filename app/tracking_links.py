@@ -7,6 +7,9 @@ DEFAULT_TRACKING_TEMPLATES = {
     "aramax": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
     "aramex": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
     "dpd": "https://t.17track.net/en#nums={awb}",
+    "maww": "https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}",
+    "nzpost": "https://www.nzpost.co.nz/tools/tracking?trackid={awb}",
+    "purolator": "https://www.purolator.com/en/shipping/tracker?pin={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {}

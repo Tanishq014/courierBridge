@@ -33,6 +33,8 @@ DEFAULT_COURIERS = [
     "IndiaPost",
     "DPD",
     "MAWW",
+    "NZ Post",
+    "Purolator",
 ]
 
 COUNTRY_ALIASES = {
@@ -282,7 +284,12 @@ def calculate_rate_amount(weight: str, per_kg_rate: str) -> Decimal:
 
 
 def status_label(status: str) -> str:
-    return (status or "booked").replace("_", " ").title()
+    status = status or "booked"
+    custom_labels = {
+        "received": "Received by Courier",
+        "at_lm_partner": "To LM Partner",
+    }
+    return custom_labels.get(status, status.replace("_", " ").title())
 
 
 def add_status_timeline_event(db: Session, shipment: Shipment, status: str, notes: str = "", source: str = "status_update"):
@@ -533,6 +540,9 @@ def create_shipment(
         "vendor_charged_weight_unit": vendor_charged_weight_unit,
     })
 
+    if item_raw_text and item_raw_text.strip() and item_raw_text.strip() not in internal_notes:
+        internal_notes = (internal_notes + "\n" + item_raw_text.strip()).strip()
+
     shipment = Shipment(
         booking_date=parsed_booking_date,
         customer_name=customer_name,
@@ -607,6 +617,7 @@ def quick_update_shipment(
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
     internal_notes: str = Form(""),
+    custom_duty: str | None = Form(None),
     row_color: str | None = Form(None),
     next_url: str = Form("/shipments")
 ):
@@ -624,6 +635,10 @@ def quick_update_shipment(
     if new_status != old_status or new_notes != old_notes:
         add_status_timeline_event(db, shipment, new_status, new_notes, "row_status_update")
     shipment.internal_notes = internal_notes.strip()
+    
+    if custom_duty is not None:
+        shipment.custom_duty = (custom_duty.lower() == "true")
+        
     if row_color is not None:
         selected_color = row_color.strip().lower()
         shipment.row_color = selected_color if selected_color in {"green", "yellow", "red"} else None
@@ -835,6 +850,9 @@ def update_shipment(
         add_status_timeline_event(db, shipment, new_status, new_notes, "shipment_edit")
     shipment.requires_lm_awb = requires_lm_awb
     shipment.custom_duty = custom_duty
+
+    if item_raw_text and item_raw_text.strip() and item_raw_text.strip() not in internal_notes:
+        internal_notes = (internal_notes + "\n" + item_raw_text.strip()).strip()
 
     shipment.internal_notes = internal_notes
     shipment.customer_notes = customer_notes

@@ -18,7 +18,13 @@
             {% elif shipment.overall_status in ['customs', 'custom_clearance'] %}badge-warning
             {% elif shipment.overall_status in ['in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged', 'bagging', 'in_scan', 'hand_over_to_airline', 'at_destination'] %}badge-info
             {% else %}badge-neutral{% endif %}">
-            {{ shipment.overall_status | capitalize | replace('_', ' ') }}
+            {% if shipment.overall_status == 'received' %}
+              Received by Courier
+            {% elif shipment.overall_status == 'at_lm_partner' %}
+              To LM Partner
+            {% else %}
+              {{ shipment.overall_status | capitalize | replace('_', ' ') }}
+            {% endif %}
         </span>
         <a href="/shipments/{{ shipment.id }}/edit" class="btn btn-secondary">Edit details</a>
         <button onclick="generateWhatsApp()" class="btn btn-success">WhatsApp update</button>
@@ -148,7 +154,7 @@
                 <div class="timeline-rail"><span class="timeline-dot"></span></div>
                 <div class="timeline-content">
                     <div class="timeline-title">{{ ev.status_text }}</div>
-                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} - {{ ev.normalized_status | replace('_', ' ') | title }}{% if ev.source %} - {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
+                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} - {% if ev.normalized_status == 'received' %}Received by Courier{% elif ev.normalized_status == 'at_lm_partner' %}To LM Partner{% else %}{{ ev.normalized_status | replace('_', ' ') | title }}{% endif %}{% if ev.source %} - {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
                     {% if ev.notes %}<div class="timeline-notes">{{ ev.notes }}</div>{% endif %}
                     <form method="POST" action="/tracking/event/{{ ev.id }}/delete" class="timeline-delete-form" onsubmit="return confirm('Delete this timeline update?');">
                         <button type="submit" class="btn btn-sm btn-secondary">Delete</button>

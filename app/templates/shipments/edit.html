@@ -9,7 +9,7 @@
         <h1>Edit shipment</h1>
         <p class="page-description">Update booking, financial, and tracking details for {{ shipment.customer_name }}.</p>
     </div>
-    <div class="page-actions"><a href="/shipments/{{ shipment.id }}" class="btn btn-secondary">Cancel</a></div>
+    <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
 </header>
 
 <div class="card form-card">
@@ -154,20 +154,16 @@
                 <label>Current Status</label>
                 <select name="overall_status">
                     <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
-                    <option value="packed" {% if shipment.overall_status == 'packed' %}selected{% endif %}>Packed</option>
-                    <option value="bagged" {% if shipment.overall_status == 'bagged' %}selected{% endif %}>Bagged</option>
-                    <option value="in_scan" {% if shipment.overall_status == 'in_scan' %}selected{% endif %}>In Scan</option>
+                    <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
                     <option value="bagging" {% if shipment.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
-                    <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received</option>
-                    <option value="in_transit" {% if shipment.overall_status == 'in_transit' %}selected{% endif %}>In Transit</option>
-                    <option value="customs" {% if shipment.overall_status == 'customs' %}selected{% endif %}>Customs</option>
                     <option value="hand_over_to_airline" {% if shipment.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
+                    <option value="in_transit" {% if shipment.overall_status == 'in_transit' %}selected{% endif %}>In Transit</option>
                     <option value="at_destination" {% if shipment.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
                     <option value="custom_clearance" {% if shipment.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                    <option value="at_lm_partner" {% if shipment.overall_status == 'at_lm_partner' %}selected{% endif %}>At LM Partner</option>
+                    <option value="at_lm_partner" {% if shipment.overall_status == 'at_lm_partner' %}selected{% endif %}>To LM Partner</option>
                     <option value="out_for_delivery" {% if shipment.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
-                    <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                     <option value="delivered" {% if shipment.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                    <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
                     <option value="rto" {% if shipment.overall_status == 'rto' %}selected{% endif %}>RTO</option>
                     <option value="return_damage" {% if shipment.overall_status == 'return_damage' %}selected{% endif %}>Return/Damage</option>
                     <option value="exception" {% if shipment.overall_status == 'exception' %}selected{% endif %}>Exception</option>
@@ -229,7 +225,7 @@
         </div>
 
         <div class="form-actions">
-            <a href="/shipments/{{ shipment.id }}" class="btn btn-secondary">Cancel</a>
+            <a href="/shipments" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
     </form>
@@ -378,7 +374,7 @@
     document.addEventListener('focusin', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
             try {
-                e.target.select();
+                setTimeout(() => { e.target.select(); }, 0);
             } catch (err) {
                 // Ignore errors on input types that don't support selection (like date)
             }
