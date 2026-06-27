@@ -448,7 +448,7 @@ def create_shipment(
     volumetric_length: str = Form(""),
     volumetric_width: str = Form(""),
     volumetric_height: str = Form(""),
-    weight_basis: str = Form("actual"),
+    weight_basis: str = Form("dead"),
     dead_weight_unit: str = Form("KG"),
     volumetric_weight_unit: str = Form("KG"),
 
@@ -515,7 +515,7 @@ def create_shipment(
     status_raw_text = normalize_proper_case(status_raw_text)
     dead_weight_value = parse_float(dead_weight)
     volumetric_weight_value = calculate_volumetric_weight(volumetric_length, volumetric_width, volumetric_height) or parse_float(volumetric_weight)
-    weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "actual"
+    weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "dead"
 
     receiver_address = {
         "line_1": receiver_address_line_1.strip(),
@@ -724,7 +724,7 @@ def update_shipment(
     volumetric_length: str = Form(""),
     volumetric_width: str = Form(""),
     volumetric_height: str = Form(""),
-    weight_basis: str = Form("actual"),
+    weight_basis: str = Form("dead"),
     dead_weight_unit: str = Form("KG"),
     volumetric_weight_unit: str = Form("KG"),
 
@@ -797,7 +797,7 @@ def update_shipment(
     status_raw_text = normalize_proper_case(status_raw_text)
     dead_weight_value = parse_float(dead_weight)
     volumetric_weight_value = calculate_volumetric_weight(volumetric_length, volumetric_width, volumetric_height) or parse_float(volumetric_weight)
-    weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "actual"
+    weight_basis_value = "volumetric" if volumetric_weight_value > dead_weight_value else "dead"
 
     receiver_address = {
         "line_1": receiver_address_line_1.strip(),
