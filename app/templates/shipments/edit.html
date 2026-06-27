@@ -97,8 +97,8 @@
             </div>
             <div class="form-group">
                 <label>Weight Basis</label>
-                <input type="hidden" name="weight_basis" id="weight_basis" value="{{ shipment.weight_basis or 'actual' }}">
-                <input type="text" id="weight_basis_display" value="{{ (shipment.weight_basis or 'actual') | title }}" readonly style="font-size: 0.85rem; padding: 0.4rem;">
+                <input type="hidden" name="weight_basis" id="weight_basis" value="{{ shipment.weight_basis or 'dead' }}">
+                <input type="text" id="weight_basis_display" value="{{ (shipment.weight_basis or 'dead') | title }}" readonly style="font-size: 0.85rem; padding: 0.4rem;">
             </div>
             <div class="form-group">
                 <label>Customer Charged Weight</label>
@@ -404,14 +404,14 @@
         const volumetricInput = document.getElementById('volumetric_weight');
         const existingVolumetric = volumetricInput ? (parseFloat(volumetricInput.value) || 0) : 0;
         const volumetric = length && width && height ? (length * width * height) / 5000 : existingVolumetric;
-        const basis = volumetric > deadWeight ? 'volumetric' : 'actual';
         const volumetricDisplay = document.getElementById('volumetric_display');
         const basisInput = document.getElementById('weight_basis');
         const basisDisplay = document.getElementById('weight_basis_display');
+        const basis = volumetric > deadWeight ? 'volumetric' : 'dead';
+        if (basisInput) basisInput.value = basis;
+        if (basisDisplay) basisDisplay.value = basis === 'volumetric' ? 'Volumetric' : 'Dead';
         if (volumetricInput && length && width && height) volumetricInput.value = volumetric.toFixed(2);
         if (volumetricDisplay) volumetricDisplay.textContent = volumetric.toFixed(2);
-        if (basisInput) basisInput.value = basis;
-        if (basisDisplay) basisDisplay.value = basis === 'volumetric' ? 'Volumetric' : 'Actual';
     }
 
     function extractRateJS(text) {
