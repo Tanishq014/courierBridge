@@ -97,8 +97,8 @@
             </div>
             <div class="form-group">
                 <label>Weight Basis</label>
-                <input type="hidden" name="weight_basis" id="weight_basis" value="{{ shipment.weight_basis or 'dead' }}">
-                <input type="text" id="weight_basis_display" value="{{ (shipment.weight_basis or 'dead') | title }}" readonly style="font-size: 0.85rem; padding: 0.4rem;">
+                <input type="hidden" name="weight_basis" id="weight_basis" value="{{ 'dead' if shipment.weight_basis == 'actual' else (shipment.weight_basis or 'dead') }}">
+                <input type="text" id="weight_basis_display" value="{{ 'Dead' if shipment.weight_basis == 'actual' else (shipment.weight_basis or 'dead') | title }}" readonly style="font-size: 0.85rem; padding: 0.4rem;">
             </div>
             <div class="form-group">
                 <label>Customer Charged Weight</label>
