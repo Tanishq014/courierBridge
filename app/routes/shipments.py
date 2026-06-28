@@ -390,9 +390,11 @@ def list_shipments(
     for shipment in shipments:
         item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
         receiver_address = parse_receiver_address(shipment.raw_excel_notes)
+        rate_details = parse_rate_details(shipment.raw_excel_notes)
         shipment_previews[shipment.id] = {
             "item_raw_text": item_raw_text,
             "address": format_receiver_address(receiver_address),
+            "rate_details": rate_details,
         }
     courier_options = get_courier_options(db)
     service_options = get_service_options(db)
