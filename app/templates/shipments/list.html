@@ -134,46 +134,52 @@
                             </a>
                         </div>
                     </td>
-                    <td class="hover-preview-cell">
-                        <div style="display: flex; flex-direction: column;">
-                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
-                                <span class="cell-primary">{{ s.customer_name }}</span>
-                            </a>
-                            {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
-                            {% if wa_phone %}
-                                <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
-                                    {{ wa_phone }}
+                    <td>
+                        <div class="hover-preview-cell" style="display: inline-block;">
+                            <div style="display: flex; flex-direction: column;">
+                                <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
+                                    <span class="cell-primary">{{ s.customer_name }}</span>
                                 </a>
-                            {% else %}
-                                <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
-                            {% endif %}
-                        </div>
-                        <div class="cell-hover-card">
-                            <div class="hover-title">Raw items</div>
-                            {% if preview.get('item_raw_text') %}
-                                <div class="hover-line">{{ preview.get('item_raw_text') }}</div>
-                            {% else %}
-                                <div class="hover-line muted">No raw items added</div>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td class="hover-preview-cell">
-                        {% set cust_charged = preview.get('rate_details', {}).get('customer_charged_weight') %}
-                        <span class="cell-primary">{% if cust_charged %}{{ cust_charged }} kg{% elif s.charged_weight %}{{ s.charged_weight }} kg{% else %}—{% endif %}</span>
-                        <div class="cell-hover-card">
-                            <div class="hover-title">Weight Details</div>
-                            <div class="hover-line">Dead: {{ s.dead_weight or '—' }}</div>
-                            <div class="hover-line">Volumetric: {{ s.volumetric_weight or '—' }}</div>
-                            <div class="hover-line">Cust. Charged: {{ preview.get('rate_details', {}).get('customer_charged_weight') or '—' }}</div>
-                            <div class="hover-line">Self Charged: {{ preview.get('rate_details', {}).get('vendor_charged_weight') or '—' }}</div>
+                                {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
+                                {% if wa_phone %}
+                                    <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
+                                        {{ wa_phone }}
+                                    </a>
+                                {% else %}
+                                    <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
+                                {% endif %}
+                            </div>
+                            <div class="cell-hover-card">
+                                <div class="hover-title">Raw items</div>
+                                {% if preview.get('item_raw_text') %}
+                                    <div class="hover-line">{{ preview.get('item_raw_text') }}</div>
+                                {% else %}
+                                    <div class="hover-line muted">No raw items added</div>
+                                {% endif %}
+                            </div>
                         </div>
                     </td>
-                    <td class="hover-preview-cell">
-                        <span class="cell-primary">{{ s.receiver_name or '—' }}</span>
-                        <span class="cell-secondary">{{ s.destination_country }}</span>
-                        <div class="cell-hover-card route-hover-card">
-                            <div class="hover-title">Receiver address</div>
-                            <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
+                    <td>
+                        <div class="hover-preview-cell" style="display: inline-block;">
+                            {% set cust_charged = preview.get('rate_details', {}).get('customer_charged_weight') %}
+                            <span class="cell-primary">{% if cust_charged %}{{ cust_charged }} kg{% elif s.charged_weight %}{{ s.charged_weight }} kg{% else %}—{% endif %}</span>
+                            <div class="cell-hover-card">
+                                <div class="hover-title">Weight Details</div>
+                                <div class="hover-line">Dead: {{ s.dead_weight or '—' }}</div>
+                                <div class="hover-line">Volumetric: {{ s.volumetric_weight or '—' }}</div>
+                                <div class="hover-line">Cust. Charged: {{ preview.get('rate_details', {}).get('customer_charged_weight') or '—' }}</div>
+                                <div class="hover-line">Self Charged: {{ preview.get('rate_details', {}).get('vendor_charged_weight') or '—' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="hover-preview-cell" style="display: inline-block;">
+                            <span class="cell-primary">{{ s.receiver_name or '—' }}</span>
+                            <span class="cell-secondary">{{ s.destination_country }}</span>
+                            <div class="cell-hover-card route-hover-card">
+                                <div class="hover-title">Receiver address</div>
+                                <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
+                            </div>
                         </div>
                     </td>
                     <td class="service-cell">
@@ -233,17 +239,19 @@
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
-                    <td class="financial-cell hover-preview-cell">
-                        <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
-                        <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
-                            <div class="hover-title">Financial Details</div>
-                            <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
-                            <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
-                            <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
-                            <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
-                            <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0;">
-                            <div class="hover-line">Cust. Rate: {{ s.customer_rate_text or '—' }}</div>
-                            <div class="hover-line">Self Rate: {{ s.vendor_rate_text or '—' }}</div>
+                    <td class="financial-cell">
+                        <div class="hover-preview-cell" style="display: inline-block;">
+                            <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
+                            <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
+                                <div class="hover-title">Financial Details</div>
+                                <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
+                                <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
+                                <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
+                                <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
+                                <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0;">
+                                <div class="hover-line">Cust. Rate: {{ s.customer_rate_text or '—' }}</div>
+                                <div class="hover-line">Self Rate: {{ s.vendor_rate_text or '—' }}</div>
+                            </div>
                         </div>
                     </td>
                     <td class="notes-cell">
