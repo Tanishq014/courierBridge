@@ -91,11 +91,11 @@
                 <tr>
                     <th>Booking</th>
                     <th>Sender</th>
+                    <th>Weight</th>
                     <th>Receiver</th>
                     <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
-                    <th>Weight</th>
                     <th>Financials / balance</th>
                     <th>Notes</th>
                     <th></th>
@@ -129,7 +129,7 @@
                                 <button form="{{ row_form_id }}" type="submit" name="row_color" value="red" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
                             </div>
                             <a href="/shipments/{{ s.id }}" class="row-open-link">
-                                <span class="cell-primary">#{{ s.id }}</span>
+                                <span class="cell-primary" style="display: none;">#{{ s.id }}</span>
                                 <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
                             </a>
                         </div>
@@ -155,6 +155,17 @@
                             {% else %}
                                 <div class="hover-line muted">No raw items added</div>
                             {% endif %}
+                        </div>
+                    </td>
+                    <td class="hover-preview-cell">
+                        <span class="cell-primary">Charged {{ s.charged_weight or '—' }}</span>
+                        <span class="cell-secondary">Basis: {{ 'Dead' if s.weight_basis == 'actual' else (s.weight_basis or 'dead')|title }}</span>
+                        <div class="cell-hover-card">
+                            <div class="hover-title">Weight Details</div>
+                            <div class="hover-line">Dead: {{ s.dead_weight or '—' }}</div>
+                            <div class="hover-line">Volumetric: {{ s.volumetric_weight or '—' }}</div>
+                            <div class="hover-line">Cust. Charged: {{ preview.get('rate_details', {}).get('customer_charged_weight') or '—' }}</div>
+                            <div class="hover-line">Self Charged: {{ preview.get('rate_details', {}).get('vendor_charged_weight') or '—' }}</div>
                         </div>
                     </td>
                     <td class="hover-preview-cell">
@@ -222,14 +233,15 @@
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
-                    <td>
-                        <span class="cell-primary">Dead {{ s.dead_weight or '—' }}</span>
-                        <span class="cell-secondary">Vol {{ s.volumetric_weight or '—' }} · {{ 'Dead' if s.weight_basis == 'actual' else (s.weight_basis or 'dead')|title }}</span>
-                    </td>
-                    <td class="financial-cell">
-                        <span class="cell-primary">Bill ₹{{ '%.2f'|format(s.billed_amount or 0) }}</span>
-                        <span class="cell-secondary">Paid ₹{{ '%.2f'|format(s.received_amount or 0) }} · <span{% if s.balance_amount and s.balance_amount > 0 %} class="text-danger" style="font-weight: 600;"{% endif %}>Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span></span>
-                        <span class="cell-secondary">Cost ₹{{ '%.2f'|format(s.self_cost or 0) }} · <span{% if s.service_value and s.service_value > 0 %} class="text-success" style="font-weight: 600;"{% elif s.service_value and s.service_value < 0 %} class="text-danger" style="font-weight: 600;"{% endif %}>Profit ₹{{ '%.2f'|format(s.service_value or 0) }}</span></span>
+                    <td class="financial-cell hover-preview-cell">
+                        <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
+                        <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
+                            <div class="hover-title">Financial Details</div>
+                            <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
+                            <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
+                            <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
+                            <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
+                        </div>
                     </td>
                     <td class="notes-cell">
                         <textarea autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" name="internal_notes" class="row-edit-field row-notes-input" data-initial="{{ s.internal_notes or '' }}" rows="2" placeholder="Notes">{{ s.internal_notes or '' }}</textarea>
