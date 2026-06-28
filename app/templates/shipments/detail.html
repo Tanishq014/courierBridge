@@ -187,13 +187,13 @@
         <div class="whatsapp-composer-grid">
             <div class="whatsapp-parts" aria-label="Message parts">
                 <label><input type="checkbox" class="wa-part" value="greeting" checked> Greeting</label>
+                <label><input type="checkbox" class="wa-part" value="terms" checked> T&C note</label>
                 <label><input type="checkbox" class="wa-part" value="booking" checked> Booking confirmation</label>
                 <label><input type="checkbox" class="wa-part" value="address"> Address confirmation</label>
                 <label><input type="checkbox" class="wa-part" value="status" checked> Current status</label>
                 <label><input type="checkbox" class="wa-part" value="tracking" checked> Tracking numbers</label>
                 <label><input type="checkbox" class="wa-part" value="items"> Item details</label>
                 <label><input type="checkbox" class="wa-part" value="payment"> Payment / balance</label>
-                <label><input type="checkbox" class="wa-part" value="terms" checked> T&C note</label>
                 <label><input type="checkbox" class="wa-part" value="closing" checked> Closing</label>
             </div>
             <div class="whatsapp-preview-wrap">
@@ -329,13 +329,13 @@
         ].filter(Boolean).join('\n');
 
         appendSection(parts, 'greeting', `Hello ${data.senderName || 'Ji'} ji,`);
+        appendSection(parts, 'terms', '*Before booking, please note:*\n1. Delivery may sometimes be delayed by a few days due to courier processing, transport delays, flight delays, weather, customs, weekends/holidays, remote area service, or other reasons not in our control.\n2. Custom duty is rare in most cases, but if charged by destination government/authorities, the receiver must pay it. It will not be paid by us.\n3. In rare cases of damage or loss, the claim will be as per courier company policy. For lost shipments, the maximum claim is usually limited to USD 100.');
         appendSection(parts, 'booking', `Booking confirmation\nShipment booked on ${data.bookingDate} for ${route}.${receiverLine ? `\n${receiverLine}` : ''}${data.promisedDays ? `\nExpected timeline: ${data.promisedDays} days.` : ''}`);
         appendSection(parts, 'address', `Address confirmation\n${addressLines}`);
         appendSection(parts, 'status', `Current status\n${data.statusText || data.normalizedStatus || 'Booked'}${data.isStuck ? '\nNote: Movement is delayed, we are following up.' : ''}`);
         appendSection(parts, 'tracking', trackingLines ? `Tracking details\n${trackingLines}` : 'Tracking details\nTracking number will be shared once generated.');
         appendSection(parts, 'items', data.itemRawText ? `Item details\n${data.itemRawText}` : 'Item details\nNot added.');
         appendSection(parts, 'payment', data.hasBalance ? `Payment\nPending balance: Rs ${data.balanceAmount}.` : 'Payment\nNo pending balance as per our records.');
-        appendSection(parts, 'terms', '*Before booking, please note:*\n1. Delivery may sometimes be delayed by a few days due to courier processing, transport delays, flight delays, weather, customs, weekends/holidays, remote area service, or other reasons not in our control.\n2. Custom duty is rare in most cases, but if charged by destination government/authorities, the receiver must pay it. It will not be paid by us.\n3. In rare cases of damage or loss, the claim will be as per courier company policy. For lost shipments, the maximum claim is usually limited to USD 100.');
         appendSection(parts, 'closing', 'Thank you.');
 
         return parts.join('\n\n');
