@@ -930,3 +930,17 @@ def update_shipment(
 
     db.commit()
     return RedirectResponse(url="/shipments", status_code=303)
+
+
+@router.post("/{shipment_id}/delete")
+def delete_shipment(request: Request, shipment_id: int, db: Session = Depends(get_db)):
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        return RedirectResponse(url="/shipments", status_code=303)
+        
+    db.query(TrackingEvent).filter(TrackingEvent.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(Shipment).filter(Shipment.id == shipment_id).delete(synchronize_session=False)
+    db.commit()
+    
+    return RedirectResponse(url="/shipments", status_code=303)

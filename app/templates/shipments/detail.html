@@ -27,6 +27,9 @@
             {% endif %}
         </span>
         <a href="/shipments/{{ shipment.id }}/edit" class="btn btn-secondary">Edit details</a>
+        <form method="POST" action="/shipments/{{ shipment.id }}/delete" style="margin: 0; display: inline-block;" onsubmit="return confirm('Are you sure you want to completely delete this shipment? This cannot be undone.');">
+            <button type="submit" class="btn" style="background: var(--danger); color: white;">Delete</button>
+        </form>
         <button onclick="generateWhatsApp()" class="btn btn-success">WhatsApp update</button>
     </div>
 </header>
