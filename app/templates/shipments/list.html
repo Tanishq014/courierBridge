@@ -91,7 +91,7 @@
                 <tr>
                     <th>Booking</th>
                     <th>Sender</th>
-                    <th>Weight</th>
+                    <th>Charged weight</th>
                     <th>Receiver</th>
                     <th>Service</th>
                     <th>Tracking</th>
@@ -158,8 +158,8 @@
                         </div>
                     </td>
                     <td class="hover-preview-cell">
-                        <span class="cell-primary">Charged {{ s.charged_weight or '—' }}</span>
-                        <span class="cell-secondary">Basis: {{ 'Dead' if s.weight_basis == 'actual' else (s.weight_basis or 'dead')|title }}</span>
+                        {% set cust_charged = preview.get('rate_details', {}).get('customer_charged_weight') %}
+                        <span class="cell-primary">{% if cust_charged %}{{ cust_charged }} kg{% elif s.charged_weight %}{{ s.charged_weight }} kg{% else %}—{% endif %}</span>
                         <div class="cell-hover-card">
                             <div class="hover-title">Weight Details</div>
                             <div class="hover-line">Dead: {{ s.dead_weight or '—' }}</div>
@@ -241,6 +241,9 @@
                             <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
                             <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
                             <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
+                            <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0;">
+                            <div class="hover-line">Cust. Rate: {{ s.customer_rate_text or '—' }}</div>
+                            <div class="hover-line">Self Rate: {{ s.vendor_rate_text or '—' }}</div>
                         </div>
                     </td>
                     <td class="notes-cell">
