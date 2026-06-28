@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import Shipment, TrackingEvent, TrackingNumber, now_ist
 from app.tracking_links import build_tracking_site_url, build_tracking_url
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 router = APIRouter(prefix="/shipments")
@@ -350,7 +350,9 @@ def list_shipments(
     status: str = "",
     country: str = "",
     custom_duty: str = "",
-    service: str = ""
+    service: str = "",
+    quick: str = "",
+    date: str = ""
 ):
     query = db.query(Shipment).outerjoin(TrackingNumber)
 
@@ -358,8 +360,10 @@ def list_shipments(
         query = query.filter(
             or_(
                 Shipment.customer_name.ilike(f"%{q}%"),
+                Shipment.receiver_name.ilike(f"%{q}%"),
                 Shipment.customer_phone.ilike(f"%{q}%"),
                 Shipment.destination_country.ilike(f"%{q}%"),
+                Shipment.destination_city.ilike(f"%{q}%"),
                 Shipment.name_country_raw.ilike(f"%{q}%"),
                 Shipment.contact_or_reference_raw.ilike(f"%{q}%"),
                 TrackingNumber.tracking_number.ilike(f"%{q}%"),
@@ -367,7 +371,9 @@ def list_shipments(
                 Shipment.vendor_partner.ilike(f"%{q}%"),
                 Shipment.status_raw_text.ilike(f"%{q}%"),
                 Shipment.internal_notes.ilike(f"%{q}%"),
-                Shipment.customer_notes.ilike(f"%{q}%")
+                Shipment.customer_notes.ilike(f"%{q}%"),
+                Shipment.raw_excel_notes.ilike(f"%{q}%"),
+                Shipment.raw_excel_row_text.ilike(f"%{q}%")
             )
         )
     if status:
@@ -386,6 +392,49 @@ def list_shipments(
             Shipment.tracking_numbers.any(TrackingNumber.courier_name == service)
         ))
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
+
+    terminal_statuses = {"delivered", "rto", "return_damage"}
+    today = now_ist().date()
+
+    def shipment_date(shipment):
+        if not shipment.booking_date:
+            return None
+        return shipment.booking_date.date()
+
+    def is_active(shipment):
+        return shipment.overall_status not in terminal_statuses
+
+    def missing_main_tracking(shipment):
+        return not any((tn.tracking_number or "").strip() for tn in shipment.tracking_numbers)
+
+    def missing_lm_tracking(shipment):
+        return shipment.requires_lm_awb and not any(tn.tracking_type == "lm_awb" and (tn.tracking_number or "").strip() for tn in shipment.tracking_numbers)
+
+    def promised_overdue(shipment):
+        if not shipment.booking_date or not shipment.promised_days_number or not is_active(shipment):
+            return False
+        return shipment.booking_date.date() + timedelta(days=shipment.promised_days_number) < today
+
+    if date == "today" or quick == "today":
+        shipments = [s for s in shipments if shipment_date(s) == today]
+    if quick == "active":
+        shipments = [s for s in shipments if is_active(s)]
+    elif quick == "missing_tracking":
+        shipments = [s for s in shipments if is_active(s) and missing_main_tracking(s)]
+    elif quick == "missing_lm":
+        shipments = [s for s in shipments if is_active(s) and missing_lm_tracking(s)]
+    elif quick == "pending_balance":
+        shipments = [s for s in shipments if s.balance_amount and float(s.balance_amount) > 0]
+    elif quick == "custom_duty":
+        shipments = [s for s in shipments if s.custom_duty]
+    elif quick == "stale":
+        shipments = [s for s in shipments if s.is_stuck]
+    elif quick == "overdue":
+        shipments = [s for s in shipments if promised_overdue(s)]
+    elif quick == "attention":
+        shipments = [s for s in shipments if s.needs_attention]
+    elif quick == "delivered":
+        shipments = [s for s in shipments if s.overall_status == "delivered"]
     shipment_previews = {}
     for shipment in shipments:
         item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
@@ -412,6 +461,8 @@ def list_shipments(
         "country": normalized_country_filter,
         "custom_duty": custom_duty,
         "service": service,
+        "quick": quick,
+        "date": date,
     })
 
 @router.get("/new")

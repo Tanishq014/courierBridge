@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Shipments | CourierBridge{% endblock %}
+{% block container_class %}container-fluid{% endblock %}
 
 {% block content %}
 <style>
@@ -8,12 +9,33 @@
 .hidden-radio { display: none !important; }
 .custom-duty-toggle .btn-toggle { cursor: pointer; padding: 2px 8px; font-size: 10px; border-radius: 4px; background: #f1f5f9; color: #64748b; font-weight: 500; border: 1px solid transparent; transition: all 0.15s; }
 .hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.shipments-table th:nth-child(2), .shipments-table th:nth-child(3),
-.shipments-table td:nth-child(2), .shipments-table td:nth-child(3) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+.shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
+.shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+.shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
 </style>
 
-<section class="card filter-card" id="shipments-filter-card" {% if not (q or status or country or custom_duty or service) %}style="display: none;"{% endif %}>
+<section class="card filter-card" id="shipments-filter-card">
+    <script>
+        if (window.location.search.length > 1) {
+            localStorage.setItem('hideShipmentsFilter', 'false');
+        } else if (localStorage.getItem('hideShipmentsFilter') === 'true') {
+            document.getElementById('shipments-filter-card').style.display = 'none';
+        }
+    </script>
+    <div class="quick-filter-row" aria-label="Quick shipment filters">
+        <a class="quick-filter-chip {% if date == 'today' or quick == 'today' %}active{% endif %}" href="/shipments?date=today">Today</a>
+        <a class="quick-filter-chip {% if quick == 'active' %}active{% endif %}" href="/shipments?quick=active">Active</a>
+        <a class="quick-filter-chip {% if quick == 'attention' %}active{% endif %}" href="/shipments?quick=attention">Needs attention</a>
+        <a class="quick-filter-chip {% if quick == 'missing_tracking' %}active{% endif %}" href="/shipments?quick=missing_tracking">Missing tracking</a>
+        <a class="quick-filter-chip {% if quick == 'missing_lm' %}active{% endif %}" href="/shipments?quick=missing_lm">Missing LM</a>
+        <a class="quick-filter-chip {% if quick == 'pending_balance' %}active{% endif %}" href="/shipments?quick=pending_balance">Balance due</a>
+        <a class="quick-filter-chip {% if quick == 'custom_duty' %}active{% endif %}" href="/shipments?quick=custom_duty">Custom duty</a>
+        <a class="quick-filter-chip {% if quick == 'stale' %}active{% endif %}" href="/shipments?quick=stale">No update in 48 hours</a>
+        <a class="quick-filter-chip {% if quick == 'overdue' %}active{% endif %}" href="/shipments?quick=overdue">Overdue</a>
+    </div>
     <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
+        {% if quick %}<input type="hidden" name="quick" value="{{ quick }}">{% endif %}
+        {% if date %}<input type="hidden" name="date" value="{{ date }}">{% endif %}
         <div>
             <label for="ledger-filter-input">Search ledger</label>
             <input autocomplete="off" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')" id="ledger-filter-input" type="text" value="{{ q }}" placeholder="Customer, phone, destination or reference">
@@ -68,19 +90,18 @@
         </div>
         <div class="button-row">
             <button type="submit" class="btn btn-primary">Apply filter</button>
-            {% if q or status or country or custom_duty or service %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
+            {% if q or status or country or custom_duty or service or quick or date %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
         </div>
     </form>
 </section>
 
 <section class="card table-card shipment-ledger-card">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <div>
-            <h3>Shipment ledger</h3>
-            <p class="card-subtitle">{{ shipments|length }} records shown · Click booking/customer to open; edit status and tracking directly.</p>
+            <h3 style="margin: 0;">Shipment ledger</h3>
         </div>
         <div class="page-actions" style="display: flex; gap: 0.5rem;">
-            <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';}else{fc.style.display='none';this.innerText='Show filters';}">{% if not (q or status or country or custom_duty or service) %}Show filters{% else %}Hide filters{% endif %}</button>
+            <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';localStorage.setItem('hideShipmentsFilter', 'false');}else{fc.style.display='none';this.innerText='Show filters';localStorage.setItem('hideShipmentsFilter', 'true');}"><script>document.write(localStorage.getItem('hideShipmentsFilter') === 'true' ? 'Show filters' : 'Hide filters');</script><noscript>Hide filters</noscript></button>
             <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
         </div>
     </div>
@@ -91,7 +112,7 @@
                 <tr>
                     <th>Booking</th>
                     <th>Sender</th>
-                    <th>Charged weight</th>
+                    <th>Charged Wt.</th>
                     <th>Receiver</th>
                     <th>Service</th>
                     <th>Tracking</th>
@@ -120,7 +141,7 @@
                 {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
                 {% set preview = shipment_previews.get(s.id, {}) %}
                 {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else 'yellow') %}
-                <tr class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
+                <tr id="shipment-{{ s.id }}" class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
                     <td>
                         <div class="booking-cell-stack">
                             <div class="row-color-picker" aria-label="Row highlight color">
@@ -336,13 +357,15 @@
             sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
             filterForm.requestSubmit();
         };
+        const restoreFilterFocus = (input) => {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        };
+        const rememberedFocus = sessionStorage.getItem('shipmentFilterFocus');
+        if (rememberedFocus) sessionStorage.removeItem('shipmentFilterFocus');
         dropdowns.forEach(dropdown => dropdown.addEventListener('change', submitAndRefocus));
         if (searchInput) {
-            if (sessionStorage.getItem('shipmentFilterFocus') === 'q') {
-                sessionStorage.removeItem('shipmentFilterFocus');
-                searchInput.focus();
-                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-            }
+            if (rememberedFocus === 'q') restoreFilterFocus(searchInput);
             searchInput.addEventListener('input', () => {
                 if (searchValue) searchValue.value = searchInput.value;
                 clearTimeout(searchTimer);

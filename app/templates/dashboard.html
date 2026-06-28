@@ -38,11 +38,43 @@
     </div>
 </section>
 
+<section class="dashboard-pending-grid" aria-label="Daily pending dashboard">
+    {% for section in pending_sections %}
+    <article class="card pending-card pending-card-{{ section.tone }}">
+        <div class="pending-card-header">
+            <div>
+                <h3>{{ section.title }}</h3>
+                <p>{{ section.subtitle }}</p>
+            </div>
+            <a href="{{ section.href }}" class="pending-count" aria-label="Open {{ section.title }} queue">{{ section.shipments|length }}</a>
+        </div>
+        {% if section.shipments %}
+        <div class="pending-list">
+            {% for s in section.shipments[:4] %}
+            <a href="{{ section.href }}#shipment-{{ s.id }}" class="pending-list-row">
+                <span>
+                    <span class="cell-primary">{{ s.customer_name or s.receiver_name or 'Unnamed' }}</span>
+                    <span class="cell-secondary">{{ s.destination_country or 'No country' }} · {{ s.overall_status|replace('_', ' ')|title }}</span>
+                </span>
+                <span class="pending-row-date">{{ s.booking_date.strftime('%d %b') if s.booking_date else '-' }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% if section.shipments|length > 4 %}
+        <a href="{{ section.href }}" class="pending-more">Open all {{ section.shipments|length }} &rarr;</a>
+        {% endif %}
+        {% else %}
+        <div class="pending-empty">Clear</div>
+        {% endif %}
+    </article>
+    {% endfor %}
+</section>
+
 <section class="card table-card">
     <div class="card-header">
         <div>
             <h3>Attention required</h3>
-            <p class="card-subtitle">Exceptions, customs holds, and unresolved payment issues.</p>
+            <p class="card-subtitle">Exceptions, customs holds, unresolved payment issues, and missing tracking details.</p>
         </div>
         {% if attention_required %}
         <span class="badge badge-warning">{{ attention_required|length }} open</span>
@@ -86,7 +118,7 @@
                             <span class="badge badge-success">Paid</span>
                         {% endif %}
                     </td>
-                    <td><a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a></td>
+                    <td><a href="/shipments?quick=attention#shipment-{{ s.id }}" class="btn btn-sm btn-secondary">Open</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
