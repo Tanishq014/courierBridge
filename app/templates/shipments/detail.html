@@ -172,13 +172,41 @@
     </section>
 </div>
 
-<dialog id="whatsappModal" class="dialog">
-    <div class="dialog-header"><h3>WhatsApp update</h3></div>
-    <div class="dialog-body"><textarea autocomplete="new-password" spellcheck="false" id="waText" rows="10"></textarea></div>
+<dialog id="whatsappModal" class="dialog whatsapp-composer-dialog">
+    <div class="dialog-header">
+        <div>
+            <h3>WhatsApp message</h3>
+            <p class="card-subtitle">Select the parts to include, edit the final text, then open WhatsApp.</p>
+        </div>
+    </div>
+    <div class="dialog-body whatsapp-composer-body">
+        <div class="whatsapp-phone-row">
+            <label for="waPhone">Send to number</label>
+            <input autocomplete="new-password" spellcheck="false" id="waPhone" type="text" value="{{ shipment.customer_phone or '' }}" placeholder="Phone number">
+        </div>
+        <div class="whatsapp-composer-grid">
+            <div class="whatsapp-parts" aria-label="Message parts">
+                <label><input type="checkbox" class="wa-part" value="greeting" checked> Greeting</label>
+                <label><input type="checkbox" class="wa-part" value="booking" checked> Booking confirmation</label>
+                <label><input type="checkbox" class="wa-part" value="address"> Address confirmation</label>
+                <label><input type="checkbox" class="wa-part" value="status" checked> Current status</label>
+                <label><input type="checkbox" class="wa-part" value="tracking" checked> Tracking numbers</label>
+                <label><input type="checkbox" class="wa-part" value="items"> Item details</label>
+                <label><input type="checkbox" class="wa-part" value="payment"> Payment / balance</label>
+                <label><input type="checkbox" class="wa-part" value="terms" checked> T&C note</label>
+                <label><input type="checkbox" class="wa-part" value="closing" checked> Closing</label>
+            </div>
+            <div class="whatsapp-preview-wrap">
+                <label for="waText">Final message</label>
+                <textarea autocomplete="new-password" spellcheck="false" id="waText" rows="14"></textarea>
+            </div>
+        </div>
+    </div>
     <div class="dialog-footer">
         <button onclick="document.getElementById('whatsappModal').close()" class="btn btn-secondary">Close</button>
-        <button onclick="copyWA()" class="btn btn-secondary">Copy update</button>
-        <button onclick="openGeneratedWhatsApp()" class="btn btn-primary">Open WhatsApp</button>
+        <button onclick="copyWA()" class="btn btn-secondary">Copy</button>
+        <button onclick="refreshWhatsAppMessage()" class="btn btn-secondary">Reset from selected</button>
+        <button onclick="openGeneratedWhatsApp()" class="btn btn-primary">Send on WhatsApp</button>
     </div>
 </dialog>
 {% endblock %}
@@ -186,6 +214,38 @@
 {% block scripts %}
 <script>
     const shipmentWhatsappPhone = {{ (shipment.customer_phone or '') | tojson }};
+    const shipmentWhatsappData = {
+        senderName: {{ (shipment.customer_name or shipment.name_country_raw or 'Customer') | tojson }},
+        receiverName: {{ (shipment.receiver_name or '') | tojson }},
+        destinationCountry: {{ (shipment.destination_country or '') | tojson }},
+        destinationCity: {{ (shipment.destination_city or '') | tojson }},
+        bookingDate: {{ shipment.booking_date.strftime('%d %b %Y') | tojson }},
+        senderPhone: {{ (shipment.customer_phone or '') | tojson }},
+        receiverPhone: {{ (shipment.contact_or_reference_raw or '') | tojson }},
+        receiverAddress: {{ (receiver_address_text or '') | tojson }},
+        receiverAddressParts: {{ receiver_address | tojson }},
+        promisedDays: {{ ((shipment.promised_days_text or shipment.promised_days_number or '') | string) | tojson }},
+        statusText: {{ (shipment.status_raw_text or shipment.last_status_text or '') | tojson }},
+        normalizedStatus: {{ (shipment.overall_status or 'booked') | replace('_', ' ') | title | tojson }},
+        itemRawText: {{ (item_raw_text or '') | tojson }},
+        balanceAmount: {{ ('%.2f'|format(shipment.balance_amount or 0)) | tojson }},
+        hasBalance: {{ 'true' if shipment.balance_amount and shipment.balance_amount > 0 else 'false' }},
+        isStuck: {{ 'true' if shipment.is_stuck else 'false' }},
+        trackingNumbers: [
+            {% for tn in shipment.tracking_numbers %}
+            {% set effective_tn_courier = tn.courier_name or (shipment.courier_company if tn.tracking_type == 'main_awb' else '') %}
+            {% set tn_url = tracking_url(effective_tn_courier, tn.tracking_number, tracking_type=tn.tracking_type) %}
+            {% set tn_site_url = tracking_site_url(effective_tn_courier, tn.tracking_number) %}
+            {
+                type: {{ (tn.tracking_type | replace('_', ' ') | title) | tojson }},
+                courier: {{ (effective_tn_courier or '') | tojson }},
+                number: {{ (tn.tracking_number or '') | tojson }},
+                url: {{ (tn_url or tn_site_url or '') | tojson }},
+                primary: {{ 'true' if tn.is_primary else 'false' }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
 
     function normalizeWhatsappPhone(phone) {
         let digits = String(phone || '').replace(/\D/g, '');
@@ -195,7 +255,10 @@
 
     function openWhatsAppApp(phone, message) {
         const normalizedPhone = normalizeWhatsappPhone(phone);
-        if (!normalizedPhone) return false;
+        if (!normalizedPhone) {
+            alert('Add a phone number first.');
+            return false;
+        }
         const encodedMessage = message ? encodeURIComponent(message) : '';
         const appUrl = `whatsapp://send?phone=${normalizedPhone}${encodedMessage ? '&text=' + encodedMessage : ''}`;
         const webUrl = `https://wa.me/${normalizedPhone}${encodedMessage ? '?text=' + encodedMessage : ''}`;
@@ -215,35 +278,96 @@
         return true;
     }
 
+    function selectedWhatsAppParts() {
+        return Array.from(document.querySelectorAll('.wa-part:checked')).map(input => input.value);
+    }
+
+    function appendSection(parts, key, text) {
+        if (!text || !selectedWhatsAppParts().includes(key)) return;
+        parts.push(text.trim());
+    }
+
+    function customerFacingTrackingUrl(url) {
+        const value = String(url || '').trim();
+        if (!value || value.startsWith('/')) return '';
+        try {
+            const parsed = new URL(value, window.location.origin);
+            if (parsed.origin === window.location.origin) return '';
+            return value;
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function buildWhatsAppMessage() {
+        const data = shipmentWhatsappData;
+        const parts = [];
+        const route = [data.destinationCity, data.destinationCountry].filter(Boolean).join(', ') || data.destinationCountry || 'destination';
+        const receiverLine = data.receiverName ? `Receiver: ${data.receiverName}` : '';
+        const trackingLines = data.trackingNumbers
+            .filter(tn => tn.number)
+            .map(tn => {
+                const label = `${tn.type}${tn.courier ? ` (${tn.courier})` : ''}: ${tn.number}`;
+                const url = customerFacingTrackingUrl(tn.url);
+                return url ? `${label}\nTrack: ${url}` : label;
+            })
+            .join('\n');
+
+        const addr = data.receiverAddressParts || {};
+        const addressLines = [
+            data.senderName ? `Sender: ${data.senderName}` : '',
+            data.senderPhone ? `Sender phone: ${data.senderPhone}` : '',
+            receiverLine || 'Receiver name not added',
+            data.receiverPhone ? `Receiver phone: ${data.receiverPhone}` : '',
+            addr.line_1 ? `Address line 1: ${addr.line_1}` : '',
+            addr.line_2 ? `Address line 2: ${addr.line_2}` : '',
+            addr.line_3 ? `Address line 3: ${addr.line_3}` : '',
+            addr.city ? `City: ${addr.city}` : '',
+            addr.state ? `State: ${addr.state}` : '',
+            addr.zip ? `ZIP: ${addr.zip}` : '',
+            `Country: ${data.destinationCountry || '-'}`,
+        ].filter(Boolean).join('\n');
+
+        appendSection(parts, 'greeting', `Hello ${data.senderName || 'Ji'} ji,`);
+        appendSection(parts, 'booking', `Booking confirmation\nShipment booked on ${data.bookingDate} for ${route}.${receiverLine ? `\n${receiverLine}` : ''}${data.promisedDays ? `\nExpected timeline: ${data.promisedDays} days.` : ''}`);
+        appendSection(parts, 'address', `Address confirmation\n${addressLines}`);
+        appendSection(parts, 'status', `Current status\n${data.statusText || data.normalizedStatus || 'Booked'}${data.isStuck ? '\nNote: Movement is delayed, we are following up.' : ''}`);
+        appendSection(parts, 'tracking', trackingLines ? `Tracking details\n${trackingLines}` : 'Tracking details\nTracking number will be shared once generated.');
+        appendSection(parts, 'items', data.itemRawText ? `Item details\n${data.itemRawText}` : 'Item details\nNot added.');
+        appendSection(parts, 'payment', data.hasBalance ? `Payment\nPending balance: Rs ${data.balanceAmount}.` : 'Payment\nNo pending balance as per our records.');
+        appendSection(parts, 'terms', '*Before booking, please note:*\n1. Delivery may sometimes be delayed by a few days due to courier processing, transport delays, flight delays, weather, customs, weekends/holidays, remote area service, or other reasons not in our control.\n2. Custom duty is rare in most cases, but if charged by destination government/authorities, the receiver must pay it. It will not be paid by us.\n3. In rare cases of damage or loss, the claim will be as per courier company policy. For lost shipments, the maximum claim is usually limited to USD 100.');
+        appendSection(parts, 'closing', 'Thank you.');
+
+        return parts.join('\n\n');
+    }
+
+    function refreshWhatsAppMessage() {
+        const textArea = document.getElementById('waText');
+        if (textArea) textArea.value = buildWhatsAppMessage();
+    }
+
     function generateWhatsApp() {
-        const customer = {{ (shipment.customer_name or shipment.name_country_raw or 'Customer') | tojson }};
-        const dest = {{ shipment.destination_country | tojson }};
-        const statusText = {{ (shipment.status_raw_text or shipment.last_status_text or 'Booked') | tojson }};
-        let primaryNumber = "N/A";
-        {% for tn in shipment.tracking_numbers %}
-            {% if tn.is_primary %}primaryNumber = {{ tn.tracking_number | tojson }};{% endif %}
-        {% endfor %}
-        const eta = {{ (shipment.promised_days_text or shipment.promised_days_number or 'N/A') | string | tojson }};
-        let text = `Hello ${customer} ji, your parcel for ${dest} is currently: ${statusText}.\nTracking number: ${primaryNumber}.\n`;
-        if (eta !== "N/A") text += `Estimated delivery told: ${eta}.\n`;
-        text += `We will update you if there is any delay.`;
-        {% if shipment.is_stuck %}text += `\n\nIt has not moved for a few days, so we are following up.`;{% endif %}
-        {% if shipment.balance_amount > 0 %}text += `\n\nPending Balance: {{ shipment.balance_amount }}. Please clear at earliest.`;{% endif %}
-        document.getElementById('waText').value = text;
+        const phoneInput = document.getElementById('waPhone');
+        if (phoneInput && !phoneInput.value) phoneInput.value = shipmentWhatsappPhone;
+        refreshWhatsAppMessage();
         document.getElementById('whatsappModal').showModal();
     }
 
     function openGeneratedWhatsApp() {
         const text = document.getElementById('waText').value;
-        openWhatsAppApp(shipmentWhatsappPhone, text);
+        const phone = document.getElementById('waPhone').value;
+        openWhatsAppApp(phone, text);
         document.getElementById('whatsappModal').close();
     }
 
     async function copyWA() {
         const text = document.getElementById('waText').value;
         await navigator.clipboard.writeText(text);
-        document.getElementById('whatsappModal').close();
     }
+
+    document.querySelectorAll('.wa-part').forEach(input => {
+        input.addEventListener('change', refreshWhatsAppMessage);
+    });
 
     document.querySelectorAll('.whatsapp-app-link').forEach(link => {
         link.addEventListener('click', event => {

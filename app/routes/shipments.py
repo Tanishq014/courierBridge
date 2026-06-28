@@ -443,6 +443,7 @@ def list_shipments(
         shipment_previews[shipment.id] = {
             "item_raw_text": item_raw_text,
             "address": format_receiver_address(receiver_address),
+            "address_parts": receiver_address,
             "rate_details": rate_details,
         }
     courier_options = get_courier_options(db)

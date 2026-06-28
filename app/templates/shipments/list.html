@@ -163,7 +163,7 @@
                                 </a>
                                 {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
                                 {% if wa_phone %}
-                                    <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
+                                    <a href="#" class="cell-secondary whatsapp-composer-link" data-shipment-id="{{ s.id }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Compose WhatsApp message">
                                         {{ wa_phone }}
                                     </a>
                                 {% else %}
@@ -306,6 +306,44 @@
     </div>
     {% endif %}
 </section>
+
+<dialog id="whatsappModal" class="dialog whatsapp-composer-dialog">
+    <div class="dialog-header">
+        <div>
+            <h3>WhatsApp message</h3>
+            <p class="card-subtitle">Select the parts, edit the text, then send.</p>
+        </div>
+    </div>
+    <div class="dialog-body whatsapp-composer-body">
+        <div class="whatsapp-phone-row">
+            <label for="waPhone">Send to number</label>
+            <input autocomplete="new-password" spellcheck="false" id="waPhone" type="text" placeholder="Phone number">
+        </div>
+        <div class="whatsapp-composer-grid">
+            <div class="whatsapp-parts" aria-label="Message parts">
+                <label><input type="checkbox" class="wa-part" value="greeting" checked> Greeting</label>
+                <label><input type="checkbox" class="wa-part" value="booking" checked> Booking</label>
+                <label><input type="checkbox" class="wa-part" value="address"> Address</label>
+                <label><input type="checkbox" class="wa-part" value="status" checked> Status</label>
+                <label><input type="checkbox" class="wa-part" value="tracking" checked> Tracking</label>
+                <label><input type="checkbox" class="wa-part" value="items"> Items</label>
+                <label><input type="checkbox" class="wa-part" value="payment"> Payment</label>
+                <label><input type="checkbox" class="wa-part" value="terms" checked> T&C</label>
+                <label><input type="checkbox" class="wa-part" value="closing" checked> Closing</label>
+            </div>
+            <div class="whatsapp-preview-wrap">
+                <label for="waText">Final message</label>
+                <textarea autocomplete="new-password" spellcheck="false" id="waText" rows="12"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="dialog-footer">
+        <button onclick="document.getElementById('whatsappModal').close()" class="btn btn-secondary">Close</button>
+        <button onclick="copyWA()" class="btn btn-secondary">Copy</button>
+        <button onclick="refreshWhatsAppMessage()" class="btn btn-secondary">Reset</button>
+        <button onclick="openGeneratedWhatsApp()" class="btn btn-primary">Send on WhatsApp</button>
+    </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
@@ -339,10 +377,144 @@
         return true;
     }
 
-    document.querySelectorAll('.whatsapp-app-link').forEach(link => {
+    const shipmentWhatsappDataMap = {
+        {% for s in shipments %}
+        {% set preview = shipment_previews.get(s.id, {}) %}
+        {% set main_tn = namespace(item=none) %}
+        {% set lm_tn = namespace(item=none) %}
+        {% for tn in s.tracking_numbers %}
+            {% if tn.tracking_type == 'main_awb' or tn.is_primary %}{% set main_tn.item = tn %}{% endif %}
+            {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.item = tn %}{% endif %}
+        {% endfor %}
+        {% set main_courier = (main_tn.item.courier_name if main_tn.item and main_tn.item.courier_name else s.courier_company) %}
+        {% set lm_courier = lm_tn.item.courier_name if lm_tn.item else '' %}
+        {% set main_tracking_number = main_tn.item.tracking_number if main_tn.item else '' %}
+        {% set lm_tracking_number = lm_tn.item.tracking_number if lm_tn.item else '' %}
+        {% set main_tracking_url = tracking_url(main_courier, main_tracking_number, tracking_type='main_awb') or tracking_site_url(main_courier, main_tracking_number) %}
+        {% set lm_tracking_url = tracking_url(lm_courier, lm_tracking_number, tracking_type='lm_awb') or tracking_site_url(lm_courier, lm_tracking_number) %}
+        "{{ s.id }}": {
+            senderName: {{ (s.customer_name or s.name_country_raw or 'Customer') | tojson }},
+            receiverName: {{ (s.receiver_name or '') | tojson }},
+            destinationCountry: {{ (s.destination_country or '') | tojson }},
+            destinationCity: {{ (s.destination_city or '') | tojson }},
+            bookingDate: {{ s.booking_date.strftime('%d %b %Y') | tojson }},
+            senderPhone: {{ (s.customer_phone or '') | tojson }},
+            receiverPhone: {{ (s.contact_or_reference_raw or '') | tojson }},
+            receiverAddress: {{ (preview.get('address') or '') | tojson }},
+            receiverAddressParts: {{ (preview.get('address_parts') or {}) | tojson }},
+            promisedDays: {{ ((s.promised_days_text or s.promised_days_number or '') | string) | tojson }},
+            statusText: {{ (s.status_raw_text or s.last_status_text or '') | tojson }},
+            normalizedStatus: {{ (s.overall_status or 'booked') | replace('_', ' ') | title | tojson }},
+            itemRawText: {{ (preview.get('item_raw_text') or '') | tojson }},
+            balanceAmount: {{ ('%.2f'|format(s.balance_amount or 0)) | tojson }},
+            hasBalance: {{ 'true' if s.balance_amount and s.balance_amount > 0 else 'false' }},
+            isStuck: {{ 'true' if s.is_stuck else 'false' }},
+            trackingNumbers: [
+                {% if main_tracking_number %}{ type: 'Main Awb', courier: {{ (main_courier or '') | tojson }}, number: {{ main_tracking_number | tojson }}, url: {{ (main_tracking_url or '') | tojson }}, primary: true }{% endif %}
+                {% if main_tracking_number and lm_tracking_number %},{% endif %}
+                {% if lm_tracking_number %}{ type: 'Lm Awb', courier: {{ (lm_courier or '') | tojson }}, number: {{ lm_tracking_number | tojson }}, url: {{ (lm_tracking_url or '') | tojson }}, primary: false }{% endif %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    let activeWhatsappData = null;
+
+    function selectedWhatsAppParts() {
+        return Array.from(document.querySelectorAll('.wa-part:checked')).map(input => input.value);
+    }
+
+    function appendSection(parts, key, text) {
+        if (!text || !selectedWhatsAppParts().includes(key)) return;
+        parts.push(text.trim());
+    }
+
+    function customerFacingTrackingUrl(url) {
+        const value = String(url || '').trim();
+        if (!value || value.startsWith('/')) return '';
+        try {
+            const parsed = new URL(value, window.location.origin);
+            if (parsed.origin === window.location.origin) return '';
+            return value;
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function buildWhatsAppMessage(data) {
+        if (!data) return '';
+        const parts = [];
+        const route = [data.destinationCity, data.destinationCountry].filter(Boolean).join(', ') || data.destinationCountry || 'destination';
+        const receiverLine = data.receiverName ? `Receiver: ${data.receiverName}` : '';
+        const trackingLines = (data.trackingNumbers || [])
+            .filter(tn => tn.number)
+            .map(tn => {
+                const label = `${tn.type}${tn.courier ? ` (${tn.courier})` : ''}: ${tn.number}`;
+                const url = customerFacingTrackingUrl(tn.url);
+                return url ? `${label}
+Track: ${url}` : label;
+            })
+            .join('\n');
+        const addr = data.receiverAddressParts || {};
+        const addressLines = [
+            data.senderName ? `Sender: ${data.senderName}` : '',
+            data.senderPhone ? `Sender phone: ${data.senderPhone}` : '',
+            receiverLine || 'Receiver name not added',
+            data.receiverPhone ? `Receiver phone: ${data.receiverPhone}` : '',
+            addr.line_1 ? `Address line 1: ${addr.line_1}` : '',
+            addr.line_2 ? `Address line 2: ${addr.line_2}` : '',
+            addr.line_3 ? `Address line 3: ${addr.line_3}` : '',
+            addr.city ? `City: ${addr.city}` : '',
+            addr.state ? `State: ${addr.state}` : '',
+            addr.zip ? `ZIP: ${addr.zip}` : '',
+            `Country: ${data.destinationCountry || '-'}`,
+        ].filter(Boolean).join('\n');
+
+        appendSection(parts, 'greeting', `Hello ${data.senderName || 'Ji'} ji,`);
+        appendSection(parts, 'booking', `Booking confirmation\nShipment booked on ${data.bookingDate} for ${route}.${receiverLine ? `\n${receiverLine}` : ''}${data.promisedDays ? `\nExpected timeline: ${data.promisedDays} days.` : ''}`);
+        appendSection(parts, 'address', `Address confirmation\n${addressLines}`);
+        appendSection(parts, 'status', `Current status\n${data.statusText || data.normalizedStatus || 'Booked'}${data.isStuck ? '\nNote: Movement is delayed, we are following up.' : ''}`);
+        appendSection(parts, 'tracking', trackingLines ? `Tracking details\n${trackingLines}` : 'Tracking details\nTracking number will be shared once generated.');
+        appendSection(parts, 'items', data.itemRawText ? `Item details\n${data.itemRawText}` : 'Item details\nNot added.');
+        appendSection(parts, 'payment', data.hasBalance ? `Payment\nPending balance: Rs ${data.balanceAmount}.` : 'Payment\nNo pending balance as per our records.');
+        appendSection(parts, 'terms', '*Before booking, please note:*\n1. Delivery may sometimes be delayed by a few days due to courier processing, transport delays, flight delays, weather, customs, weekends/holidays, remote area service, or other reasons not in our control.\n2. Custom duty is rare in most cases, but if charged by destination government/authorities, the receiver must pay it. It will not be paid by us.\n3. In rare cases of damage or loss, the claim will be as per courier company policy. For lost shipments, the maximum claim is usually limited to USD 100.');
+        appendSection(parts, 'closing', 'Thank you.');
+        return parts.join('\n\n');
+    }
+
+    function refreshWhatsAppMessage() {
+        const textArea = document.getElementById('waText');
+        if (textArea) textArea.value = buildWhatsAppMessage(activeWhatsappData);
+    }
+
+    function openComposerForShipment(shipmentId) {
+        activeWhatsappData = shipmentWhatsappDataMap[String(shipmentId)];
+        if (!activeWhatsappData) return;
+        const phoneInput = document.getElementById('waPhone');
+        phoneInput.value = activeWhatsappData.senderPhone || activeWhatsappData.receiverPhone || '';
+        refreshWhatsAppMessage();
+        document.getElementById('whatsappModal').showModal();
+    }
+
+    function openGeneratedWhatsApp() {
+        const text = document.getElementById('waText').value;
+        const phone = document.getElementById('waPhone').value;
+        openWhatsAppApp(phone, text);
+        document.getElementById('whatsappModal').close();
+    }
+
+    async function copyWA() {
+        const text = document.getElementById('waText').value;
+        await navigator.clipboard.writeText(text);
+    }
+
+    document.querySelectorAll('.wa-part').forEach(input => {
+        input.addEventListener('change', refreshWhatsAppMessage);
+    });
+
+    document.querySelectorAll('.whatsapp-composer-link').forEach(link => {
         link.addEventListener('click', event => {
             event.preventDefault();
-            openWhatsAppApp(link.dataset.whatsappPhone, link.dataset.whatsappMessage || '');
+            openComposerForShipment(link.dataset.shipmentId);
         });
     });
 
@@ -489,6 +661,10 @@
 
         updateRowState();
     });
+
+    window.refreshWhatsAppMessage = refreshWhatsAppMessage;
+    window.openGeneratedWhatsApp = openGeneratedWhatsApp;
+    window.copyWA = copyWA;
 })();
 </script>
 {% endblock %}
