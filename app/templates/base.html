@@ -12,6 +12,18 @@
     {% block head %}{% endblock %}
 </head>
 <body>
+    <script>
+        (function() {
+            var w = localStorage.getItem('courierbridge.sidebarWidth');
+            if (w) {
+                document.documentElement.style.setProperty('--sidebar-width', w + 'px');
+                document.documentElement.style.setProperty('--sidebar-expanded-width', w + 'px');
+            }
+            if (localStorage.getItem('courierbridge.sidebarCollapsed') === 'true') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
     {% set path = request.url.path %}
     <div class="app-shell">
         <aside class="sidebar" id="app-sidebar">
@@ -58,7 +70,7 @@
                 </nav>
             </header>
 
-            <div class="container">
+            <div class="container {% block container_class %}{% endblock %}">
                 {% block content %}{% endblock %}
             </div>
         </main>

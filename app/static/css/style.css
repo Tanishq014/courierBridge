@@ -199,6 +199,27 @@ button {
     padding: 14px 24px 44px;
 }
 
+.container.container-fluid {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+}
+
+.container-fluid .card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+}
+
+.container-fluid .filter-card {
+    border-top: none;
+    margin-bottom: 0;
+}
+
+.container-fluid .table-card {
+    border-top: none;
+}
+
 .page-header,
 .flex-between {
     display: flex;
@@ -380,6 +401,105 @@ h4 {
     font-weight: 800;
     letter-spacing: -0.05em;
     line-height: 1;
+}
+
+.dashboard-pending-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.pending-card {
+    padding: 14px;
+    border-left: 4px solid var(--line-strong);
+}
+
+.pending-card-warning {
+    border-left-color: var(--warning);
+}
+
+.pending-card-danger {
+    border-left-color: var(--danger);
+}
+
+.pending-card-info {
+    border-left-color: var(--accent);
+}
+
+.pending-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.pending-card-header h3 {
+    margin: 0 0 3px;
+    font-size: 14px;
+}
+
+.pending-card-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.pending-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    color: var(--ink);
+    background: var(--brand-soft);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.pending-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.pending-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.58);
+    text-decoration: none;
+}
+
+.pending-list-row:hover {
+    border-color: var(--accent);
+}
+
+.pending-row-date,
+.pending-empty,
+.pending-more {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pending-more {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.pending-empty {
+    margin-top: 14px;
 }
 
 .text-danger {
@@ -1183,6 +1303,83 @@ input[type="checkbox"] {
     box-shadow: var(--shadow-md);
 }
 
+.whatsapp-composer-dialog {
+    width: min(760px, calc(100vw - 24px));
+}
+
+.whatsapp-composer-body {
+    display: grid;
+    gap: 10px;
+}
+
+.whatsapp-phone-row {
+    display: grid;
+    gap: 6px;
+}
+
+.whatsapp-phone-row label,
+.whatsapp-preview-wrap label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.whatsapp-phone-row input {
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.whatsapp-composer-grid {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.36fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.whatsapp-parts {
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-soft);
+}
+
+.whatsapp-parts label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 7px;
+    border-radius: 8px;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.whatsapp-parts label:hover {
+    background: #fff;
+}
+
+.whatsapp-parts input {
+    accent-color: var(--accent);
+}
+
+.whatsapp-preview-wrap {
+    display: grid;
+    gap: 6px;
+}
+
+.whatsapp-preview-wrap textarea {
+    min-height: 260px;
+    line-height: 1.45;
+}
+
 .dialog::backdrop {
     background: rgba(15, 25, 20, 0.55);
     backdrop-filter: blur(3px);
@@ -1191,7 +1388,7 @@ input[type="checkbox"] {
 .dialog-header,
 .dialog-body,
 .dialog-footer {
-    padding: 18px 20px;
+    padding: 12px 14px;
 }
 
 .dialog-header {
@@ -1209,9 +1406,19 @@ input[type="checkbox"] {
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 9px;
+    gap: 7px;
     border-top: 1px solid var(--line);
     background: var(--surface-soft);
+}
+
+@media (max-width: 760px) {
+    .whatsapp-composer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dialog-footer {
+        flex-wrap: wrap;
+    }
 }
 
 @media (max-width: 1180px) {
@@ -1469,7 +1676,7 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     padding: 4px 8px;
 }
 .shipment-ledger-card .card-header {
-    padding: 12px 14px 8px;
+    padding: 8px 14px;
 }
 
 .shipments-table {
@@ -1591,6 +1798,16 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
 
 .shipment-row.row-highlight-red {
     background: #fee2e2;
+}
+
+@keyframes target-flash {
+    0% { background-color: rgba(18, 59, 48, 0.15); }
+    10% { background-color: rgba(18, 59, 48, 0.15); }
+    100% { background-color: transparent; }
+}
+
+.shipment-row:target td {
+    animation: target-flash 2.5s ease-out;
 }
 
 .booking-cell-stack {
@@ -1715,8 +1932,36 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     display: none !important;
 }
 
+.quick-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 10px;
+}
+
+.quick-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 5px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    color: var(--muted);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.quick-filter-chip:hover,
+.quick-filter-chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--brand-soft);
+}
+
 .shipment-filter-form {
-    grid-template-columns: minmax(160px, 1.5fr) repeat(4, minmax(110px, 1fr)) auto;
+    grid-template-columns: minmax(160px, 1.5fr) minmax(130px, 1fr) repeat(4, minmax(105px, 1fr)) auto;
     gap: 8px;
 }
 
@@ -1740,6 +1985,12 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     min-height: 34px;
     padding: 7px 10px;
     white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-pending-grid {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+    }
 }
 
 @media (max-width: 900px) {
