@@ -93,6 +93,81 @@
 </div>
 
 <div class="stack" style="margin-top: 18px;">
+    <section class="card ai-detail-card">
+        <div class="card-header">
+            <div>
+                <h3>Tracking Assistant</h3>
+                <p class="card-subtitle">Manual AI/status review. Nothing changes unless you apply it.</p>
+            </div>
+            <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/fetch" style="margin:0;" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 1rem; height: 1rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
+                <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
+                <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
+            </form>
+        </div>
+        {% if latest_ai_status %}
+            <div class="ai-detail-grid">
+                  <div>
+                      <span class="ai-chip ai-chip-{{ latest_ai_status.severity or 'gray' }}">{{ latest_ai_status.label or 'AI review' }}</span>
+                      <span class="cell-secondary">Checked {{ latest_ai_status.created_at.strftime('%d %b %Y %H:%M') }}</span>
+                      {% if latest_ai_status.suggested_status and latest_ai_status.suggested_status != shipment.overall_status %}
+                          <span class="badge badge-warning" style="margin-left: 8px; font-size: 0.75rem;">Status Update</span>
+                      {% endif %}
+                      {% if latest_ai_status.found_lm_awb %}
+                          <span class="badge badge-info" style="margin-left: 4px; font-size: 0.75rem;">New LM AWB</span>
+                      {% endif %}
+                      {% if latest_ai_status.severity in ['red', 'yellow'] %}
+                          <span class="badge badge-danger" style="margin-left: 4px; font-size: 0.75rem; background-color: var(--danger);">Action Needed</span>
+                      {% endif %}
+                  </div>
+                <div class="ai-review-summary">{{ latest_ai_status.summary or 'No summary available.' }}</div>
+                {% if latest_ai_status.reason %}<div class="ai-review-reason">{{ latest_ai_status.reason }}</div>{% endif %}
+                {% if latest_ai_status.suggested_status_note %}<div class="ai-review-block"><span>Suggested note</span>{{ latest_ai_status.suggested_status_note }}</div>{% endif %}
+                <div class="button-row" style="gap: 6px; flex-wrap: wrap;">
+                    {% if latest_ai_status.found_lm_awb %}
+                    <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/apply-lm" style="margin:0;">
+                        <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
+                        <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
+                        <input type="hidden" name="lm_awb" value="{{ latest_ai_status.found_lm_awb }}">
+                        <input type="hidden" name="lm_courier" value="{{ latest_ai_status.found_lm_courier or '' }}">
+                        <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ latest_ai_status.found_lm_awb }}</button>
+                    </form>
+                    {% endif %}
+                    {% if latest_ai_status.suggested_status_note or latest_ai_status.suggested_status %}
+                    <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/apply-status-note" style="margin:0;">
+                        <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
+                        <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
+                        <input type="hidden" name="suggested_status" value="{{ latest_ai_status.suggested_status or shipment.overall_status }}">
+                        <input type="hidden" name="suggested_status_note" value="{{ latest_ai_status.suggested_status_note or latest_ai_status.summary or '' }}">
+                        <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/ignore" style="margin:0;">
+                        <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
+                        <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
+                        <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
+                    </form>
+                </div>
+                {% if latest_ai_events %}
+                <div class="ai-events-list ai-events-list-wide">
+                    <div class="hover-title">Formatted tracking updates</div>
+                    {% for ev in latest_ai_events[:12] %}
+                        <div class="ai-event-line">
+                            <strong>{{ ev.status or '-' }}</strong>
+                            {% if ev._source_courier %}
+                            <span class="badge badge-info" style="font-size: 0.65rem; padding: 2px 4px; margin-left: 4px;">{{ ev._source_courier }}</span>
+                            {% endif %}
+                            <br>
+                            <span>{{ ev.display_time or ev.event_time or '' }}{% if ev.location %} - {{ ev.location }}{% endif %}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="empty-state compact"><div><h3>No AI tracking review yet</h3><p>Click Get status to fetch carrier data and save the latest AI/rules review.</p></div></div>
+        {% endif %}
+    </section>
+
     <section class="card table-card">
         <div class="card-header">
             <div>
@@ -140,6 +215,39 @@
             <div class="financial-item"><span class="detail-label">Profit</span><strong class="{% if shipment.service_value and shipment.service_value > 0 %}text-success{% elif shipment.service_value and shipment.service_value < 0 %}text-danger{% endif %}">Rs {{ '%.2f'|format(shipment.service_value or 0) }}</strong></div>
         </div>
     </section>
+
+    {% set failed_checks = tracking_checks | selectattr("fetch_status", "equalto", "failed") | list %}
+    {% set indiapost_checks = failed_checks | selectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia", "maww"]) | list %}
+    {% set real_errors = failed_checks | rejectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia", "maww"]) | list %}
+    
+    {% if indiapost_checks %}
+    <div class="notice" style="margin: 0 20px 20px; background: var(--bg-surface);">
+        <span style="background: var(--text-secondary);">i</span> Some regional couriers (e.g. India Post, MAWW) were not tracked as no API is available.
+    </div>
+    {% endif %}
+
+    {% if real_errors %}
+    <section class="card" style="border: 1px solid var(--danger);">
+        <div class="card-header">
+            <div>
+                <h3 style="color: var(--danger);">System Logs / API Errors</h3>
+                <p class="card-subtitle">One or more tracking numbers failed to sync recently.</p>
+            </div>
+        </div>
+        <div style="padding: 0 20px 20px;">
+            <ul style="color: var(--danger); font-size: 0.9rem; margin: 0; padding-left: 20px;">
+                {% for check in real_errors %}
+                <li style="margin-bottom: 5px;">
+                    <strong>{{ check.courier_name or 'Unknown Courier' }}</strong> 
+                    ({{ check.tracking_number }}): 
+                    {{ check.error_message }}
+                    <span style="opacity: 0.6; font-size: 0.8rem; margin-left: 10px;">{{ check.created_at.strftime('%d %b %H:%M') }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+    {% endif %}
 
     <section class="card">
         <div class="card-header">

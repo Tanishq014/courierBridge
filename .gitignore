@@ -24,3 +24,9 @@ ENV/
 # IDEs
 .idea/
 .vscode/
+
+# Local API captures with cookies/session data
+17track_api.txt
+courier_api_raw.txt
+.tmp_*
+aramax.txt

@@ -97,7 +97,7 @@ def cookie_secure(request: Request) -> bool:
 
 
 # Import routers later
-# from app.routes import dashboard, shipments, tracking, customers, tools
+# from app.routes import dashboard, shipments, tracking, customers, tools, ai_tracking
 
 # Create database tables
 from app import models
@@ -189,12 +189,13 @@ def logout():
 
 
 # Include routers
-from app.routes import dashboard, shipments, tracking, customers, tools
+from app.routes import dashboard, shipments, tracking, customers, tools, ai_tracking
 app.include_router(dashboard.router)
 app.include_router(shipments.router)
 app.include_router(tracking.router)
 app.include_router(customers.router)
 app.include_router(tools.router)
+app.include_router(ai_tracking.router)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])

@@ -100,7 +100,8 @@
         <div>
             <h3 style="margin: 0;">Shipment ledger</h3>
         </div>
-        <div class="page-actions" style="display: flex; gap: 0.5rem;">
+        <div class="page-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <form method="POST" action="/ai-tracking/fetch-active" style="margin:0;"><button type="submit" class="btn btn-secondary">Fetch all active statuses</button></form>
             <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';localStorage.setItem('hideShipmentsFilter', 'false');}else{fc.style.display='none';this.innerText='Show filters';localStorage.setItem('hideShipmentsFilter', 'true');}"><script>document.write(localStorage.getItem('hideShipmentsFilter') === 'true' ? 'Show filters' : 'Hide filters');</script><noscript>Hide filters</noscript></button>
             <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
         </div>
@@ -117,6 +118,7 @@
                     <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
+                    <th>AI</th>
                     <th>Financials / balance</th>
                     <th>Notes</th>
                     <th></th>
@@ -140,6 +142,8 @@
                 {% set main_tracking_site_url = tracking_site_url(main_courier, main_tracking_number) %}
                 {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
                 {% set preview = shipment_previews.get(s.id, {}) %}
+                {% set ai_status = latest_ai_statuses.get(s.id) %}
+                {% set ai_events = latest_ai_events.get(s.id, []) %}
                 {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else 'yellow') %}
                 <tr id="shipment-{{ s.id }}" class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
                     <td>
@@ -260,6 +264,33 @@
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
+                    <td class="ai-status-cell">
+                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
+                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                            <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
+                            {% if latest_failed_checks and s.id in latest_failed_checks and latest_failed_checks[s.id].courier_name not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
+                              <span title="API Sync Failed: {{ latest_failed_checks[s.id].error_message }}" style="cursor: help; color: var(--danger); font-size: 0.9rem; margin-left: 4px;">⚠️</span>
+                            {% endif %}
+                        </form>
+                        {% if ai_status %}
+                            <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="cursor: pointer; margin-top: 5px;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
+                                {{ ai_status.label or 'AI review' }} ▾
+                            </div>
+                            <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                                {% if ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}
+                                    <span class="badge badge-warning" title="Status update recommended" style="font-size: 0.65rem; padding: 2px 4px;">Update Status</span>
+                                {% endif %}
+                                {% if ai_status.found_lm_awb %}
+                                    <span class="badge badge-info" title="New LM AWB found" style="font-size: 0.65rem; padding: 2px 4px;">New LM</span>
+                                {% endif %}
+                                {% if ai_status.severity in ['red', 'yellow'] %}
+                                    <span class="badge badge-danger" title="Action needed" style="font-size: 0.65rem; padding: 2px 4px; background-color: var(--danger);">Action Needed</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="cell-secondary" style="display: block; margin-top: 5px;">Not checked</span>
+                        {% endif %}
+                    </td>
                     <td class="financial-cell">
                         <div class="hover-preview-cell" style="display: inline-block;">
                             <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
@@ -292,6 +323,57 @@
                         </div>
                     </td>
                 </tr>
+                {% if ai_status %}
+                <tr id="ai-row-{{ s.id }}" class="ai-review-row" style="display: none;">
+                    <td colspan="100%" style="padding: 0;">
+                        <div class="ai-review-full-width">
+                            <div class="ai-summary-col">
+                                <div class="ai-review-summary" style="margin-bottom: 5px;">{{ ai_status.summary or 'No summary available.' }}</div>
+                                {% if ai_status.reason %}<div class="ai-review-reason" style="margin-bottom: 8px;">{{ ai_status.reason }}</div>{% endif %}
+                                {% if ai_status.suggested_status_note %}<div class="ai-review-block" style="margin-bottom: 8px;"><span>Suggested note</span><br>{{ ai_status.suggested_status_note }}</div>{% endif %}
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    {% if ai_status.found_lm_awb %}
+                                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-lm" style="margin:0;">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                            <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                            <input type="hidden" name="lm_awb" value="{{ ai_status.found_lm_awb }}">
+                                            <input type="hidden" name="lm_courier" value="{{ ai_status.found_lm_courier or '' }}">
+                                            <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ ai_status.found_lm_awb }}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if ai_status.suggested_status_note or ai_status.suggested_status %}
+                                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-status-note" style="margin:0;">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                            <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                            <input type="hidden" name="suggested_status" value="{{ ai_status.suggested_status or s.overall_status }}">
+                                            <input type="hidden" name="suggested_status_note" value="{{ ai_status.suggested_status_note or ai_status.summary or '' }}">
+                                            <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/ignore" style="margin:0;">
+                                        <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                        <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                        <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="ai-timeline-col">
+                                <div class="hover-title" style="margin-bottom: 8px;">Formatted tracking updates</div>
+                                {% for ev in ai_events[:10] %}
+                                    <div class="ai-event-line">
+                                        <strong>{{ ev.status or '-' }}</strong>
+                                        {% if ev._source_courier %}
+                                        <span class="badge badge-info" style="font-size: 0.65rem; padding: 2px 4px; margin-left: 4px;">{{ ev._source_courier }}</span>
+                                        {% endif %}
+                                        <br>
+                                        <span>{{ ev.display_time or ev.event_time or '' }}{% if ev.location %} - {{ ev.location }}{% endif %}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>

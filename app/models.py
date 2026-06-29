@@ -166,3 +166,51 @@ class TrackingTemplate(Base):
     id = Column(Integer, primary_key=True, index=True)
     courier_name = Column(String, unique=True, index=True)
     template_url = Column(String)
+
+
+class TrackingCheck(Base):
+    __tablename__ = "tracking_checks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id"), index=True)
+    tracking_number_id = Column(Integer, ForeignKey("tracking_numbers.id"), nullable=True)
+    tracking_type = Column(String)
+    courier_name = Column(String)
+    tracking_number = Column(String, index=True)
+    fetch_status = Column(String, default="pending")  # success/failed/skipped
+    error_message = Column(Text, nullable=True)
+    latest_status_text = Column(String, nullable=True)
+    latest_event_at = Column(DateTime, nullable=True)
+    formatted_events_json = Column(Text, nullable=True)
+    raw_response = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=now_ist, index=True)
+
+    shipment = relationship("Shipment")
+    tracking_number_ref = relationship("TrackingNumber")
+
+
+class ShipmentAIStatus(Base):
+    __tablename__ = "shipment_ai_statuses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id"), index=True)
+    tracking_check_id = Column(Integer, ForeignKey("tracking_checks.id"), nullable=True)
+    provider = Column(String, default="rules")
+    model_name = Column(String, nullable=True)
+    label = Column(String, default="Unknown")
+    severity = Column(String, default="gray")  # green/yellow/red/gray
+    summary = Column(Text, nullable=True)
+    reason = Column(Text, nullable=True)
+    suggested_status = Column(String, nullable=True)
+    suggested_status_note = Column(Text, nullable=True)
+    found_lm_awb = Column(String, nullable=True)
+    found_lm_courier = Column(String, nullable=True)
+    confidence = Column(Float, nullable=True)
+    formatted_events_json = Column(Text, nullable=True)
+    raw_ai_json = Column(Text, nullable=True)
+    applied_at = Column(DateTime, nullable=True)
+    ignored_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=now_ist, index=True)
+
+    shipment = relationship("Shipment")
+    tracking_check = relationship("TrackingCheck")

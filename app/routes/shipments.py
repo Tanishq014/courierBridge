@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
-from app.models import Shipment, TrackingEvent, TrackingNumber, now_ist
+from app.models import Shipment, ShipmentAIStatus, TrackingEvent, TrackingNumber, TrackingCheck, now_ist
 from app.tracking_links import build_tracking_site_url, build_tracking_url
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -312,6 +312,10 @@ def add_status_timeline_event(db: Session, shipment: Shipment, status: str, note
 def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool):
     number = number.strip() if number else ""
     if not number:
+        db.query(TrackingNumber).filter(
+            TrackingNumber.shipment_id == shipment_id,
+            TrackingNumber.tracking_type == t_type
+        ).delete(synchronize_session=False)
         return
 
     if t_type == "main_awb":
@@ -436,6 +440,42 @@ def list_shipments(
     elif quick == "delivered":
         shipments = [s for s in shipments if s.overall_status == "delivered"]
     shipment_previews = {}
+    shipment_ids = [shipment.id for shipment in shipments]
+    latest_ai_statuses = {}
+    latest_ai_events = {}
+    latest_failed_checks = {}
+    if shipment_ids:
+        ai_rows = (
+            db.query(ShipmentAIStatus)
+            .filter(ShipmentAIStatus.shipment_id.in_(shipment_ids), ShipmentAIStatus.ignored_at.is_(None))
+            .order_by(ShipmentAIStatus.created_at.desc())
+            .all()
+        )
+        for row in ai_rows:
+            if row.shipment_id not in latest_ai_statuses:
+                latest_ai_statuses[row.shipment_id] = row
+                try:
+                    events = json.loads(row.formatted_events_json or "[]")
+                    latest_ai_events[row.shipment_id] = events
+                except Exception:
+                    latest_ai_events[row.shipment_id] = []
+
+        all_checks = (
+            db.query(TrackingCheck)
+            .filter(TrackingCheck.shipment_id.in_(shipment_ids))
+            .order_by(TrackingCheck.created_at.desc())
+            .all()
+        )
+        latest_check_by_tn = {}
+        for check in all_checks:
+            if check.tracking_number_id not in latest_check_by_tn:
+                latest_check_by_tn[check.tracking_number_id] = check
+                
+        for check in latest_check_by_tn.values():
+            if check.fetch_status in ("failed", "error"):
+                if check.shipment_id not in latest_failed_checks:
+                    latest_failed_checks[check.shipment_id] = check
+
     for shipment in shipments:
         item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
         receiver_address = parse_receiver_address(shipment.raw_excel_notes)
@@ -454,6 +494,9 @@ def list_shipments(
         "request": request,
         "shipments": shipments,
         "shipment_previews": shipment_previews,
+        "latest_ai_statuses": latest_ai_statuses,
+        "latest_ai_events": latest_ai_events,
+        "latest_failed_checks": latest_failed_checks,
         "courier_options": courier_options,
         "service_options": service_options,
         "country_options": country_options,
@@ -712,14 +755,36 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
     rate_details = parse_rate_details(shipment.raw_excel_notes)
     volumetric_dimensions = parse_volumetric_dimensions(shipment.raw_excel_notes)
+    latest_ai_status = (
+        db.query(ShipmentAIStatus)
+        .filter(ShipmentAIStatus.shipment_id == shipment.id, ShipmentAIStatus.ignored_at.is_(None))
+        .order_by(ShipmentAIStatus.created_at.desc())
+        .first()
+    )
+    latest_ai_events = []
+    if latest_ai_status:
+        try:
+            latest_ai_events = json.loads(latest_ai_status.formatted_events_json or '[]')
+        except json.JSONDecodeError:
+            latest_ai_events = []
+    tracking_checks = (
+        db.query(TrackingCheck)
+        .filter(TrackingCheck.shipment_id == shipment.id)
+        .order_by(TrackingCheck.created_at.desc())
+        .limit(10)
+        .all()
+    )
     return templates.TemplateResponse("shipments/detail.html", {
         "request": request,
         "shipment": shipment,
+        "tracking_checks": tracking_checks,
         "receiver_address": receiver_address,
         "receiver_address_text": format_receiver_address(receiver_address),
         "item_raw_text": item_raw_text,
         "rate_details": rate_details,
         "volumetric_dimensions": volumetric_dimensions,
+        "latest_ai_status": latest_ai_status,
+        "latest_ai_events": latest_ai_events,
         "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
         "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text)
     })
