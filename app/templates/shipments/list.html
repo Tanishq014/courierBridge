@@ -12,7 +12,29 @@
 .shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
 .shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
 .shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
+
+/* AI Mode Styles */
+.ai-mode-col { display: none; }
+body.ai-mode-active .ai-mode-col { display: table-cell; }
 </style>
+
+<script>
+if (localStorage.getItem('ai_mode') === 'true') {
+    document.body.classList.add('ai-mode-active');
+}
+function toggleAIMode() {
+    const btn = document.getElementById('aiModeBtn');
+    if (document.body.classList.contains('ai-mode-active')) {
+        document.body.classList.remove('ai-mode-active');
+        localStorage.setItem('ai_mode', 'false');
+        if (btn) btn.innerText = 'Enable AI Mode';
+    } else {
+        document.body.classList.add('ai-mode-active');
+        localStorage.setItem('ai_mode', 'true');
+        if (btn) btn.innerText = 'Disable AI Mode';
+    }
+}
+</script>
 
 <section class="card filter-card" id="shipments-filter-card">
     <script>
@@ -101,7 +123,8 @@
             <h3 style="margin: 0;">Shipment ledger</h3>
         </div>
         <div class="page-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <form method="POST" action="/ai-tracking/fetch-active" style="margin:0;"><button type="submit" class="btn btn-secondary">Fetch all active statuses</button></form>
+            <button type="button" class="btn btn-secondary" onclick="toggleAIMode()" id="aiModeBtn"><script>document.write(localStorage.getItem('ai_mode') === 'true' ? 'Disable AI Mode' : 'Enable AI Mode');</script><noscript>Enable AI Mode</noscript></button>
+            <form method="POST" action="/ai-tracking/fetch-active" style="margin:0;" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';"><button type="submit" class="btn btn-secondary">Fetch all active statuses</button></form>
             <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';localStorage.setItem('hideShipmentsFilter', 'false');}else{fc.style.display='none';this.innerText='Show filters';localStorage.setItem('hideShipmentsFilter', 'true');}"><script>document.write(localStorage.getItem('hideShipmentsFilter') === 'true' ? 'Show filters' : 'Hide filters');</script><noscript>Hide filters</noscript></button>
             <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
         </div>
@@ -118,7 +141,7 @@
                     <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
-                    <th>AI</th>
+                    <th class="ai-mode-col">AI</th>
                     <th>Balance</th>
                     <th>Notes</th>
                     <th></th>
@@ -264,7 +287,7 @@
                         </form>
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
                     </td>
-                    <td class="ai-status-cell">
+                    <td class="ai-status-cell ai-mode-col">
                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                             <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
@@ -273,8 +296,16 @@
                             {% endif %}
                         </form>
                         {% if ai_status %}
-                            <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="cursor: pointer; margin-top: 5px;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
-                                {{ ai_status.label or 'AI review' }} ▾
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px; cursor: pointer;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
+                                <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="margin-top: 0;">
+                                    {{ ai_status.label or 'AI review' }} ▾
+                                </div>
+                                {% if ai_status.created_at %}
+                                <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1;">
+                                    {{ ai_status.created_at.strftime('%d %b') }}<br>
+                                    {{ ai_status.created_at.strftime('%H:%M') }}
+                                </div>
+                                {% endif %}
                             </div>
                             <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
                                 {% if ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}

@@ -248,6 +248,8 @@ def apply_found_lm_awb(
                 status.applied_at = now_ist()
                 status.found_lm_awb = None
                 status.found_lm_courier = None
+                if not status.suggested_status and not status.suggested_status_note:
+                    status.severity = "gray"
         db.commit()
         register_tracking_after_save(lm_courier, lm_awb, tracking_changed)
     return redirect_back(next_url)
@@ -274,6 +276,10 @@ def apply_ai_status_note(
             status = db.query(ShipmentAIStatus).filter(ShipmentAIStatus.id == ai_status_id).first()
             if status:
                 status.applied_at = now_ist()
+                status.suggested_status = None
+                status.suggested_status_note = None
+                if not status.found_lm_awb:
+                    status.severity = "gray"
         db.commit()
     return redirect_back(next_url)
 
