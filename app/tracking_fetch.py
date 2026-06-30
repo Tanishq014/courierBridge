@@ -7,20 +7,21 @@ from typing import Any
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import uuid
 
 from app.models import Shipment
 from app.tracking_links import normalize_courier_name
 
-SEVENTEEN_TRACK_ENDPOINT = "https://t.17track.net/track/restapi"
+SEVENTEEN_TRACK_REGISTER_ENDPOINT = "https://api.17track.net/track/v2.2/register"
+SEVENTEEN_TRACK_GETINFO_ENDPOINT = "https://api.17track.net/track/v2.2/gettrackinfo"
 SEVENTEEN_TRACK_DEFAULT_BRAND_CODES = {
     "fedex": 101393,
     "fedexgroup": 101393,
     "ups": 100398,
-    "dpd": 0,
+    "dpd": 100010,
     "dhl": 100001,
     "dtdc": 100069,
     "purolator": 100042,
@@ -34,11 +35,13 @@ SEVENTEEN_TRACK_BRAND_ALIASES = {
     "upsprim": "ups",
     "upsprime": "ups",
     "unitedparcelservice": "ups",
+    "upsmailinnovations": "ups",
     "nzpost": "nzpost",
     "newzealandpost": "nzpost",
     "nz": "nzpost",
     "dhl": "dhl",
     "dhlexpress": "dhl",
+    "dpduk": "dpd",
     "dtdc": "dtdc",
     "mydtdc": "dtdc",
     "purolator": "purolator",
@@ -150,6 +153,21 @@ def clean_event_list(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         cleaned.append(updated)
     return cleaned
 
+
+
+def extract_17track_local_number(payload: dict[str, Any]) -> str:
+    for row in payload.get("shipments") or []:
+        misc = ((row.get("shipment") or {}).get("misc_info") or {})
+        local_number = str(misc.get("local_number") or "").strip()
+        if local_number:
+            return local_number.upper()
+    for row in ((payload.get("data") or {}).get("accepted") or []):
+        track_info = row.get("track_info") or row.get("tracking") or {}
+        misc = track_info.get("misc_info") or {}
+        local_number = str(misc.get("local_number") or "").strip()
+        if local_number:
+            return local_number.upper()
+    return ""
 
 
 def find_lm_awb(raw: str) -> str:
@@ -276,6 +294,21 @@ def fetch_atlantic(awb: str) -> dict[str, Any]:
 
 def parse_aramex_events(raw: str) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+
+    trs = re.findall(r'<tr[^>]*>(.*?)</tr>', raw, flags=re.IGNORECASE | re.DOTALL)
+    for tr in trs:
+        date_match = re.search(r'<div[^>]*class="[^"]*date-time[^"]*"[^>]*>(.*?)</div>', tr, flags=re.IGNORECASE | re.DOTALL)
+        activity_match = re.search(r'<td[^>]*class="[^"]*activity[^"]*"[^>]*>(.*?)</td>', tr, flags=re.IGNORECASE | re.DOTALL)
+        location_match = re.search(r'<div[^>]*class="[^"]*addr[^"]*"[^>]*>(.*?)</div>', tr, flags=re.IGNORECASE | re.DOTALL)
+        if activity_match:
+            dt = re.sub(r'\s+', ' ', strip_html(date_match.group(1))) if date_match else ''
+            act = re.sub(r'\s+', ' ', strip_html(activity_match.group(1)))
+            loc = re.sub(r'\s+', ' ', strip_html(location_match.group(1))) if location_match else ''
+            events.append(event_to_dict(dt, act, loc, "aramex"))
+
+    if events:
+        return events[:20]
+
     cards = re.findall(r'<a[^>]*class="[^"]*shipment-card[^"]*"[^>]*>(.*?)</a>', raw or "", flags=re.IGNORECASE | re.DOTALL)
     if not cards:
         cards = [raw or ""]
@@ -313,6 +346,28 @@ def fetch_aramex(awb: str) -> dict[str, Any]:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
+
+    details_link_match = re.search(r'<a[^>]*class="[^"]*shipment-card[^"]*"[^>]*href="(/track/details[^"]+)"', raw)
+    if details_link_match:
+        details_url = "https://www.aramex.com" + unescape(details_link_match.group(1))
+        details_request = urllib.request.Request(
+            details_url,
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Cookie": "country_code=IN; culture=en; country=AE; ShowConfirmLocation=False",
+                "Referer": url,
+                "User-Agent": "Mozilla/5.0 CourierBridge",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(details_request, timeout=30) as d_response:
+                details_raw = d_response.read().decode("utf-8", errors="replace")
+                raw = details_raw
+        except Exception:
+            pass
+
     events = parse_aramex_events(raw)
     return normalize_fetch_result(True, events, raw, "aramex")
 
@@ -427,15 +482,15 @@ def fetch_overseas(awb: str) -> dict[str, Any]:
         raw = response.read().decode("utf-8", errors="replace")
     useful = extract_overseas_tracking_section(raw)
     events = parse_overseas_events(useful)
-    
+
     lm_awb = ""
     lm_courier = ""
-    
+
     # Extract Forwarder No. and Forwarder Name from the HTML table
     stripped = strip_html(useful)
     # Match both "Forwarder No. [AWB]" and "Forwarder [COURIER]" in the text
     forwarder_match = re.search(r"Forwarder\s*No\.?\s*([A-Z0-9\-]{5,}).*?Forwarder\s+([A-Za-z0-9]+)", stripped, flags=re.IGNORECASE)
-    
+
     if forwarder_match:
         lm_awb = forwarder_match.group(1).strip()
         lm_courier = forwarder_match.group(2).strip()
@@ -444,14 +499,18 @@ def fetch_overseas(awb: str) -> dict[str, Any]:
         awb_only_match = re.search(r"Forwarder\s*No\.?\s*([A-Z0-9\-]{5,})", stripped, flags=re.IGNORECASE)
         if awb_only_match:
             lm_awb = awb_only_match.group(1).strip()
-            
+
+    useful_upper = useful.upper()
     if lm_courier.lower() == "self":
-        lm_courier = "overseas"
-                
+        if "NZ_ECONOMY" in useful_upper or "NEW ZEALAND" in useful_upper:
+            lm_courier = "NZ Post"
+        else:
+            lm_courier = ""
+
     # If the regex above fails, we can also just rely on find_lm_awb as fallback
     if not lm_awb:
         lm_awb = find_lm_awb(useful) or ""
-        
+
     return normalize_fetch_result(True, events, raw, "overseas", found_lm_awb=lm_awb, found_lm_courier=lm_courier)
 
 
@@ -536,6 +595,7 @@ def load_17track_brand_codes() -> dict[str, int]:
     env_map = {
         "ups": os.environ.get("SEVENTEEN_TRACK_FC_UPS"),
         "dpd": os.environ.get("SEVENTEEN_TRACK_FC_DPD"),
+        "dhl": os.environ.get("SEVENTEEN_TRACK_FC_DHL"),
         "nzpost": os.environ.get("SEVENTEEN_TRACK_FC_NZPOST"),
         "fedex": os.environ.get("SEVENTEEN_TRACK_FC_FEDEX"),
     }
@@ -574,13 +634,73 @@ def parse_17track_event(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def parse_17track_response(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
-    shipments = payload.get("shipments") or []
-    if not shipments:
-        return [], ""
-    first = shipments[0]
-    shipment = first.get("shipment") or {}
-    tracking = shipment.get("tracking") or {}
+
+
+def official_17track_api_key() -> str:
+    return (os.environ.get("SEVENTEEN_TRACK_API_KEY") or os.environ.get("SEVENTEEN_TRACK_17TOKEN") or "").strip()
+
+
+def official_17track_headers() -> dict[str, str]:
+    api_key = official_17track_api_key()
+    if not api_key:
+        raise RuntimeError("Set SEVENTEEN_TRACK_API_KEY in the environment")
+    return {
+        "17token": api_key,
+        "Content-Type": "application/json",
+    }
+
+
+def official_17track_payload(awb: str, courier_key: str) -> tuple[list[dict[str, Any]], str, int | None]:
+    brand_key = seventeen_track_brand_key(courier_key)
+    carrier = seventeen_track_fc_for_courier(courier_key)
+    if brand_key not in {"fedex", "ups", "dhl", "dpd"} or carrier is None:
+        return [], brand_key, carrier
+    return [{"number": awb, "carrier": carrier}], brand_key, carrier
+
+
+def post_17track_official(endpoint: str, rows: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
+    request = urllib.request.Request(
+        endpoint,
+        data=json.dumps(rows).encode("utf-8"),
+        headers=official_17track_headers(),
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=35) as response:
+        raw = response.read().decode("utf-8", errors="replace")
+    return json.loads(raw), raw
+
+
+def official_17track_rejected(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    data = payload.get("data") or {}
+    rejected = data.get("rejected") or []
+    return rejected if isinstance(rejected, list) else []
+
+
+def official_17track_accepted(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    data = payload.get("data") or {}
+    accepted = data.get("accepted") or []
+    return accepted if isinstance(accepted, list) else []
+
+
+def rejection_text(rejected: list[dict[str, Any]]) -> str:
+    parts: list[str] = []
+    for row in rejected:
+        parts.append(json.dumps(row, ensure_ascii=False, default=str))
+    return " ".join(parts).lower()
+
+
+def official_17track_is_not_registered(payload: dict[str, Any]) -> bool:
+    text = rejection_text(official_17track_rejected(payload))
+    return "not register" in text or "unregistered" in text or "not exist" in text
+
+
+def official_17track_already_registered(payload: dict[str, Any]) -> bool:
+    text = rejection_text(official_17track_rejected(payload))
+    return "already" in text and "register" in text
+
+
+def parse_17track_track_info(track_info: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str]:
+    tracking = track_info.get("tracking") or {}
     providers = tracking.get("providers") or []
     events: list[dict[str, Any]] = []
     for provider in providers:
@@ -588,97 +708,159 @@ def parse_17track_response(payload: dict[str, Any]) -> tuple[list[dict[str, Any]
             parsed = parse_17track_event(event)
             if parsed.get("status") or parsed.get("location"):
                 events.append(parsed)
-    if not events and shipment.get("latest_event"):
-        events.append(parse_17track_event(shipment.get("latest_event") or {}))
+    if not events and track_info.get("latest_event"):
+        events.append(parse_17track_event(track_info.get("latest_event") or {}))
     latest_status = ""
-    latest_event = shipment.get("latest_event") or {}
-    latest_status_obj = shipment.get("latest_status") or {}
+    latest_event = track_info.get("latest_event") or {}
+    latest_status_obj = track_info.get("latest_status") or {}
     if latest_event.get("description"):
         latest_status = str(latest_event.get("description"))
     elif latest_status_obj.get("status"):
         latest_status = str(latest_status_obj.get("status"))
-    elif first.get("state"):
-        latest_status = str(first.get("state"))
-    return events, latest_status
+    misc = track_info.get("misc_info") or {}
+    local_number = str(misc.get("local_number") or "").strip().upper()
+    return events, latest_status, local_number
 
 
-def extract_17track_local_number(payload: dict[str, Any]) -> str:
-    for shipment_row in payload.get("shipments") or []:
-        misc = ((shipment_row.get("shipment") or {}).get("misc_info") or {})
-        local_number = str(misc.get("local_number") or "").strip()
-        if local_number:
-            return local_number.upper()
-    return ""
+def parse_17track_official_response(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str]:
+    all_events: list[dict[str, Any]] = []
+    latest_status = ""
+    found_lm_awb = ""
+    for row in official_17track_accepted(payload):
+        track_info = row.get("track_info") or row.get("tracking") or {}
+        if not isinstance(track_info, dict):
+            continue
+        events, row_latest, local_number = parse_17track_track_info(track_info)
+        all_events.extend(events)
+        if row_latest and not latest_status:
+            latest_status = row_latest
+        if local_number and not found_lm_awb:
+            found_lm_awb = local_number
+    return clean_event_list(all_events), latest_status, found_lm_awb
 
 
-def fetch_17track_browser(awb: str, courier_key: str) -> dict[str, Any]:
-    fc = seventeen_track_fc_for_courier(courier_key)
-    brand_key = seventeen_track_brand_key(courier_key)
-    if fc is None:
-        return normalize_fetch_result(False, [], "", f"17track:{brand_key}", f"17TRACK brand code not configured for {brand_key}")
-
-    brand_env = brand_key.upper()
-    brand_guid_key = f"SEVENTEEN_TRACK_GUID_{brand_env}"
-    if brand_guid_key in os.environ:
-        guid = os.environ.get(brand_guid_key) or ""
-    else:
-        guid = os.environ.get("SEVENTEEN_TRACK_GUID") or uuid.uuid4().hex
-    timezone_offset = (
-        os.environ.get(f"SEVENTEEN_TRACK_TIMEZONE_OFFSET_{brand_env}")
-        or os.environ.get("SEVENTEEN_TRACK_TIMEZONE_OFFSET")
-        or "-330"
-    )
-    request_body = {
-        "data": [{"num": awb, "fc": fc, "sc": 0}],
-        "guid": guid,
-        "timeZoneOffset": int(timezone_offset),
+def register_17track_official(awb: str, courier_key: str) -> dict[str, Any]:
+    rows, brand_key, carrier = official_17track_payload(awb, courier_key)
+    if not rows:
+        return {"ok": False, "skipped": True, "brand": brand_key, "carrier": carrier, "error": "17TRACK official carrier is not configured"}
+    try:
+        payload, raw = post_17track_official(os.environ.get("SEVENTEEN_TRACK_REGISTER_ENDPOINT") or SEVENTEEN_TRACK_REGISTER_ENDPOINT, rows)
+    except Exception as exc:
+        return {"ok": False, "brand": brand_key, "carrier": carrier, "error": str(exc)}
+    accepted = official_17track_accepted(payload)
+    rejected = official_17track_rejected(payload)
+    already = official_17track_already_registered(payload)
+    return {
+        "ok": bool(accepted) or already,
+        "registered": bool(accepted),
+        "already_registered": already,
+        "brand": brand_key,
+        "carrier": carrier,
+        "raw_response": raw[:60000],
+        "error": "" if bool(accepted) or already else rejection_text(rejected) or str(payload.get("code") or payload.get("message") or "Registration failed"),
     }
-    sign = (
-        os.environ.get(f"SEVENTEEN_TRACK_SIGN_{brand_env}")
-        or os.environ.get("SEVENTEEN_TRACK_SIGN")
-        or ""
-    ).strip()
-    if sign:
-        request_body["sign"] = sign
 
-    headers = {
-        "Accept": "*/*",
-        "Content-Type": "application/json",
-        "Origin": "https://t.17track.net",
-        "Referer": "https://t.17track.net/en",
-        "User-Agent": "Mozilla/5.0 CourierBridge",
+
+def register_tracking_if_supported(courier: str, tracking_number: str) -> dict[str, Any]:
+    awb = (tracking_number or "").strip()
+    courier_key = normalize_courier_name(courier)
+    if not awb:
+        return {"ok": False, "skipped": True, "error": "Missing tracking number"}
+    rows, brand_key, carrier = official_17track_payload(awb, courier_key)
+    if not rows:
+        return {
+            "ok": False,
+            "skipped": True,
+            "brand": brand_key,
+            "carrier": carrier,
+            "error": "Carrier not registered through 17TRACK official API",
+        }
+
+    try:
+        payload, raw = post_17track_official(
+            os.environ.get("SEVENTEEN_TRACK_GETINFO_ENDPOINT") or SEVENTEEN_TRACK_GETINFO_ENDPOINT,
+            rows,
+        )
+    except Exception as exc:
+        return {"ok": False, "brand": brand_key, "carrier": carrier, "error": str(exc)}
+
+    if official_17track_accepted(payload):
+        return {
+            "ok": True,
+            "skipped": True,
+            "already_registered": True,
+            "brand": brand_key,
+            "carrier": carrier,
+            "raw_response": raw[:60000],
+        }
+
+    if official_17track_is_not_registered(payload):
+        return register_17track_official(awb, courier_key)
+
+    return {
+        "ok": False,
+        "brand": brand_key,
+        "carrier": carrier,
+        "raw_response": raw[:60000],
+        "error": rejection_text(official_17track_rejected(payload)) or str(payload.get("message") or payload.get("code") or "17TRACK did not confirm registration state"),
     }
-    cookie = (
-        os.environ.get(f"SEVENTEEN_TRACK_COOKIE_{brand_env}")
-        or os.environ.get("SEVENTEEN_TRACK_COOKIE")
-        or ""
-    ).strip()
-    if cookie:
-        headers["Cookie"] = cookie
 
-    request = urllib.request.Request(
-        os.environ.get("SEVENTEEN_TRACK_ENDPOINT") or SEVENTEEN_TRACK_ENDPOINT,
-        data=json.dumps(request_body).encode("utf-8"),
-        headers=headers,
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=35) as response:
-        raw = response.read().decode("utf-8", errors="replace")
-    payload = json.loads(raw)
-    
-    meta = payload.get("meta") or {}
-    if meta.get("code") != 0:
-        error_msg = str(meta.get("message") or meta.get("code") or "Unknown API Error")
-        return normalize_fetch_result(False, [], raw, f"17track:{brand_key}", f"17track API Error: {error_msg}")
+
+def fetch_17track_official(awb: str, courier_key: str) -> dict[str, Any]:
+    rows, brand_key, carrier = official_17track_payload(awb, courier_key)
+    if not rows:
+        return normalize_fetch_result(False, [], "", f"17track:{brand_key}", f"17TRACK official carrier is not configured for {brand_key}")
+    try:
+        payload, raw = post_17track_official(os.environ.get("SEVENTEEN_TRACK_GETINFO_ENDPOINT") or SEVENTEEN_TRACK_GETINFO_ENDPOINT, rows)
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return normalize_fetch_result(False, [], raw, f"17track:{brand_key}", f"HTTP {exc.code}")
+
+    if official_17track_accepted(payload):
+        events, latest_status, found_lm_awb = parse_17track_official_response(payload)
+        result = normalize_fetch_result(True, events, raw, f"17track:{brand_key}", found_lm_awb=found_lm_awb)
+        if latest_status and not result.get("latest_status_text"):
+            result["latest_status_text"] = latest_status
+        return result
+
+    if official_17track_is_not_registered(payload):
+        register_result = register_17track_official(awb, courier_key)
         
-    events, latest_status = parse_17track_response(payload)
-    result = normalize_fetch_result(True, events, raw, f"17track:{brand_key}")
-    if latest_status and not result.get("latest_status_text"):
-        result["latest_status_text"] = latest_status
-    local_number = extract_17track_local_number(payload)
-    if local_number:
-        result["found_lm_awb"] = local_number
-    return result
+        if register_result.get("ok"):
+            for _ in range(3):
+                time.sleep(5)
+                try:
+                    retry_payload, retry_raw = post_17track_official(os.environ.get("SEVENTEEN_TRACK_GETINFO_ENDPOINT") or SEVENTEEN_TRACK_GETINFO_ENDPOINT, rows)
+                    if official_17track_accepted(retry_payload):
+                        retry_events, retry_latest_status, retry_found_lm_awb = parse_17track_official_response(retry_payload)
+                        if retry_events:
+                            retry_result = normalize_fetch_result(True, retry_events, retry_raw, f"17track:{brand_key}", found_lm_awb=retry_found_lm_awb)
+                            if retry_latest_status and not retry_result.get("latest_status_text"):
+                                retry_result["latest_status_text"] = retry_latest_status
+                            return retry_result
+                except Exception:
+                    pass
+
+        status_text = "Tracking initiated on 17TRACK. Check again in a few minutes."
+        events = [{
+            "event_time": datetime.now().isoformat(timespec="seconds"),
+            "status": status_text,
+            "location": "17TRACK",
+            "source": "17track",
+        }]
+        result = normalize_fetch_result(True, events, raw, f"17track:{brand_key}")
+        result["latest_status_text"] = status_text
+        if not register_result.get("ok"):
+            result["error"] = f"17TRACK registration attempted but failed: {register_result.get('error') or 'unknown error'}"
+        return result
+
+    error_text = rejection_text(official_17track_rejected(payload)) or str(payload.get("message") or payload.get("code") or "17TRACK returned no tracking info")
+    return normalize_fetch_result(False, [], raw, f"17track:{brand_key}", error_text)
+
+
+# Backwards-compatible name for existing call sites.
+def fetch_17track_browser(awb: str, courier_key: str) -> dict[str, Any]:
+    return fetch_17track_official(awb, courier_key)
 
 
 def latest_event(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -743,10 +925,10 @@ def fetch_purolator(awb: str) -> dict[str, Any]:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
-    
+
     payload = json.loads(raw)
     events: list[dict[str, Any]] = []
-    
+
     shipments = payload.get("shipment") or []
     latest_status = ""
     for shipment in shipments:
@@ -766,8 +948,51 @@ def fetch_purolator(awb: str) -> dict[str, Any]:
                     location_parts.append(location_obj["provinceState"])
                 location_str = ", ".join(location_parts)
                 events.append(event_to_dict(date_str, description, location_str, "purolator"))
-    
+
     result = normalize_fetch_result(True, events, raw, "purolator")
+    if latest_status:
+        result["latest_status_text"] = latest_status
+    return result
+
+
+def fetch_mawwl(awb: str) -> dict[str, Any]:
+    url = f"https://admin.mawwl.in/api/tracking_api/get_tracking_data?tracking_no={awb}&customer_code=superadmin&company=ma-logsitics-delhi&api_company_id=9"
+    headers = {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Origin": "https://www.mawwl.in",
+        "Referer": "https://www.mawwl.in/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0"
+    }
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        raw = response.read().decode("utf-8", errors="replace")
+
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        payload = []
+
+    events: list[dict[str, Any]] = []
+    latest_status = ""
+
+    if payload and isinstance(payload, list) and len(payload) > 0:
+        data = payload[0]
+
+        # Get the latest status from docket_info if possible
+        docket_info = data.get("docket_info") or []
+        for row in docket_info:
+            if len(row) >= 2 and row[0] == "Status":
+                latest_status = str(row[1])
+                break
+
+        docket_events = data.get("docket_events") or []
+        for event in docket_events:
+            date_str = str(event.get("event_at") or "")
+            description = str(event.get("event_description") or "")
+            location_str = str(event.get("event_location") or "")
+            events.append(event_to_dict(date_str, description, location_str, "mawwl"))
+
+    result = normalize_fetch_result(True, events, raw, "mawwl")
     if latest_status:
         result["latest_status_text"] = latest_status
     return result
@@ -779,6 +1004,8 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
     if not awb:
         return normalize_fetch_result(False, [], "", courier_key, "Missing tracking number")
     try:
+        if courier_key in {"mawwl", "maworldwidelogistics"}:
+            return fetch_mawwl(awb)
         if courier_key == "purolator":
             return fetch_purolator(awb)
         if courier_key == "atlantic":

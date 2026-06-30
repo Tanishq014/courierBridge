@@ -119,7 +119,7 @@
                     <th>Tracking</th>
                     <th>Status</th>
                     <th>AI</th>
-                    <th>Financials / balance</th>
+                    <th>Balance</th>
                     <th>Notes</th>
                     <th></th>
                 </tr>
@@ -242,7 +242,7 @@
                     </td>
                     <td class="status-cell">
                         <form id="{{ row_form_id }}" method="POST" action="/shipments/{{ s.id }}/quick-update" class="inline-row-form">
-                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
                                 <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
@@ -266,9 +266,9 @@
                     </td>
                     <td class="ai-status-cell">
                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
-                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                             <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
-                            {% if latest_failed_checks and s.id in latest_failed_checks and latest_failed_checks[s.id].courier_name not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
+                            {% if latest_failed_checks and s.id in latest_failed_checks and (latest_failed_checks[s.id].courier_name|lower) not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
                               <span title="API Sync Failed: {{ latest_failed_checks[s.id].error_message }}" style="cursor: help; color: var(--danger); font-size: 0.9rem; margin-left: 4px;">⚠️</span>
                             {% endif %}
                         </form>
@@ -284,7 +284,7 @@
                                     <span class="badge badge-info" title="New LM AWB found" style="font-size: 0.65rem; padding: 2px 4px;">New LM</span>
                                 {% endif %}
                                 {% if ai_status.severity in ['red', 'yellow'] %}
-                                    <span class="badge badge-danger" title="Action needed" style="font-size: 0.65rem; padding: 2px 4px; background-color: var(--danger);">Action Needed</span>
+                                    <span class="badge badge-danger" title="Action needed" style="font-size: 0.65rem; padding: 2px 4px; background-color: var(--danger); color: white;">Action Needed</span>
                                 {% endif %}
                             </div>
                         {% else %}
@@ -325,7 +325,7 @@
                 </tr>
                 {% if ai_status %}
                 <tr id="ai-row-{{ s.id }}" class="ai-review-row" style="display: none;">
-                    <td colspan="100%" style="padding: 0;">
+                    <td colspan="100%" style="padding: 0; max-width: 0;">
                         <div class="ai-review-full-width">
                             <div class="ai-summary-col">
                                 <div class="ai-review-summary" style="margin-bottom: 5px;">{{ ai_status.summary or 'No summary available.' }}</div>
@@ -334,7 +334,7 @@
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                                     {% if ai_status.found_lm_awb %}
                                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-lm" style="margin:0;">
-                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                             <input type="hidden" name="lm_awb" value="{{ ai_status.found_lm_awb }}">
                                             <input type="hidden" name="lm_courier" value="{{ ai_status.found_lm_courier or '' }}">
@@ -343,7 +343,7 @@
                                     {% endif %}
                                     {% if ai_status.suggested_status_note or ai_status.suggested_status %}
                                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-status-note" style="margin:0;">
-                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                             <input type="hidden" name="suggested_status" value="{{ ai_status.suggested_status or s.overall_status }}">
                                             <input type="hidden" name="suggested_status_note" value="{{ ai_status.suggested_status_note or ai_status.summary or '' }}">
@@ -351,22 +351,21 @@
                                         </form>
                                     {% endif %}
                                     <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/ignore" style="margin:0;">
-                                        <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                                        <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                         <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                         <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
                                     </form>
                                 </div>
                             </div>
                             <div class="ai-timeline-col">
-                                <div class="hover-title" style="margin-bottom: 8px;">Formatted tracking updates</div>
+
                                 {% for ev in ai_events[:10] %}
-                                    <div class="ai-event-line">
-                                        <strong>{{ ev.status or '-' }}</strong>
+                                    <div class="ai-event-line" style="display: flex; gap: 8px; align-items: baseline; white-space: nowrap; padding-bottom: 2px;">
+                                        <span style="flex-shrink: 0; min-width: 105px;">{{ ev.display_time or ev.event_time or '' }}</span>
+                                        <strong style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; min-width: 0;" title="{{ ev.status or '-' }} {{ ev.location }}">{{ ev.status or '-' }}{% if ev.location %} - {{ ev.location }}{% endif %}</strong>
                                         {% if ev._source_courier %}
-                                        <span class="badge badge-info" style="font-size: 0.65rem; padding: 2px 4px; margin-left: 4px;">{{ ev._source_courier }}</span>
+                                        <span class="badge badge-info" style="font-size: 0.6rem; padding: 1px 4px; flex-shrink: 0; margin-left: auto;">{{ ev._source_courier }}</span>
                                         {% endif %}
-                                        <br>
-                                        <span>{{ ev.display_time or ev.event_time or '' }}{% if ev.location %} - {{ ev.location }}{% endif %}</span>
                                     </div>
                                 {% endfor %}
                             </div>

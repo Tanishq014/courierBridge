@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
 from app.models import Shipment, ShipmentAIStatus, TrackingEvent, TrackingNumber, TrackingCheck, now_ist
-from app.tracking_links import build_tracking_site_url, build_tracking_url
+from app.tracking_fetch import register_tracking_if_supported
+from app.tracking_links import build_tracking_site_url, build_tracking_url, normalize_courier_name
 from decimal import Decimal
 from datetime import datetime, timedelta
 import json
@@ -309,14 +310,25 @@ def add_status_timeline_event(db: Session, shipment: Shipment, status: str, note
     if status == "delivered" and not shipment.delivered_at:
         shipment.delivered_at = event_time
 
-def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool):
+def register_tracking_after_save(courier: str, number: str, changed: bool) -> None:
+    if not changed:
+        return
+    try:
+        register_tracking_if_supported(courier, number)
+    except Exception:
+        # Registration is only a pre-warm. Saving the shipment must not fail if
+        # 17TRACK is down or the key is missing; fetch will retry later.
+        pass
+
+
+def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool) -> bool:
     number = number.strip() if number else ""
     if not number:
-        db.query(TrackingNumber).filter(
+        deleted = db.query(TrackingNumber).filter(
             TrackingNumber.shipment_id == shipment_id,
             TrackingNumber.tracking_type == t_type
         ).delete(synchronize_session=False)
-        return
+        return bool(deleted)
 
     if t_type == "main_awb":
         is_primary = True
@@ -332,19 +344,26 @@ def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, cou
     ).first()
 
     if tn:
+        new_courier = courier.strip() if courier else (tn.courier_name or "")
+        changed = (
+            (tn.tracking_number or "").strip().upper() != number.upper()
+            or normalize_courier_name(tn.courier_name) != normalize_courier_name(new_courier)
+        )
         tn.tracking_number = number
         if courier:
             tn.courier_name = courier.strip()
         tn.is_primary = is_primary
-    else:
-        new_tn = TrackingNumber(
-            shipment_id=shipment_id,
-            tracking_type=t_type,
-            tracking_number=number,
-            courier_name=courier.strip() if courier else "",
-            is_primary=is_primary
-        )
-        db.add(new_tn)
+        return changed
+
+    new_tn = TrackingNumber(
+        shipment_id=shipment_id,
+        tracking_type=t_type,
+        tracking_number=number,
+        courier_name=courier.strip() if courier else "",
+        is_primary=is_primary
+    )
+    db.add(new_tn)
+    return True
 
 @router.get("")
 def list_shipments(
@@ -460,17 +479,19 @@ def list_shipments(
                 except Exception:
                     latest_ai_events[row.shipment_id] = []
 
+        active_tn_ids = [tn.id for s in shipments for tn in s.tracking_numbers if tn.id is not None]
         all_checks = (
             db.query(TrackingCheck)
             .filter(TrackingCheck.shipment_id.in_(shipment_ids))
+            .filter(TrackingCheck.tracking_number_id.in_(active_tn_ids))
             .order_by(TrackingCheck.created_at.desc())
             .all()
-        )
+        ) if active_tn_ids else []
         latest_check_by_tn = {}
         for check in all_checks:
             if check.tracking_number_id not in latest_check_by_tn:
                 latest_check_by_tn[check.tracking_number_id] = check
-                
+
         for check in latest_check_by_tn.values():
             if check.fetch_status in ("failed", "error"):
                 if check.shipment_id not in latest_failed_checks:
@@ -697,9 +718,11 @@ def create_shipment(
         add_status_timeline_event(db, shipment, overall_status or "booked", status_raw_text, "shipment_create")
 
     # Tracking numbers
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     return RedirectResponse(url="/shipments", status_code=303)
 
@@ -732,17 +755,19 @@ def quick_update_shipment(
     if new_status != old_status or new_notes != old_notes:
         add_status_timeline_event(db, shipment, new_status, new_notes, "row_status_update")
     shipment.internal_notes = internal_notes.strip()
-    
+
     if custom_duty is not None:
         shipment.custom_duty = (custom_duty.lower() == "true")
-        
+
     if row_color is not None:
         selected_color = row_color.strip().lower()
         shipment.row_color = selected_color if selected_color in {"green", "yellow", "red"} else None
 
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     return RedirectResponse(url=redirect_url, status_code=303)
 @router.get("/{shipment_id}")
@@ -991,10 +1016,12 @@ def update_shipment(
     })
     shipment.raw_excel_row_text = raw_excel_row_text
 
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
 
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
     return RedirectResponse(url="/shipments", status_code=303)
 
 
@@ -1003,10 +1030,10 @@ def delete_shipment(request: Request, shipment_id: int, db: Session = Depends(ge
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
-        
+
     db.query(TrackingEvent).filter(TrackingEvent.shipment_id == shipment_id).delete(synchronize_session=False)
     db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).delete(synchronize_session=False)
     db.query(Shipment).filter(Shipment.id == shipment_id).delete(synchronize_session=False)
     db.commit()
-    
+
     return RedirectResponse(url="/shipments", status_code=303)

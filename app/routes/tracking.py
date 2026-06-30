@@ -30,16 +30,17 @@ def create_tracking_number(
     is_primary: bool = Form(False),
     db: Session = Depends(get_db)
 ):
-    from app.routes.shipments import upsert_tracking
-    
+    from app.routes.shipments import register_tracking_after_save, upsert_tracking
+
     if tracking_type == "main_awb":
         is_primary = True
     elif tracking_type == "lm_awb":
         is_primary = False
-        
+
     if tracking_type in ["main_awb", "lm_awb"]:
-        upsert_tracking(db, shipment_id, tracking_type, tracking_number, courier_name, is_primary)
+        tracking_changed = upsert_tracking(db, shipment_id, tracking_type, tracking_number, courier_name, is_primary)
         db.commit()
+        register_tracking_after_save(courier_name, tracking_number, tracking_changed)
     else:
         tn = TrackingNumber(
             shipment_id=shipment_id,
@@ -52,6 +53,7 @@ def create_tracking_number(
             db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).update({"is_primary": False})
         db.add(tn)
         db.commit()
+        register_tracking_after_save(courier_name, tracking_number, True)
     return RedirectResponse(url=f"/shipments/{shipment_id}", status_code=303)
 
 @router.get("/event/new")
@@ -78,7 +80,7 @@ def create_tracking_event(
         source="manual"
     )
     db.add(ev)
-    
+
     # Update denormalized fields on shipment
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     if shipment:
@@ -87,11 +89,11 @@ def create_tracking_event(
         shipment.last_status_at = ev.event_time
         shipment.last_status_location = location
         shipment.last_normalized_status = normalized_status
-        
+
         shipment.overall_status = normalized_status
         if normalized_status == "delivered" and not shipment.delivered_at:
             shipment.delivered_at = ev.event_time
-                
+
     db.commit()
     return RedirectResponse(url=f"/shipments/{shipment_id}", status_code=303)
 
@@ -247,7 +249,7 @@ def open_tracking_url(tn_id: int, db: Session = Depends(get_db)):
     tn = db.query(TrackingNumber).filter(TrackingNumber.id == tn_id).first()
     if not tn:
         return RedirectResponse(url="/shipments", status_code=303)
-        
+
     db_templates = {
         row.courier_name: row.template_url
         for row in db.query(TrackingTemplate).all()
@@ -260,7 +262,7 @@ def open_tracking_url(tn_id: int, db: Session = Depends(get_db)):
     site_url = build_tracking_site_url(effective_courier, tn.tracking_number)
     if site_url:
         return RedirectResponse(url=site_url, status_code=303)
-        
+
     # If no template, show fallback page
     return f"No template found for {effective_courier or tn.courier_name}. Tracking Number: {tn.tracking_number}"
 

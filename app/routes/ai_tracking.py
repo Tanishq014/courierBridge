@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Shipment, ShipmentAIStatus, TrackingCheck, TrackingNumber, now_ist
-from app.routes.shipments import add_status_timeline_event, upsert_tracking
+from app.routes.shipments import add_status_timeline_event, register_tracking_after_save, upsert_tracking
 from app.tracking_ai import analyze_tracking_batch
 from app.tracking_fetch import fetch_tracking_for_number, fallback_events_from_shipment, find_lm_awb
 
@@ -76,14 +76,14 @@ def save_ai_status(db: Session, shipment_input: ShipmentTrackingInput, result: d
     latest_check = shipment_input.checks[0] if shipment_input.checks else None
     found_lm_awb = str(result.get("found_lm_awb") or shipment_input.found_lm_awb or "").strip()
     found_lm_courier = str(result.get("found_lm_courier") or shipment_input.found_lm_courier or "").strip()
-    
+
     # Final check: NEVER suggest an LM AWB if the shipment already has it
     if found_lm_awb:
         existing = {tn.tracking_number.strip().lower() for tn in shipment_input.shipment.tracking_numbers if tn.tracking_type == "lm_awb" and tn.tracking_number}
         if found_lm_awb.lower() in existing:
             found_lm_awb = ""
             found_lm_courier = ""
-            
+
     status = ShipmentAIStatus(
         shipment_id=shipment_input.shipment.id,
         tracking_check_id=latest_check.id if latest_check else None,
@@ -181,7 +181,7 @@ def fetch_and_analyze_shipments(db: Session, shipments: list[Shipment]) -> tuple
             status_key = " ".join((ev.get("status") or "").lower().split())
             loc_key = " ".join((ev.get("location") or "").lower().split())
             key = f"{time_key}|{status_key}|{loc_key}"
-            
+
             if key in seen_events:
                 existing_ev = seen_events[key]
                 existing_couriers = [c.strip() for c in (existing_ev.get("_source_courier") or "").split(",") if c.strip()]
@@ -241,12 +241,15 @@ def apply_found_lm_awb(
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
     lm_awb = (lm_awb or "").strip()
     if shipment and lm_awb:
-        upsert_tracking(db, shipment.id, "lm_awb", lm_awb, lm_courier, False)
+        tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb, lm_courier, False)
         if ai_status_id:
             status = db.query(ShipmentAIStatus).filter(ShipmentAIStatus.id == ai_status_id).first()
             if status:
                 status.applied_at = now_ist()
+                status.found_lm_awb = None
+                status.found_lm_courier = None
         db.commit()
+        register_tracking_after_save(lm_courier, lm_awb, tracking_changed)
     return redirect_back(next_url)
 
 
