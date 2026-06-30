@@ -129,7 +129,7 @@
                         <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
                         <input type="hidden" name="lm_awb" value="{{ latest_ai_status.found_lm_awb }}">
                         <input type="hidden" name="lm_courier" value="{{ latest_ai_status.found_lm_courier or '' }}">
-                        <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ latest_ai_status.found_lm_awb }}</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ latest_ai_status.found_lm_awb }}{% if latest_ai_status.found_lm_courier %} ({{ latest_ai_status.found_lm_courier }}){% endif %}</button>
                     </form>
                     {% endif %}
                     {% if latest_ai_status.suggested_status_note or latest_ai_status.suggested_status %}

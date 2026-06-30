@@ -369,7 +369,7 @@ function toggleAIMode() {
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                             <input type="hidden" name="lm_awb" value="{{ ai_status.found_lm_awb }}">
                                             <input type="hidden" name="lm_courier" value="{{ ai_status.found_lm_courier or '' }}">
-                                            <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ ai_status.found_lm_awb }}</button>
+                                            <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ ai_status.found_lm_awb }}{% if ai_status.found_lm_courier %} ({{ ai_status.found_lm_courier }}){% endif %}</button>
                                         </form>
                                     {% endif %}
                                     {% if ai_status.suggested_status_note or ai_status.suggested_status %}

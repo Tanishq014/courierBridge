@@ -66,6 +66,8 @@ def build_tracking_payload(shipment: Shipment, events: list[dict[str, Any]], fou
         "receiver_name": shipment.receiver_name or "",
         "requires_lm_awb": bool(shipment.requires_lm_awb),
         "has_lm_awb": any(tn.tracking_type == "lm_awb" and (tn.tracking_number or "").strip() for tn in shipment.tracking_numbers),
+        "main_awbs": [tn.tracking_number.strip().upper() for tn in shipment.tracking_numbers if tn.tracking_type == "main_awb" and tn.tracking_number],
+        "lm_awbs": [tn.tracking_number.strip().upper() for tn in shipment.tracking_numbers if tn.tracking_type == "lm_awb" and tn.tracking_number],
         "found_lm_awb": found_lm_awb,
         "found_lm_courier": found_lm_courier,
         "tracking_events": events[:25],

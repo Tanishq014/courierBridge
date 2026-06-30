@@ -200,7 +200,7 @@ Important rules:
     return parsed["results"]
 
 
-def clean_ai_result(item: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+def clean_ai_result(item: dict[str, Any], fallback: dict[str, Any], shipment: dict[str, Any] = None) -> dict[str, Any]:
     result = {**fallback, **(item or {})}
     result["shipment_id"] = fallback.get("shipment_id")
     result["severity"] = normalize_severity(result.get("severity") or fallback.get("severity"))
@@ -209,6 +209,16 @@ def clean_ai_result(item: dict[str, Any], fallback: dict[str, Any]) -> dict[str,
         result["confidence"] = max(0, min(1, float(result.get("confidence") or 0)))
     except Exception:
         result["confidence"] = fallback.get("confidence") or 0
+
+    # Ensure AI doesn't invent false LM AWBs
+    if shipment:
+        found = str(result.get("found_lm_awb") or "").strip().upper()
+        if found:
+            if any(found == str(main).upper() for main in shipment.get("main_awbs", [])):
+                result["found_lm_awb"] = ""
+            elif any(found == str(lm).upper() for lm in shipment.get("lm_awbs", [])):
+                result["found_lm_awb"] = ""
+
     return result
 
 
@@ -222,8 +232,8 @@ def analyze_tracking_batch(shipments: list[dict[str, Any]]) -> tuple[list[dict[s
         ai_results = call_gemini(shipments, api_key, model_name)
         ai_by_id = {int(item.get("shipment_id") or 0): item for item in ai_results if item.get("shipment_id")}
         merged = []
-        for fallback in fallbacks:
-            merged.append(clean_ai_result(ai_by_id.get(int(fallback.get("shipment_id") or 0), {}), fallback))
+        for shipment, fallback in zip(shipments, fallbacks):
+            merged.append(clean_ai_result(ai_by_id.get(int(fallback.get("shipment_id") or 0), {}), fallback, shipment))
         for item in merged:
             item["raw_ai_json"] = compact_json({"source": "gemini", "result": item})
         return merged, "gemini", model_name
