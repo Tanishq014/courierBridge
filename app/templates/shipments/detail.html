@@ -217,12 +217,12 @@
     </section>
 
     {% set failed_checks = tracking_checks | selectattr("fetch_status", "equalto", "failed") | list %}
-    {% set indiapost_checks = failed_checks | selectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia", "maww"]) | list %}
-    {% set real_errors = failed_checks | rejectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia", "maww"]) | list %}
+    {% set indiapost_checks = failed_checks | selectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia"]) | list %}
+    {% set real_errors = failed_checks | rejectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia"]) | list %}
     
     {% if indiapost_checks %}
     <div class="notice" style="margin: 0 20px 20px; background: var(--bg-surface);">
-        <span style="background: var(--text-secondary);">i</span> Some regional couriers (e.g. India Post, MAWW) were not tracked as no API is available.
+        <span style="background: var(--text-secondary);">i</span> Some regional couriers (e.g. India Post) were not tracked as no API is available.
     </div>
     {% endif %}
 

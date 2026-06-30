@@ -974,6 +974,7 @@ def fetch_mawwl(awb: str) -> dict[str, Any]:
 
     events: list[dict[str, Any]] = []
     latest_status = ""
+    found_lm_awb = ""
 
     if payload and isinstance(payload, list) and len(payload) > 0:
         data = payload[0]
@@ -987,12 +988,28 @@ def fetch_mawwl(awb: str) -> dict[str, Any]:
 
         docket_events = data.get("docket_events") or []
         for event in docket_events:
-            date_str = str(event.get("event_at") or "")
-            description = str(event.get("event_description") or "")
+            date_str = str(event.get("event_at") or event.get("event_date_time") or "")
+            description = str(event.get("event_description") or event.get("event_desc") or "")
             location_str = str(event.get("event_location") or "")
             events.append(event_to_dict(date_str, description, location_str, "mawwl"))
+            
+        all_parcel_no = data.get("all_parcel_no") or {}
+        if isinstance(all_parcel_no, dict):
+            for k, v in all_parcel_no.items():
+                if isinstance(v, list) and len(v) > 0 and v[0]:
+                    found_lm_awb = str(v[0]).strip()
+                    break
+                    
+        found_lm_courier = ""
+        if found_lm_awb:
+            raw_upper = raw.upper()
+            couriers = ["FedEx", "DHL", "UPS", "Aramex", "DPD", "DTDC", "Purolator", "NZPost", "QuickShip"]
+            for c in couriers:
+                if c.upper() in raw_upper:
+                    found_lm_courier = c
+                    break
 
-    result = normalize_fetch_result(True, events, raw, "mawwl")
+    result = normalize_fetch_result(True, events, raw, "mawwl", found_lm_awb=found_lm_awb, found_lm_courier=found_lm_courier)
     if latest_status:
         result["latest_status_text"] = latest_status
     return result
@@ -1004,7 +1021,7 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
     if not awb:
         return normalize_fetch_result(False, [], "", courier_key, "Missing tracking number")
     try:
-        if courier_key in {"mawwl", "maworldwidelogistics"}:
+        if courier_key in {"maww", "mawwl", "maworldwidelogistics"}:
             return fetch_mawwl(awb)
         if courier_key == "purolator":
             return fetch_purolator(awb)

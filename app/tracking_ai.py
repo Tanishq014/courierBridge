@@ -167,7 +167,7 @@ Important rules:
 - Consider promised_days, age_days, stale movement, customs/duty, delivery attempts, receiver unavailable, RTO/return/damage/lost, destination scans, and whether delivery seems close or delayed.
 - In your `summary` and `reason`, explicitly reference the individual couriers and AWBs (e.g. "Main AWB (FedEx) arrived, LM AWB (Purolator) out for delivery").
 - Use suggested_status only from: booked, packed, bagged, in_scan, bagging, received, in_transit, customs, hand_over_to_airline, at_destination, custom_clearance, at_lm_partner, out_for_delivery, delivered, undelivered, rto, return_damage, exception, unknown.
-- Keep suggested_status_note short enough to fit in a ledger row.
+- Keep suggested_status_note short enough to fit in a ledger row. If the status is 'delivered', the note MUST contain the delivery date/time strictly formatted as DD.MM.YY (e.g. "Delivered on 29.06.26") instead of just the location.
 - "found_lm_awb": Do not invent a tracking number here. Only populate this if you explicitly detect a NEW Last-Mile tracking number in the tracking events that is DIFFERENT from the main AWB.
 """.strip()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
