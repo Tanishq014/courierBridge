@@ -169,6 +169,7 @@ Important rules:
 - Use suggested_status only from: booked, packed, bagged, in_scan, bagging, received, in_transit, customs, hand_over_to_airline, at_destination, custom_clearance, at_lm_partner, out_for_delivery, delivered, undelivered, rto, return_damage, exception, unknown.
 - Keep suggested_status_note short enough to fit in a ledger row. If the status is 'delivered', the note MUST contain the delivery date/time strictly formatted as DD.MM.YY (e.g. "Delivered on 29.06.26") instead of just the location.
 - "found_lm_awb": Do not invent a tracking number here. Only populate this if you explicitly detect a NEW Last-Mile tracking number in the tracking events that is DIFFERENT from the main AWB.
+- Trust fresh tracking events over old app metadata. If the app metadata says it is "Delivered" but the tracking events show recent activity indicating it is still "In transit" or "Processing", assume the app status was set by mistake and override it based on the fresh events.
 """.strip()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     body = {
