@@ -389,7 +389,8 @@ def parse_quickship_response(payload: dict[str, Any]) -> tuple[list[dict[str, An
         ))
     latest_status = str(first.get("status") or "")
     found_lm_awb = str(first.get("lmAwb") or "").strip().upper()
-    return events, latest_status, found_lm_awb
+    found_lm_courier = str(first.get("carrierName") or "").strip()
+    return events, latest_status, found_lm_awb, found_lm_courier
 
 
 def fetch_quickship(awb: str) -> dict[str, Any]:
@@ -411,8 +412,8 @@ def fetch_quickship(awb: str) -> dict[str, Any]:
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
     payload = json.loads(raw)
-    events, latest_status, found_lm_awb = parse_quickship_response(payload)
-    result = normalize_fetch_result(bool(payload.get("success")), events, raw, "quickship")
+    events, latest_status, found_lm_awb, found_lm_courier = parse_quickship_response(payload)
+    result = normalize_fetch_result(bool(payload.get("success")), events, raw, "quickship", found_lm_awb=found_lm_awb, found_lm_courier=found_lm_courier)
     if latest_status:
         result["latest_status_text"] = latest_status
     if found_lm_awb:

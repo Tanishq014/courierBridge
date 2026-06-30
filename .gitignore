@@ -30,3 +30,4 @@ ENV/
 courier_api_raw.txt
 .tmp_*
 aramax.txt
+quickship.json
