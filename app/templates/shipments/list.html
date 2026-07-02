@@ -699,12 +699,14 @@ Track: ${url}` : label;
 
     rows.forEach(row => {
         const fields = Array.from(row.querySelectorAll('.row-edit-field'));
+        const rowForm = row.querySelector('form.inline-row-form');
         const save = row.querySelector('.row-save');
         const discard = row.querySelector('.row-discard');
         const defaultActions = row.querySelector('.row-default-actions');
         const dirtyActions = row.querySelector('.row-dirty-actions');
         const changedLabel = row.querySelector('.row-changed-label');
         const trackingLines = Array.from(row.querySelectorAll('.tracking-line'));
+        let rowAutoSubmitting = false;
 
         const updateTrackingLinks = () => {
             trackingLines.forEach(line => {
@@ -749,6 +751,24 @@ Track: ${url}` : label;
         };
 
 
+        const autoSaveDropdown = field => {
+            if (rowAutoSubmitting || !rowForm) return;
+            const currentVal = valueOf(field).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const initialVal = (field.dataset.initial || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            if (currentVal === initialVal) return;
+            rowAutoSubmitting = true;
+            row.classList.add('row-is-dirty');
+            if (defaultActions) defaultActions.hidden = true;
+            if (dirtyActions) dirtyActions.hidden = false;
+            if (save) save.hidden = false;
+            if (discard) discard.hidden = false;
+            if (changedLabel) {
+                changedLabel.hidden = false;
+                changedLabel.textContent = 'Saving';
+            }
+            rowForm.requestSubmit();
+        };
+
         trackingLines.forEach(line => {
             const link = line.querySelector('.tracking-label-link');
             if (!link) return;
@@ -770,7 +790,10 @@ Track: ${url}` : label;
             });
         });
         fields.forEach(field => field.addEventListener('input', updateRowState));
-        fields.forEach(field => field.addEventListener('change', updateRowState));
+        fields.forEach(field => field.addEventListener('change', () => {
+            updateRowState();
+            if (field.tagName === 'SELECT') autoSaveDropdown(field);
+        }));
 
         if (discard) {
             discard.addEventListener('click', () => {
