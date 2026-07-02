@@ -324,11 +324,15 @@ def register_tracking_after_save(courier: str, number: str, changed: bool) -> No
 def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool) -> bool:
     number = number.strip() if number else ""
     if not number:
-        deleted = db.query(TrackingNumber).filter(
+        tns = db.query(TrackingNumber).filter(
             TrackingNumber.shipment_id == shipment_id,
             TrackingNumber.tracking_type == t_type
-        ).delete(synchronize_session=False)
-        return bool(deleted)
+        ).all()
+        for tn in tns:
+            db.query(TrackingEvent).filter(TrackingEvent.tracking_number_id == tn.id).update({"tracking_number_id": None})
+            db.query(TrackingCheck).filter(TrackingCheck.tracking_number_id == tn.id).update({"tracking_number_id": None})
+            db.delete(tn)
+        return len(tns) > 0
 
     if t_type == "main_awb":
         is_primary = True
