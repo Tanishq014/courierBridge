@@ -228,17 +228,13 @@
         </div>
     </section>
 
-    {% set failed_checks = tracking_checks | selectattr("fetch_status", "equalto", "failed") | list %}
-    {% set indiapost_checks = failed_checks | selectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia"]) | list %}
-    {% set real_errors = failed_checks | rejectattr("courier_name", "in", ["indiapost", "indiaapost", "indianpost", "postindia"]) | list %}
-    
     {% if indiapost_checks %}
     <div class="notice" style="margin: 0 20px 20px; background: var(--bg-surface);">
         <span style="background: var(--text-secondary);">i</span> Some regional couriers (e.g. India Post) were not tracked as no API is available.
     </div>
     {% endif %}
 
-    {% if real_errors %}
+    {% if actionable_tracking_errors %}
     <section class="card" style="border: 1px solid var(--danger);">
         <div class="card-header">
             <div>
@@ -248,7 +244,7 @@
         </div>
         <div style="padding: 0 20px 20px;">
             <ul style="color: var(--danger); font-size: 0.9rem; margin: 0; padding-left: 20px;">
-                {% for check in real_errors %}
+                {% for check in actionable_tracking_errors %}
                 <li style="margin-bottom: 5px;">
                     <strong>{{ check.courier_name or 'Unknown Courier' }}</strong> 
                     ({{ check.tracking_number }}): 

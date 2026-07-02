@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
 from app.models import Shipment, ShipmentAIStatus, TrackingEvent, TrackingNumber, TrackingCheck, now_ist
-from app.tracking_fetch import register_tracking_if_supported
+from app.tracking_fetch import is_actionable_tracking_fetch_error, register_tracking_if_supported
 from app.tracking_links import build_tracking_site_url, build_tracking_url, normalize_courier_name
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -497,7 +497,7 @@ def list_shipments(
 
         for check in latest_check_by_tn.values():
             if check.fetch_status in ("failed", "error"):
-                if check.shipment_id not in latest_failed_checks:
+                if is_actionable_tracking_fetch_error(check.courier_name, check.tracking_type, check.error_message) and check.shipment_id not in latest_failed_checks:
                     latest_failed_checks[check.shipment_id] = check
 
     for shipment in shipments:
@@ -802,10 +802,22 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
         .limit(10)
         .all()
     )
+    actionable_tracking_errors = [
+        check for check in tracking_checks
+        if check.fetch_status in ("failed", "error")
+        and is_actionable_tracking_fetch_error(check.courier_name, check.tracking_type, check.error_message)
+    ]
+    indiapost_checks = [
+        check for check in tracking_checks
+        if check.fetch_status in ("failed", "error")
+        and normalize_courier_name(check.courier_name or "") in {"indiapost", "indiaapost", "indianpost", "postindia"}
+    ]
     return templates.TemplateResponse("shipments/detail.html", {
         "request": request,
         "shipment": shipment,
         "tracking_checks": tracking_checks,
+        "actionable_tracking_errors": actionable_tracking_errors,
+        "indiapost_checks": indiapost_checks,
         "receiver_address": receiver_address,
         "receiver_address_text": format_receiver_address(receiver_address),
         "item_raw_text": item_raw_text,

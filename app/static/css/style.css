@@ -2225,25 +2225,45 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
 
 .ai-summary-col .ai-suggested-note-block {
     margin-top: 7px;
-    padding: 6px;
-    border-radius: 8px;
+    padding: 6px 7px;
+    border-radius: 7px;
     background: #f8fafc;
-    border: 0;
+    border: 1px solid #edf2f7;
     box-shadow: none;
     color: var(--ink-soft);
     font-size: 12px;
-    line-height: 1.35;
-    white-space: pre-wrap;
+    line-height: 1.25;
+    white-space: normal;
 }
 
 .ai-summary-col .ai-suggested-note-block span {
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     color: var(--muted);
     font-size: 9px;
     text-transform: uppercase;
     font-weight: 800;
     letter-spacing: normal;
+}
+
+.ai-suggested-note-body {
+    color: var(--ink-soft);
+    margin: 0;
+}
+
+.ai-suggested-status-body {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ai-suggested-status-body em {
+    margin-left: 5px;
+    color: var(--muted);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
 }
 
 .ai-timeline-col {

@@ -11,14 +11,13 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-
 from app.models import Shipment
 from app.tracking_links import normalize_courier_name
 
 SEVENTEEN_TRACK_REGISTER_ENDPOINT = "https://api.17track.net/track/v2.2/register"
 SEVENTEEN_TRACK_GETINFO_ENDPOINT = "https://api.17track.net/track/v2.2/gettrackinfo"
 SEVENTEEN_TRACK_DEFAULT_BRAND_CODES = {
-    "fedex": 101393,
+    "fedex": 100003,
     "fedexgroup": 101393,
     "ups": 100398,
     "dpd": 100010,
@@ -45,6 +44,16 @@ SEVENTEEN_TRACK_BRAND_ALIASES = {
     "dtdc": "dtdc",
     "mydtdc": "dtdc",
     "purolator": "purolator",
+}
+
+NON_ACTIONABLE_FETCH_ERROR_COURIERS = {
+    "",
+    "unknown",
+    "unsupported",
+    "indiapost",
+    "indiaapost",
+    "indianpost",
+    "postindia",
 }
 
 
@@ -1053,6 +1062,22 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
         return normalize_fetch_result(False, [], raw, courier_key, f"HTTP {exc.code}")
     except Exception as exc:
         return normalize_fetch_result(False, [], "", courier_key, str(exc))
+
+
+def is_actionable_tracking_fetch_error(courier: str | None, tracking_type: str | None, error_message: str | None) -> bool:
+    courier_key = normalize_courier_name(courier or "")
+    error_text = (error_message or "").strip().lower()
+    type_key = (tracking_type or "").strip().lower()
+
+    if courier_key in NON_ACTIONABLE_FETCH_ERROR_COURIERS:
+        return False
+    if type_key == "lm_awb" and courier_key in {"", "unknown", "unsupported"}:
+        return False
+    if "backend fetch not configured" in error_text:
+        return False
+    if "tracking is not configured" in error_text:
+        return False
+    return True
 
 
 def fallback_events_from_shipment(shipment: Shipment) -> list[dict[str, Any]]:
