@@ -219,6 +219,14 @@ def clean_ai_result(item: dict[str, Any], fallback: dict[str, Any], shipment: di
             elif any(found == str(lm).upper() for lm in shipment.get("lm_awbs", [])):
                 result["found_lm_awb"] = ""
 
+        # Treat RTO and Return/Damage as identical to prevent unnecessary UI update prompts
+        current = shipment.get("current_app_status")
+        if current in {"rto", "return_damage"} and result.get("suggested_status") in {"rto", "return_damage"}:
+            result["suggested_status"] = current
+            # If the user already knows it's returning, downgrade severity to prevent the "Action Needed" nag
+            if result.get("severity") in {"red", "yellow"}:
+                result["severity"] = "gray"
+
     return result
 
 

@@ -11,6 +11,7 @@
 .hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
 .shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 150px; min-width: 150px; max-width: 150px; word-wrap: break-word; }
 .shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
 
 /* AI Mode Styles */
@@ -292,7 +293,7 @@ function toggleAIMode() {
                      </td>
                      <td class="ai-status-cell ai-mode-col">
                         <div style="display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px;">
-                            <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
+                            <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" style="display: flex; align-items: center; white-space: nowrap;" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
                                 <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                 <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
                                 {% if latest_failed_checks and s.id in latest_failed_checks and (latest_failed_checks[s.id].courier_name|lower) not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
@@ -329,7 +330,7 @@ function toggleAIMode() {
                     </td>
                     <td class="financial-cell">
                         <div class="hover-preview-cell" style="display: inline-block;">
-                            <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
+                            <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.0f'|format(s.balance_amount or 0) }}</span>
                             <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
                                 <div class="hover-title">Financial Details</div>
                                 <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
