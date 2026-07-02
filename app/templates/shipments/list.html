@@ -285,27 +285,28 @@ function toggleAIMode() {
                             </select>
                             <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
                         </form>
-                        {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
-                    </td>
-                    <td class="ai-status-cell ai-mode-col">
-                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
-                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
-                            <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
-                            {% if latest_failed_checks and s.id in latest_failed_checks and (latest_failed_checks[s.id].courier_name|lower) not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
-                              <span title="API Sync Failed: {{ latest_failed_checks[s.id].error_message }}" style="cursor: help; color: var(--danger); font-size: 0.9rem; margin-left: 4px;">⚠️</span>
-                            {% endif %}
-                        </form>
-                        {% if ai_status %}
-                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px; cursor: pointer;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
-                                <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="margin-top: 0;">
-                                    {{ ai_status.label or 'AI review' }} ▾
-                                </div>
-                                {% if ai_status.created_at %}
-                                <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1;">
-                                    {{ ai_status.created_at.strftime('%d %b') }}<br>
-                                    {{ ai_status.created_at.strftime('%H:%M') }}
-                                </div>
+                        {% if s.is_stuck %}<span class="cell-secondary text-danger">No update in 48 hours</span>{% endif %}
+                                   <td class="ai-status-cell ai-mode-col">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 4px;">
+                            <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
+                                <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                                <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
+                                {% if latest_failed_checks and s.id in latest_failed_checks and (latest_failed_checks[s.id].courier_name|lower) not in ["indiapost", "indiaapost", "indianpost", "postindia", "maww"] %}
+                                  <span title="API Sync Failed: {{ latest_failed_checks[s.id].error_message }}" style="cursor: help; color: var(--danger); font-size: 0.9rem; margin-left: 4px;">⚠️</span>
                                 {% endif %}
+                            </form>
+                            {% if ai_status and ai_status.created_at %}
+                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1; text-align: right; padding-top: 2px;">
+                                {{ ai_status.created_at.strftime('%d %b') }}<br>
+                                {{ ai_status.created_at.strftime('%H:%M') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if ai_status %}
+                            <div style="margin-top: 5px; cursor: pointer;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
+                                <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="margin-top: 0; display: inline-block;">
+                                    {{ ai_status.label or 'AI review' }} ▼
+                                </div>
                             </div>
                             <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
                                 {% if ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}
