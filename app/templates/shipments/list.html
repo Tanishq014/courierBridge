@@ -11,7 +11,7 @@
 .hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
 .shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
-.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 150px; min-width: 150px; max-width: 150px; word-wrap: break-word; }
+.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 200px; min-width: 200px; max-width: 200px; word-wrap: break-word; }
 .shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
 
 /* AI Mode Styles */
@@ -733,7 +733,9 @@ Track: ${url}` : label;
             let changed = false;
             fields.forEach(field => {
                 resizeRowTextarea(field);
-                const fieldChanged = valueOf(field) !== (field.dataset.initial || '');
+                const currentVal = valueOf(field).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const initialVal = (field.dataset.initial || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const fieldChanged = currentVal !== initialVal;
                 field.classList.toggle('is-dirty', fieldChanged);
                 changed = changed || fieldChanged;
             });

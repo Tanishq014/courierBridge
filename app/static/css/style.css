@@ -1788,22 +1788,33 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
 }
 
 
+.shipment-row {
+    --shipment-row-bg: transparent;
+}
+
 .shipment-row.row-highlight-green {
-    background: #edf8ee;
+    --shipment-row-bg: #edf8ee;
+    background: var(--shipment-row-bg);
 }
 
 .shipment-row.row-highlight-yellow {
-    background: #fff8d9;
+    --shipment-row-bg: #fff8d9;
+    background: var(--shipment-row-bg);
 }
 
 .shipment-row.row-highlight-red {
-    background: #fee2e2;
+    --shipment-row-bg: #fee2e2;
+    background: var(--shipment-row-bg);
+}
+
+.shipment-row > td {
+    background-color: var(--shipment-row-bg);
 }
 
 @keyframes target-flash {
     0% { background-color: rgba(18, 59, 48, 0.14); }
     12% { background-color: rgba(18, 59, 48, 0.14); }
-    100% { background-color: transparent; }
+    100% { background-color: var(--shipment-row-bg); }
 }
 
 .shipment-row:target td {
@@ -1849,7 +1860,8 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
 }
 
 .shipment-row.row-is-dirty {
-    background: #fffaf0;
+    --shipment-row-bg: #fffaf0;
+    background: var(--shipment-row-bg);
 }
 
 .shipment-row .row-edit-field.is-dirty {

@@ -348,14 +348,13 @@ def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, cou
     ).first()
 
     if tn:
-        new_courier = courier.strip() if courier else (tn.courier_name or "")
+        new_courier = courier.strip() if courier else ""
         changed = (
             (tn.tracking_number or "").strip().upper() != number.upper()
             or normalize_courier_name(tn.courier_name) != normalize_courier_name(new_courier)
         )
         tn.tracking_number = number
-        if courier:
-            tn.courier_name = courier.strip()
+        tn.courier_name = new_courier
         tn.is_primary = is_primary
         return changed
 
@@ -1035,6 +1034,8 @@ def delete_shipment(request: Request, shipment_id: int, db: Session = Depends(ge
     if not shipment:
         return RedirectResponse(url="/shipments", status_code=303)
 
+    db.query(ShipmentAIStatus).filter(ShipmentAIStatus.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(TrackingCheck).filter(TrackingCheck.shipment_id == shipment_id).delete(synchronize_session=False)
     db.query(TrackingEvent).filter(TrackingEvent.shipment_id == shipment_id).delete(synchronize_session=False)
     db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).delete(synchronize_session=False)
     db.query(Shipment).filter(Shipment.id == shipment_id).delete(synchronize_session=False)
