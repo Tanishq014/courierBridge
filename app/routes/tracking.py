@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import TrackingNumber, TrackingEvent, TrackingTemplate, Shipment, now_ist
+from app.tracking_ai import normalize_status
 from app.tracking_links import build_tracking_site_url, build_tracking_url
 from datetime import datetime
 import html
@@ -70,6 +71,7 @@ def create_tracking_event(
     notes: str = Form(""),
     db: Session = Depends(get_db)
 ):
+    normalized_status = normalize_status(normalized_status) or "in_transit"
     ev = TrackingEvent(
         shipment_id=shipment_id,
         event_time=now_ist(),

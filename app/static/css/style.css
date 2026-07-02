@@ -2223,6 +2223,29 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     display: block;
 }
 
+.ai-summary-col .ai-suggested-note-block {
+    margin-top: 7px;
+    padding: 6px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 0;
+    box-shadow: none;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: pre-wrap;
+}
+
+.ai-summary-col .ai-suggested-note-block span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: normal;
+}
+
 .ai-timeline-col {
     flex: 1.8;
     min-width: 0;

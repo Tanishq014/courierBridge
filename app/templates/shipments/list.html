@@ -367,7 +367,9 @@ function toggleAIMode() {
                             <div class="ai-summary-col">
                                 <div class="ai-review-summary" style="margin-bottom: 5px;">{{ ai_status.summary or 'No summary available.' }}</div>
                                 {% if ai_status.reason %}<div class="ai-review-reason" style="margin-bottom: 8px;">{{ ai_status.reason }}</div>{% endif %}
-                                {% if ai_status.suggested_status_note %}<div class="ai-review-block" style="margin-bottom: 8px;"><span>Suggested note</span><br>{{ ai_status.suggested_status_note }}</div>{% endif %}
+                                {% if ai_status.suggested_status or ai_status.suggested_status_note %}
+                                <div class="ai-review-block ai-suggested-note-block" style="margin-bottom: 8px;"><span>Suggested note{% if ai_status.suggested_status %} · Status: {{ ai_status.suggested_status|replace('_', ' ')|title }}{% if ai_status.suggested_status != s.overall_status %} (current: {{ (s.overall_status or 'booked')|replace('_', ' ')|title }}){% endif %}{% endif %}</span>{% if ai_status.suggested_status_note %}<br>{{ ai_status.suggested_status_note }}{% endif %}</div>
+                                {% endif %}
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                                     {% if not ai_status.ignored_at and ai_status.found_lm_awb %}
                                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-lm" style="margin:0;">
@@ -384,7 +386,7 @@ function toggleAIMode() {
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                             <input type="hidden" name="suggested_status" value="{{ ai_status.suggested_status or s.overall_status }}">
                                             <input type="hidden" name="suggested_status_note" value="{{ ai_status.suggested_status_note or ai_status.summary or '' }}">
-                                            <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
+                                            <button type="submit" class="btn btn-sm btn-secondary">Apply {{ (ai_status.suggested_status or s.overall_status or 'status')|replace('_', ' ')|title }}{% if ai_status.suggested_status_note %} + note{% endif %}</button>
                                         </form>
                                     {% endif %}
                                     {% if not ai_status.ignored_at %}

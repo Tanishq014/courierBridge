@@ -121,7 +121,17 @@
                   </div>
                 <div class="ai-review-summary">{{ latest_ai_status.summary or 'No summary available.' }}</div>
                 {% if latest_ai_status.reason %}<div class="ai-review-reason">{{ latest_ai_status.reason }}</div>{% endif %}
-                {% if latest_ai_status.suggested_status_note %}<div class="ai-review-block"><span>Suggested note</span>{{ latest_ai_status.suggested_status_note }}</div>{% endif %}
+                {% if latest_ai_status.suggested_status or latest_ai_status.suggested_status_note %}
+                <div class="ai-review-block">
+                    <span>Suggested note</span>
+                    {% if latest_ai_status.suggested_status %}
+                        <div style="margin-bottom:4px;">Status: {{ latest_ai_status.suggested_status|replace('_', ' ')|title }}{% if latest_ai_status.suggested_status != shipment.overall_status %} <span style="font-size:10px; color:var(--muted);">Current: {{ (shipment.overall_status or 'booked')|replace('_', ' ')|title }}</span>{% endif %}</div>
+                    {% endif %}
+                    {% if latest_ai_status.suggested_status_note %}
+                        {{ latest_ai_status.suggested_status_note }}
+                    {% endif %}
+                </div>
+                {% endif %}
                 <div class="button-row" style="gap: 6px; flex-wrap: wrap;">
                     {% if not latest_ai_status.ignored_at and latest_ai_status.found_lm_awb %}
                     <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/apply-lm" style="margin:0;">
@@ -138,7 +148,7 @@
                         <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
                         <input type="hidden" name="suggested_status" value="{{ latest_ai_status.suggested_status or shipment.overall_status }}">
                         <input type="hidden" name="suggested_status_note" value="{{ latest_ai_status.suggested_status_note or latest_ai_status.summary or '' }}">
-                        <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
+                        <button type="submit" class="btn btn-sm btn-secondary">Apply {{ (latest_ai_status.suggested_status or shipment.overall_status or 'status')|replace('_', ' ')|title }}{% if latest_ai_status.suggested_status_note %} + note{% endif %}</button>
                     </form>
                     {% endif %}
                     {% if not latest_ai_status.ignored_at %}
