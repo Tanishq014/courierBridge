@@ -826,7 +826,7 @@ def fetch_17track_official(awb: str, courier_key: str) -> dict[str, Any]:
 
     if official_17track_is_not_registered(payload):
         register_result = register_17track_official(awb, courier_key)
-        
+
         if register_result.get("ok"):
             for _ in range(3):
                 time.sleep(5)
@@ -976,6 +976,7 @@ def fetch_mawwl(awb: str) -> dict[str, Any]:
     events: list[dict[str, Any]] = []
     latest_status = ""
     found_lm_awb = ""
+    found_lm_courier = ""
 
     if payload and isinstance(payload, list) and len(payload) > 0:
         data = payload[0]
@@ -993,15 +994,16 @@ def fetch_mawwl(awb: str) -> dict[str, Any]:
             description = str(event.get("event_description") or event.get("event_desc") or "")
             location_str = str(event.get("event_location") or "")
             events.append(event_to_dict(date_str, description, location_str, "mawwl"))
-            
-        all_parcel_no = data.get("all_parcel_no") or {}
-        if isinstance(all_parcel_no, dict):
-            for k, v in all_parcel_no.items():
-                if isinstance(v, list) and len(v) > 0 and v[0]:
-                    found_lm_awb = str(v[0]).strip()
-                    break
-                    
-        found_lm_courier = ""
+
+        found_lm_awb = str(data.get("forwarding_no") or "").strip()
+        if not found_lm_awb:
+            all_parcel_no = data.get("all_parcel_no") or {}
+            if isinstance(all_parcel_no, dict):
+                for k, v in all_parcel_no.items():
+                    if isinstance(v, list) and len(v) > 0 and v[0]:
+                        found_lm_awb = str(v[0]).strip()
+                        break
+
         if found_lm_awb:
             raw_upper = raw.upper()
             couriers = ["FedEx", "DHL", "UPS", "Aramex", "DPD", "DTDC", "Purolator", "NZPost", "QuickShip"]

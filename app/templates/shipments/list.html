@@ -27,6 +27,9 @@ function toggleAIMode() {
     if (document.body.classList.contains('ai-mode-active')) {
         document.body.classList.remove('ai-mode-active');
         localStorage.setItem('ai_mode', 'false');
+        document.querySelectorAll('.ai-review-row').forEach(row => {
+            row.style.display = 'none';
+        });
         if (btn) btn.innerText = 'Enable AI Mode';
     } else {
         document.body.classList.add('ai-mode-active');
@@ -236,7 +239,7 @@ function toggleAIMode() {
                         <div class="custom-duty-toggle" style="margin-top:2px;">
                             <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="false" id="duty-free-{{s.id}}" class="row-edit-field hidden-radio" {% if not s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if not s.custom_duty else 'false' }}">
                             <label for="duty-free-{{s.id}}" class="btn-toggle">Free</label>
-                            
+
                             <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="true" id="duty-paid-{{s.id}}" class="row-edit-field hidden-radio" {% if s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if s.custom_duty else 'false' }}">
                             <label for="duty-paid-{{s.id}}" class="btn-toggle">Paid</label>
                         </div>
@@ -288,7 +291,7 @@ function toggleAIMode() {
                         {% if s.is_stuck %}<span class="cell-secondary text-danger">No update in 48 hours</span>{% endif %}
                      </td>
                      <td class="ai-status-cell ai-mode-col">
-                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 4px;">
+                        <div style="display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px;">
                             <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
                                 <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                 <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
@@ -297,7 +300,7 @@ function toggleAIMode() {
                                 {% endif %}
                             </form>
                             {% if ai_status and ai_status.created_at %}
-                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1; text-align: right; padding-top: 2px;">
+                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1; padding-top: 2px;">
                                 {{ ai_status.created_at.strftime('%d %b') }}<br>
                                 {{ ai_status.created_at.strftime('%H:%M') }}
                             </div>
@@ -310,13 +313,13 @@ function toggleAIMode() {
                                 </div>
                             </div>
                             <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
-                                {% if ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}
+                                {% if not ai_status.ignored_at and ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}
                                     <span class="badge badge-warning" title="Status update recommended" style="font-size: 0.65rem; padding: 2px 4px;">Update Status</span>
                                 {% endif %}
-                                {% if ai_status.found_lm_awb %}
+                                {% if not ai_status.ignored_at and ai_status.found_lm_awb %}
                                     <span class="badge badge-info" title="New LM AWB found" style="font-size: 0.65rem; padding: 2px 4px;">New LM</span>
                                 {% endif %}
-                                {% if ai_status.severity in ['red', 'yellow'] %}
+                                {% if not ai_status.ignored_at and ai_status.severity in ['red', 'yellow'] %}
                                     <span class="badge badge-danger" title="Action needed" style="font-size: 0.65rem; padding: 2px 4px; background-color: var(--danger); color: white;">Action Needed</span>
                                 {% endif %}
                             </div>
@@ -358,14 +361,14 @@ function toggleAIMode() {
                 </tr>
                 {% if ai_status %}
                 <tr id="ai-row-{{ s.id }}" class="ai-review-row" style="display: none;">
-                    <td colspan="100%" style="padding: 0; max-width: 0;">
+                    <td colspan="11" style="padding: 0;">
                         <div class="ai-review-full-width">
                             <div class="ai-summary-col">
                                 <div class="ai-review-summary" style="margin-bottom: 5px;">{{ ai_status.summary or 'No summary available.' }}</div>
                                 {% if ai_status.reason %}<div class="ai-review-reason" style="margin-bottom: 8px;">{{ ai_status.reason }}</div>{% endif %}
                                 {% if ai_status.suggested_status_note %}<div class="ai-review-block" style="margin-bottom: 8px;"><span>Suggested note</span><br>{{ ai_status.suggested_status_note }}</div>{% endif %}
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                    {% if ai_status.found_lm_awb %}
+                                    {% if not ai_status.ignored_at and ai_status.found_lm_awb %}
                                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-lm" style="margin:0;">
                                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
@@ -374,7 +377,7 @@ function toggleAIMode() {
                                             <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ ai_status.found_lm_awb }}{% if ai_status.found_lm_courier %} ({{ ai_status.found_lm_courier }}){% endif %}</button>
                                         </form>
                                     {% endif %}
-                                    {% if ai_status.suggested_status_note or ai_status.suggested_status %}
+                                    {% if not ai_status.ignored_at and (ai_status.suggested_status_note or ai_status.suggested_status) %}
                                         <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-status-note" style="margin:0;">
                                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                             <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
@@ -383,11 +386,13 @@ function toggleAIMode() {
                                             <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
                                         </form>
                                     {% endif %}
+                                    {% if not ai_status.ignored_at %}
                                     <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/ignore" style="margin:0;">
                                         <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
                                         <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
                                         <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
                                     </form>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="ai-timeline-col">
@@ -767,7 +772,11 @@ Track: ${url}` : label;
         if (discard) {
             discard.addEventListener('click', () => {
                 fields.forEach(field => {
-                    field.value = field.dataset.initial || '';
+                    if (field.type === 'radio' || field.type === 'checkbox') {
+                        field.checked = (field.dataset.initial || '') === 'true';
+                    } else {
+                        field.value = field.dataset.initial || '';
+                    }
                 });
                 updateRowState();
             });

@@ -109,13 +109,13 @@
                   <div>
                       <span class="ai-chip ai-chip-{{ latest_ai_status.severity or 'gray' }}">{{ latest_ai_status.label or 'AI review' }}</span>
                       <span class="cell-secondary">Checked {{ latest_ai_status.created_at.strftime('%d %b %Y %H:%M') }}</span>
-                      {% if latest_ai_status.suggested_status and latest_ai_status.suggested_status != shipment.overall_status %}
+                      {% if not latest_ai_status.ignored_at and latest_ai_status.suggested_status and latest_ai_status.suggested_status != shipment.overall_status %}
                           <span class="badge badge-warning" style="margin-left: 8px; font-size: 0.75rem;">Status Update</span>
                       {% endif %}
-                      {% if latest_ai_status.found_lm_awb %}
+                      {% if not latest_ai_status.ignored_at and latest_ai_status.found_lm_awb %}
                           <span class="badge badge-info" style="margin-left: 4px; font-size: 0.75rem;">New LM AWB</span>
                       {% endif %}
-                      {% if latest_ai_status.severity in ['red', 'yellow'] %}
+                      {% if not latest_ai_status.ignored_at and latest_ai_status.severity in ['red', 'yellow'] %}
                           <span class="badge badge-danger" style="margin-left: 4px; font-size: 0.75rem; background-color: var(--danger);">Action Needed</span>
                       {% endif %}
                   </div>
@@ -123,7 +123,7 @@
                 {% if latest_ai_status.reason %}<div class="ai-review-reason">{{ latest_ai_status.reason }}</div>{% endif %}
                 {% if latest_ai_status.suggested_status_note %}<div class="ai-review-block"><span>Suggested note</span>{{ latest_ai_status.suggested_status_note }}</div>{% endif %}
                 <div class="button-row" style="gap: 6px; flex-wrap: wrap;">
-                    {% if latest_ai_status.found_lm_awb %}
+                    {% if not latest_ai_status.ignored_at and latest_ai_status.found_lm_awb %}
                     <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/apply-lm" style="margin:0;">
                         <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
                         <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
@@ -132,7 +132,7 @@
                         <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ latest_ai_status.found_lm_awb }}{% if latest_ai_status.found_lm_courier %} ({{ latest_ai_status.found_lm_courier }}){% endif %}</button>
                     </form>
                     {% endif %}
-                    {% if latest_ai_status.suggested_status_note or latest_ai_status.suggested_status %}
+                    {% if not latest_ai_status.ignored_at and (latest_ai_status.suggested_status_note or latest_ai_status.suggested_status) %}
                     <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/apply-status-note" style="margin:0;">
                         <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
                         <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
@@ -141,11 +141,13 @@
                         <button type="submit" class="btn btn-sm btn-secondary">Apply note/status</button>
                     </form>
                     {% endif %}
+                    {% if not latest_ai_status.ignored_at %}
                     <form method="POST" action="/ai-tracking/shipments/{{ shipment.id }}/ignore" style="margin:0;">
                         <input type="hidden" name="next_url" value="/shipments/{{ shipment.id }}">
                         <input type="hidden" name="ai_status_id" value="{{ latest_ai_status.id }}">
                         <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
                     </form>
+                    {% endif %}
                 </div>
                 {% if latest_ai_events %}
                 <div class="ai-events-list ai-events-list-wide">

@@ -466,7 +466,7 @@ def list_shipments(
     if shipment_ids:
         ai_rows = (
             db.query(ShipmentAIStatus)
-            .filter(ShipmentAIStatus.shipment_id.in_(shipment_ids), ShipmentAIStatus.ignored_at.is_(None))
+            .filter(ShipmentAIStatus.shipment_id.in_(shipment_ids))
             .order_by(ShipmentAIStatus.created_at.desc())
             .all()
         )
@@ -782,7 +782,7 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
     volumetric_dimensions = parse_volumetric_dimensions(shipment.raw_excel_notes)
     latest_ai_status = (
         db.query(ShipmentAIStatus)
-        .filter(ShipmentAIStatus.shipment_id == shipment.id, ShipmentAIStatus.ignored_at.is_(None))
+        .filter(ShipmentAIStatus.shipment_id == shipment.id)
         .order_by(ShipmentAIStatus.created_at.desc())
         .first()
     )
