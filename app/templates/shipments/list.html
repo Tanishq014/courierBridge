@@ -180,10 +180,12 @@ function toggleAIMode() {
                                 <button type="button" data-row-color-value="{% if row_color_effective == 'yellow' and s.row_color == 'yellow' %}clear{% else %}yellow{% endif %}" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
                                 <button type="button" data-row-color-value="{% if row_color_effective == 'red' and s.row_color == 'red' %}clear{% else %}red{% endif %}" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
                             </div>
-                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block; margin-top: 4px;">
-                                <span class="cell-primary" style="display: none;">#{{ s.id }}</span>
-                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="date" name="booking_date" value="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" style="border: none; background: transparent; color: #64748b; font-size: 11px; padding: 0; outline: none; margin-top: 4px; width: 100px; cursor: pointer;">
-                            </a>
+                            <div style="margin-top: 4px; position: relative;">
+                                <span class="cell-secondary" style="display: block; cursor: pointer; line-height: 1.4; color: #64748b; font-size: 11px;">
+                                    {% if s.booking_date %}{{ s.booking_date.strftime('%d %b %Y') }}{% else %}Select date{% endif %}
+                                </span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="row-edit-field" type="date" name="booking_date" value="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" style="position: absolute; opacity: 0; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; padding: 0; margin: 0; border: none; z-index: 2;" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
                         </div>
                     </td>
                     <td>
