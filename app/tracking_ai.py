@@ -105,6 +105,12 @@ def rule_based_result(shipment: dict[str, Any]) -> dict[str, Any]:
         suggested_status = "exception"
         summary = "Return/damage/lost wording was found."
         reason = f"Latest event says: {latest_text}"
+    elif any(word in latest_lower for word in ["pick up", "picked up", "pickup", "collected"]):
+        label = "Picked up"
+        severity = "green"
+        suggested_status = "received"
+        summary = "Carrier indicates shipment was picked up."
+        reason = f"Latest event says: {latest_text}"
     elif latest_age is not None and latest_age >= 3 and current_status not in {"delivered", "rto", "return_damage"}:
         label = "No movement"
         severity = "yellow"
@@ -176,6 +182,7 @@ Important rules:
 - Do not invent tracking numbers or dates.
 - Use operational judgement, not just the latest headline status.
 - Consider promised_days, age_days, stale movement, customs/duty, delivery attempts, receiver unavailable, RTO/return/damage/lost, destination scans, and whether delivery seems close or delayed.
+- If a shipment is picked up or collected by the courier, the suggested_status MUST be 'received' rather than 'in_transit' or 'booked'.
 - In your `summary` and `reason`, explicitly reference the individual couriers and AWBs (e.g. "Main AWB (FedEx) arrived, LM AWB (Purolator) out for delivery").
 - Use suggested_status only from: booked, received, bagging, hand_over_to_airline, in_transit, at_destination, custom_clearance, at_lm_partner, out_for_delivery, delivered, undelivered, rto, return_damage, exception, unknown.
 - Keep suggested_status_note short enough to fit in a ledger row. If the status is 'delivered', the note MUST contain the delivery date/time strictly formatted as DD.MM.YY (e.g. "Delivered on 29.06.26") instead of just the location.

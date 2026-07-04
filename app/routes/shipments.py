@@ -36,6 +36,7 @@ DEFAULT_COURIERS = [
     "MAWW",
     "NZ Post",
     "Purolator",
+    "Skynet",
 ]
 
 COUNTRY_ALIASES = {
@@ -99,7 +100,7 @@ def get_service_options(db: Session) -> list[str]:
     vendor_partners = [row[0] for row in db.query(Shipment.vendor_partner).distinct().all() if row[0]]
     shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
     tn_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
-    return sorted({s.strip() for s in vendor_partners + shipment_couriers + tn_couriers if s and s.strip()}, key=str.lower)
+    return sorted({s.strip().upper() for s in vendor_partners + shipment_couriers + tn_couriers if s and s.strip()}, key=str.lower)
 
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
@@ -411,11 +412,12 @@ def list_shipments(
         query = query.filter(Shipment.custom_duty == True)
     elif custom_duty == "no":
         query = query.filter(Shipment.custom_duty == False)
-    if service:
+    normalized_service_filter = " ".join((service or "").strip().split()).upper()
+    if normalized_service_filter:
         query = query.filter(or_(
-            Shipment.vendor_partner == service,
-            Shipment.courier_company == service,
-            Shipment.tracking_numbers.any(TrackingNumber.courier_name == service)
+            Shipment.vendor_partner.ilike(normalized_service_filter),
+            Shipment.courier_company.ilike(normalized_service_filter),
+            Shipment.tracking_numbers.any(TrackingNumber.courier_name.ilike(normalized_service_filter))
         ))
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
 
@@ -528,7 +530,7 @@ def list_shipments(
         "status": status,
         "country": normalized_country_filter,
         "custom_duty": custom_duty,
-        "service": service,
+        "service": normalized_service_filter,
         "quick": quick,
         "date": date,
     })
@@ -626,7 +628,7 @@ def create_shipment(
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
-    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+    normalized_vendor_partner = " ".join((vendor_partner or "").strip().split()).upper()
 
     customer_name = normalize_proper_case(customer_name)
     receiver_name = normalize_proper_case(receiver_name)
@@ -728,7 +730,6 @@ def create_shipment(
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     return RedirectResponse(url="/shipments", status_code=303)
-
 @router.post("/{shipment_id}/quick-update")
 def quick_update_shipment(
     shipment_id: int,
@@ -742,6 +743,7 @@ def quick_update_shipment(
     internal_notes: str = Form(""),
     custom_duty: str | None = Form(None),
     row_color: str | None = Form(None),
+    booking_date: str = Form(""),
     next_url: str = Form("/shipments")
 ):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
@@ -762,9 +764,18 @@ def quick_update_shipment(
     if custom_duty is not None:
         shipment.custom_duty = (custom_duty.lower() == "true")
 
-    if row_color is not None:
+    if booking_date and booking_date.strip():
+        try:
+            shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    if row_color is not None and row_color.strip() != "":
         selected_color = row_color.strip().lower()
-        shipment.row_color = selected_color if selected_color in {"green", "yellow", "red"} else None
+        if selected_color == "clear":
+            shipment.row_color = None
+        elif selected_color in {"green", "yellow", "red"}:
+            shipment.row_color = selected_color
 
     main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
@@ -946,7 +957,7 @@ def update_shipment(
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
-    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+    normalized_vendor_partner = " ".join((vendor_partner or "").strip().split()).upper()
 
     customer_name = normalize_proper_case(customer_name)
     receiver_name = normalize_proper_case(receiver_name)

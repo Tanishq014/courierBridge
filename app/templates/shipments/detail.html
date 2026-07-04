@@ -8,7 +8,7 @@
         <div class="eyebrow">Shipment #{{ shipment.id }}</div>
         <h1>{{ shipment.customer_name }} → {{ shipment.destination_country }}</h1>
         <p class="page-description">
-            Booked {{ shipment.booking_date.strftime('%d %b %Y') }} - {{ shipment.courier_company }}{% if shipment.vendor_partner %} - Service {{ shipment.vendor_partner }}{% endif %}
+            Booked {{ shipment.booking_date.strftime('%d %b %Y') }} - {{ shipment.courier_company }}{% if shipment.vendor_partner %} - Service {{ shipment.vendor_partner|upper }}{% endif %}
         </p>
     </div>
     <div class="page-actions">
@@ -203,7 +203,7 @@
                         {% set tn_open_url = tn_url or tn_site_url %}
                         <td class="mono">{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="tracking-number-link copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">{{ tn.tracking_number }} ↗</a>{% else %}{{ tn.tracking_number }}{% endif %}</td>
                         <td>{% if tn.is_primary %}<span class="badge badge-info">Primary</span>{% else %}<span class="cell-secondary">Secondary</span>{% endif %}</td>
-                        <td>{{ shipment.vendor_partner or 'Direct' }}</td>
+                        <td>{{ (shipment.vendor_partner or 'Direct')|upper }}</td>
                         <td>{% if tn_open_url %}<a href="{{ tn_open_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary copy-tracking-link" data-copy-mode="{{ 'true' if tn_site_url else 'false' }}" data-copy-number="{{ tn.tracking_number }}" data-auto-fill-mode="{{ 'atlantic' if tn_site_url and 'atlanticcourier.net' in tn_site_url else '' }}">Track ↗</a>{% else %}<a href="/tracking/number/{{ tn.id }}/open" target="_blank" class="btn btn-sm btn-secondary">Track ↗</a>{% endif %}</td>
                     </tr>
                     {% endfor %}

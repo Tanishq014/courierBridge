@@ -11,7 +11,7 @@
 .hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
 .shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
-.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 200px; min-width: 200px; max-width: 200px; word-wrap: break-word; }
+.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 175px; min-width: 175px; max-width: 175px; word-wrap: break-word; }
 .shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
 
 /* AI Mode Styles */
@@ -176,13 +176,13 @@ function toggleAIMode() {
                     <td>
                         <div class="booking-cell-stack">
                             <div class="row-color-picker" aria-label="Row highlight color">
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="green" class="row-color-dot row-color-dot-green{% if row_color_effective == 'green' %} is-selected{% endif %}" title="Mark green"></button>
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="yellow" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="red" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'green' and s.row_color == 'green' %}clear{% else %}green{% endif %}" class="row-color-dot row-color-dot-green{% if row_color_effective == 'green' %} is-selected{% endif %}" title="Mark green"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'yellow' and s.row_color == 'yellow' %}clear{% else %}yellow{% endif %}" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'red' and s.row_color == 'red' %}clear{% else %}red{% endif %}" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
                             </div>
-                            <a href="/shipments/{{ s.id }}" class="row-open-link">
+                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block; margin-top: 4px;">
                                 <span class="cell-primary" style="display: none;">#{{ s.id }}</span>
-                                <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="date" name="booking_date" value="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" style="border: none; background: transparent; color: #64748b; font-size: 11px; padding: 0; outline: none; margin-top: 4px; width: 100px; cursor: pointer;">
                             </a>
                         </div>
                     </td>
@@ -235,7 +235,7 @@ function toggleAIMode() {
                         </div>
                     </td>
                     <td class="service-cell">
-                        <span class="cell-primary" style="display:block;">{{ s.vendor_partner or 'Direct' }}</span>
+                        <span class="cell-primary" style="display:block;">{{ (s.vendor_partner or 'Direct')|upper }}</span>
                         <span style="display:block; font-size:9px; letter-spacing:0.05em; margin-top:8px; color:#94a3b8; text-transform:uppercase;">Custom Duty</span>
                         <div class="custom-duty-toggle" style="margin-top:2px;">
                             <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="false" id="duty-free-{{s.id}}" class="row-edit-field hidden-radio" {% if not s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if not s.custom_duty else 'false' }}">
@@ -270,6 +270,7 @@ function toggleAIMode() {
                     <td class="status-cell">
                         <form id="{{ row_form_id }}" method="POST" action="/shipments/{{ s.id }}/quick-update" class="inline-row-form">
                             <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                            <input type="hidden" name="row_color" value="">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
                                 <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
@@ -675,6 +676,7 @@ Track: ${url}` : label;
         ups: 'https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails',
         aramax: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
         aramex: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
+        dhl: 'https://www.dhl.com/in-en/home/tracking.html?tracking-id={awb}&submit=1',
         dpd: 'https://t.17track.net/en#nums={awb}',
         maww: 'https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}',
         nzpost: 'https://www.nzpost.co.nz/tools/tracking?trackid={awb}',
@@ -708,6 +710,8 @@ Track: ${url}` : label;
         const dirtyActions = row.querySelector('.row-dirty-actions');
         const changedLabel = row.querySelector('.row-changed-label');
         const trackingLines = Array.from(row.querySelectorAll('.tracking-line'));
+        const rowColorButtons = Array.from(row.querySelectorAll('.row-color-dot[data-row-color-value]'));
+        const rowColorInput = rowForm ? rowForm.querySelector('input[name="row_color"]') : null;
         let rowAutoSubmitting = false;
 
         const updateTrackingLinks = () => {
@@ -791,10 +795,19 @@ Track: ${url}` : label;
                 }
             });
         });
+
+        rowColorButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (!rowForm || !rowColorInput) return;
+                rowColorInput.value = button.dataset.rowColorValue || '';
+                rowForm.requestSubmit();
+            });
+        });
+
         fields.forEach(field => field.addEventListener('input', updateRowState));
         fields.forEach(field => field.addEventListener('change', () => {
             updateRowState();
-            if (field.tagName === 'SELECT') autoSaveDropdown(field);
+            if (field.tagName === 'SELECT' || field.type === 'date') autoSaveDropdown(field);
         }));
 
         if (discard) {

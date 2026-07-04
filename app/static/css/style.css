@@ -1859,11 +1859,6 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     outline-offset: 1px;
 }
 
-.shipment-row.row-is-dirty {
-    --shipment-row-bg: #fffaf0;
-    background: var(--shipment-row-bg);
-}
-
 .shipment-row .row-edit-field.is-dirty {
     border-color: #d59118;
     background: #fff7df;

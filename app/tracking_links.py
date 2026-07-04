@@ -6,6 +6,7 @@ DEFAULT_TRACKING_TEMPLATES = {
     "ups": "https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails",
     "aramax": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
     "aramex": "https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}",
+    "dhl": "https://www.dhl.com/in-en/home/tracking.html?tracking-id={awb}&submit=1",
     "dpd": "https://t.17track.net/en#nums={awb}",
     "maww": "https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}",
     "nzpost": "https://www.nzpost.co.nz/tools/tracking?trackid={awb}",
