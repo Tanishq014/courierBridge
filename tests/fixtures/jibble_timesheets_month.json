@@ -1,0 +1,241 @@
+{
+  "@odata.context": "https://time-attendance.prod.jibble.io/v1/$metadata#Timesheets",
+  "@odata.count": 2,
+  "value": [
+    {
+      "personId": "person-001",
+      "total": "PT12H",
+      "totalTracked": "PT13H15M",
+      "totalPayroll": "PT12H",
+      "summary": {
+        "workedDays": 2,
+        "absentDays": 0
+      },
+      "person": {
+        "id": "person-001",
+        "fullName": "Employee One",
+        "code": "EMP001",
+        "timeZone": "Asia/Kolkata",
+        "pictureUrl": "https://example.invalid/picture-001.png",
+        "groupName": "Shop",
+        "managers": [],
+        "positionName": "Operations",
+        "employmentTypeName": "Full Time",
+        "timeSheetTimeZone": "Asia/Kolkata",
+        "status": "Active",
+        "billableRate": {
+          "amount": 0,
+          "currency": "INR"
+        }
+      },
+      "daily": [
+        {
+          "date": "2026-07-08",
+          "firstIn": "10:00 AM",
+          "lastOut": "06:00 PM",
+          "firstInTimestamp": "2026-07-08T04:30:00Z",
+          "lastOutTimestamp": "2026-07-08T12:30:00Z",
+          "firstInOffset": "2026-07-08T10:00:00+05:30",
+          "lastOutOffset": "2026-07-08T18:00:00+05:30",
+          "firstInLocationId": "location-001",
+          "lastOutLocationId": "location-001",
+          "startTime": "2026-07-08T10:00:00",
+          "startOffset": "2026-07-08T10:00:00+05:30",
+          "endOffset": "2026-07-08T19:00:00+05:30",
+          "endTime": "2026-07-08T19:00:00",
+          "trackedHours": {
+            "added": "PT0S",
+            "total": "PT8H15M",
+            "worked": "PT8H",
+            "totalBreakTime": "PT28.833867S",
+            "paidBreakTime": "PT10M",
+            "unpaidBreakTime": "PT18M28.833867S",
+            "totalAutoDeductionTime": "PT0S",
+            "breaks": [
+              {
+                "name": "Tea",
+                "duration": "PT10M"
+              }
+            ],
+            "autoDeductions": []
+          },
+          "payrollHours": {
+            "total": "PT8H",
+            "billing": "PT8H",
+            "regular": {
+              "time": "PT7H30M"
+            },
+            "dailyOvertime": {
+              "time": "PT30M"
+            },
+            "dailyDoubleOvertime": {
+              "time": "PT0S"
+            },
+            "restDayOvertime": {
+              "time": "PT0S"
+            },
+            "publicHolidayOvertime": {
+              "time": "PT0S"
+            },
+            "weeklyOvertime": {
+              "time": "PT0S"
+            }
+          },
+          "timeOff": {
+            "paidTimeOff": "PT0S",
+            "unpaidTimeOff": "PT0S",
+            "isRestDay": false,
+            "holidays": [],
+            "shortDays": [],
+            "types": []
+          },
+          "hasArchivedScreenshots": false
+        },
+        {
+          "date": "2026-07-09",
+          "firstIn": "10:15 AM",
+          "lastOut": "02:15 PM",
+          "firstInTimestamp": "2026-07-09T04:45:00Z",
+          "lastOutTimestamp": "2026-07-09T08:45:00Z",
+          "firstInOffset": "2026-07-09T10:15:00+05:30",
+          "lastOutOffset": "2026-07-09T14:15:00+05:30",
+          "firstInLocationId": "location-001",
+          "lastOutLocationId": "location-001",
+          "startTime": "2026-07-09T10:00:00",
+          "startOffset": "2026-07-09T10:00:00+05:30",
+          "endOffset": "2026-07-09T19:00:00+05:30",
+          "endTime": "2026-07-09T19:00:00",
+          "trackedHours": {
+            "added": "PT0S",
+            "total": "PT5H",
+            "worked": "PT4H",
+            "totalBreakTime": "PT1H",
+            "paidBreakTime": "PT0S",
+            "unpaidBreakTime": "PT1H",
+            "totalAutoDeductionTime": "PT0S",
+            "breaks": [],
+            "autoDeductions": []
+          },
+          "payrollHours": {
+            "total": "PT4H",
+            "billing": "PT4H",
+            "regular": {
+              "time": "PT4H"
+            },
+            "dailyOvertime": {
+              "time": "PT0S"
+            },
+            "dailyDoubleOvertime": {
+              "time": "PT0S"
+            },
+            "restDayOvertime": {
+              "time": "PT0S"
+            },
+            "publicHolidayOvertime": {
+              "time": "PT0S"
+            },
+            "weeklyOvertime": {
+              "time": "PT0S"
+            }
+          },
+          "timeOff": {
+            "paidTimeOff": "PT2H",
+            "unpaidTimeOff": "PT1H",
+            "isRestDay": false,
+            "holidays": [],
+            "shortDays": [],
+            "types": [
+              {
+                "name": "Partial leave"
+              }
+            ]
+          },
+          "hasArchivedScreenshots": false
+        }
+      ]
+    },
+    {
+      "personId": "person-002",
+      "total": "PT0S",
+      "totalTracked": "PT0S",
+      "totalPayroll": "PT0S",
+      "summary": {
+        "workedDays": 0,
+        "absentDays": 0
+      },
+      "person": {
+        "id": "person-002",
+        "fullName": "Employee Two",
+        "code": "EMP002",
+        "timeZone": "Asia/Kolkata",
+        "pictureUrl": null,
+        "groupName": "Shop",
+        "managers": [],
+        "positionName": "Packing",
+        "employmentTypeName": "Full Time",
+        "timeSheetTimeZone": "Asia/Kolkata",
+        "status": "Active",
+        "billableRate": null
+      },
+      "daily": [
+        {
+          "date": "2026-07-08",
+          "firstIn": null,
+          "lastOut": null,
+          "firstInTimestamp": null,
+          "lastOutTimestamp": null,
+          "firstInOffset": null,
+          "lastOutOffset": null,
+          "firstInLocationId": null,
+          "lastOutLocationId": null,
+          "startTime": "2026-07-08T10:00:00",
+          "startOffset": "2026-07-08T10:00:00+05:30",
+          "endOffset": "2026-07-08T19:00:00+05:30",
+          "endTime": "2026-07-08T19:00:00",
+          "trackedHours": {
+            "added": "PT0S",
+            "total": "PT0S",
+            "worked": "PT0S",
+            "totalBreakTime": "PT0S",
+            "paidBreakTime": "PT0S",
+            "unpaidBreakTime": "PT0S",
+            "totalAutoDeductionTime": "PT0S",
+            "breaks": [],
+            "autoDeductions": []
+          },
+          "payrollHours": {
+            "total": "PT0S",
+            "billing": "PT0S",
+            "regular": {
+              "time": "PT0S"
+            },
+            "dailyOvertime": {
+              "time": "PT0S"
+            },
+            "dailyDoubleOvertime": {
+              "time": "PT0S"
+            },
+            "restDayOvertime": {
+              "time": "PT0S"
+            },
+            "publicHolidayOvertime": {
+              "time": "PT0S"
+            },
+            "weeklyOvertime": {
+              "time": "PT0S"
+            }
+          },
+          "timeOff": {
+            "paidTimeOff": "PT0S",
+            "unpaidTimeOff": "PT0S",
+            "isRestDay": true,
+            "holidays": [],
+            "shortDays": [],
+            "types": []
+          },
+          "hasArchivedScreenshots": true
+        }
+      ]
+    }
+  ]
+}

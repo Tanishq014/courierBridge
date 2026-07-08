@@ -1,15 +1,17 @@
 import sys
 import os
+import tempfile
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # 1. SET ENV VAR BEFORE IMPORTING APP
-os.environ["COURIERBRIDGE_DATABASE_URL"] = "sqlite:///./courierbridge_test.db"
+TEST_DB_PATH = os.path.join(tempfile.gettempdir(), "courierbridge_test.db")
+os.environ["COURIERBRIDGE_DATABASE_URL"] = "sqlite:///" + TEST_DB_PATH.replace("\\", "/")
 
 # Clean up old test db if exists before any imports lock it
-if os.path.exists("./courierbridge_test.db"):
+if os.path.exists(TEST_DB_PATH):
     try:
-        os.remove("./courierbridge_test.db")
+        os.remove(TEST_DB_PATH)
     except Exception:
         pass
 
@@ -175,8 +177,8 @@ if __name__ == "__main__":
     finally:
         # Clean up test DB
         engine.dispose()
-        if os.path.exists("./courierbridge_test.db"):
+        if os.path.exists(TEST_DB_PATH):
             try:
-                os.remove("./courierbridge_test.db")
+                os.remove(TEST_DB_PATH)
             except Exception:
                 pass

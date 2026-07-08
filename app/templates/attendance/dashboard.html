@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Dashboard - CourierBridge{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>Attendance Dashboard</h1>
+        <p class="subtitle">Daily attendance synced directly from Jibble</p>
+    </div>
+    <div class="header-actions">
+        <a href="/attendance/employees" class="btn btn-secondary">Map Employees</a>
+        <button id="sync-jibble-btn" class="btn btn-primary" onclick="syncJibble()">
+            <span class="btn-text">Sync from Jibble</span>
+        </button>
+    </div>
+</div>
+
+<div class="card mb-24">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+        <h2 class="card-title">Attendance Records</h2>
+        
+        <form method="GET" action="/attendance" class="filters" style="display: flex; gap: 8px;">
+            <input type="month" name="month" class="form-input" value="{{ month }}" required onchange="this.form.submit()">
+        </form>
+    </div>
+
+    {% if records %}
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Date</th>
+                    <th>Calculated Status</th>
+                    <th>In / Out (Local)</th>
+                    <th>Worked (Mins)</th>
+                    <th>Suggested Deduction</th>
+                    <th>Review?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td><strong>{{ r.employee_name }}</strong></td>
+                    <td style="white-space: nowrap;">{{ r.date.strftime("%d %b, %Y") }}</td>
+                    <td>
+                        <span class="status-badge status-{{ r.calculated_status | lower }}">
+                            {{ r.calculated_status | replace('_', ' ') | title }}
+                        </span>
+                    </td>
+                    <td style="white-space: nowrap; color: #556a5c;">
+                        {% if r.first_in %}
+                            {{ r.first_in.strftime("%I:%M %p") }}
+                        {% else %}
+                            --:--
+                        {% endif %}
+                        <br>
+                        {% if r.last_out %}
+                            {{ r.last_out.strftime("%I:%M %p") }}
+                        {% else %}
+                            --:--
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ (r.worked_minutes / 60) | round(1) }} hrs
+                    </td>
+                    <td>
+                        {% if r.suggested_deduction_units > 0 %}
+                            <strong style="color: #a33a3a;">-{{ r.suggested_deduction_units }} units</strong>
+                        {% else %}
+                            <span style="color: #92a198;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.needs_review %}
+                            <span class="status-dot" style="background: #e38612;" title="{{ r.review_reason }}"></span>
+                        {% else %}
+                            <span class="status-dot" style="background: #4a9e6d;"></span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No attendance records found for this month.</p>
+        <p style="font-size: 14px; color: #647a6b;">Try syncing from Jibble to import data.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function syncJibble() {
+        const btn = document.getElementById('sync-jibble-btn');
+        const originalText = btn.innerHTML;
+        
+        try {
+            btn.innerHTML = '<span class="btn-text">Syncing... Please wait</span>';
+            btn.disabled = true;
+            
+            const month = "{{ month }}";
+            const response = await fetch(`/admin/attendance/sync/jibble?month=${month}`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                alert(`Sync failed: ${data.detail || 'Unknown error'}`);
+            } else {
+                alert(`Sync complete! ${data.days_inserted} days inserted, ${data.days_updated} updated.`);
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error syncing:', error);
+            alert('A network error occurred while syncing.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

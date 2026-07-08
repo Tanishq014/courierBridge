@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Map Employees - CourierBridge{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>Map Employees</h1>
+        <p class="subtitle">Link your local employees to their Jibble accounts</p>
+    </div>
+    <div class="header-actions">
+        <a href="/attendance" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="grid-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    
+    <!-- Left Column: Local Employees -->
+    <div class="card mb-24">
+        <div class="card-header">
+            <h2 class="card-title">Local Employees</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Jibble Mapping</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr>
+                        <td>
+                            <strong>{{ emp.full_name }}</strong><br>
+                            <span style="font-size: 12px; color: #647a6b;">{{ emp.employee_code }}</span>
+                        </td>
+                        <td>
+                            {% set mapping = emp.external_identities | selectattr("source", "equalto", "JIBBLE") | first %}
+                            {% if mapping %}
+                                <span class="status-badge status-delivered">Mapped</span><br>
+                                <span style="font-size: 11px; color: #647a6b; font-family: monospace;">{{ mapping.external_person_id }}</span>
+                            {% else %}
+                                <span class="status-badge status-stuck">Unmapped</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form onsubmit="mapEmployee(event, {{ emp.id }})" style="display: flex; gap: 8px;">
+                                <input type="text" id="jibble-id-{{ emp.id }}" placeholder="Jibble Person ID" class="form-input" style="min-height: 32px; font-size: 13px;" required>
+                                <button type="submit" class="btn btn-primary" style="min-height: 32px; padding: 0 12px;">Map</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not employees %}
+                    <tr>
+                        <td colspan="3">No employees found. Create them via API first.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Unmapped Jibble Users -->
+    <div class="card mb-24">
+        <div class="card-header">
+            <h2 class="card-title">Unmapped Jibble Users</h2>
+            <p style="font-size: 13px; color: #647a6b; margin-top: 4px;">Copy the Person ID to map it to a local employee on the left.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Jibble Name</th>
+                        <th>Person ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ident in unmapped_identities %}
+                    <tr>
+                        <td><strong>{{ ident.external_name }}</strong></td>
+                        <td>
+                            <code style="background: #f3f5f1; padding: 4px 8px; border-radius: 4px; font-size: 12px; user-select: all;">{{ ident.external_person_id }}</code>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not unmapped_identities %}
+                    <tr>
+                        <td colspan="2">No unmapped Jibble users found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function mapEmployee(event, employeeId) {
+        event.preventDefault();
+        const input = document.getElementById(`jibble-id-${employeeId}`);
+        const personId = input.value.trim();
+        
+        if (!personId) return;
+        
+        try {
+            const response = await fetch(`/admin/employees/${employeeId}/external-mappings/jibble`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ external_person_id: personId })
+            });
+            
+            if (!response.ok) {
+                const data = await response.json();
+                alert(`Mapping failed: ${data.detail || 'Unknown error'}`);
+            } else {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error mapping:', error);
+            alert('A network error occurred while mapping.');
+        }
+    }
+</script>
+{% endblock %}

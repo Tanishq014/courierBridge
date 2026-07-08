@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.database import engine, Base
 from sqlalchemy import inspect, text
 import hmac
+import logging
 import os
 import time
 
@@ -130,6 +131,24 @@ ensure_lightweight_migrations()
 
 app = FastAPI(title="CourierBridge")
 
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(RuntimeError)
+async def runtime_error_handler(request: Request, exc: RuntimeError):
+    return JSONResponse(status_code=500, content={"detail": "Request failed safely."})
+
+
+def validate_attendance_startup_config() -> None:
+    if not os.environ.get("JIBBLE_SESSION_COOKIE", "").strip():
+        logging.getLogger("courierbridge.attendance").warning("JIBBLE_SESSION_COOKIE is missing")
+
+
+validate_attendance_startup_config()
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -179,8 +198,6 @@ def login(request: Request, password: str = Form("")):
         )
         return response
     return RedirectResponse(url="/login?error=1", status_code=303)
-
-
 @app.post("/logout")
 def logout():
     response = RedirectResponse(url="/login", status_code=303)
@@ -189,13 +206,15 @@ def logout():
 
 
 # Include routers
-from app.routes import dashboard, shipments, tracking, customers, tools, ai_tracking
+from app.routes import dashboard, shipments, tracking, customers, tools, ai_tracking, attendance, attendance_ui
 app.include_router(dashboard.router)
 app.include_router(shipments.router)
 app.include_router(tracking.router)
 app.include_router(customers.router)
 app.include_router(tools.router)
 app.include_router(ai_tracking.router)
+app.include_router(attendance.router)
+app.include_router(attendance_ui.router)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])

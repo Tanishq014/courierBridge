@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Numeric
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Numeric, Date, Time, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
 from app.database import Base
@@ -214,3 +214,161 @@ class ShipmentAIStatus(Base):
 
     shipment = relationship("Shipment")
     tracking_check = relationship("TrackingCheck")
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+class JibbleSyncRun(Base):
+    __tablename__ = "jibble_sync_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requested_month = Column(String(7), index=True, nullable=False)
+    started_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(40), default="RUNNING", nullable=False, index=True)
+    authentication_status = Column(String(40), default="TEMPORARILY_UNAVAILABLE", nullable=False)
+    employees_received = Column(Integer, default=0, nullable=False)
+    days_inserted = Column(Integer, default=0, nullable=False)
+    days_updated = Column(Integer, default=0, nullable=False)
+    days_unchanged = Column(Integer, default=0, nullable=False)
+    calculations_recomputed = Column(Integer, default=0, nullable=False)
+    warning_count = Column(Integer, default=0, nullable=False)
+    error_code = Column(String(80), nullable=True)
+    safe_error_message = Column(Text, nullable=True)
+    raw_response_hash = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+
+
+class Employee(Base):
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_code = Column(String(80), unique=True, index=True, nullable=False)
+    full_name = Column(String(255), nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    joining_date = Column(Date, nullable=False)
+    leaving_date = Column(Date, nullable=True)
+    default_timezone = Column(String(80), default="Asia/Kolkata", nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
+
+    external_identities = relationship("ExternalEmployeeIdentity", back_populates="employee")
+    attendance_policies = relationship("EmployeeAttendancePolicy", back_populates="employee")
+    calculated_attendance = relationship("CalculatedDailyAttendance", back_populates="employee")
+
+
+class ExternalEmployeeIdentity(Base):
+    __tablename__ = "external_employee_identities"
+    __table_args__ = (
+        UniqueConstraint("source", "external_person_id", name="uq_external_identity_source_person"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    source = Column(String(40), nullable=False, index=True)
+    external_person_id = Column(String(120), nullable=False, index=True)
+    external_code = Column(String(120), nullable=True)
+    external_name = Column(String(255), nullable=False)
+    external_timezone = Column(String(80), nullable=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+    first_seen_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    last_seen_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
+
+    employee = relationship("Employee", back_populates="external_identities")
+
+
+class ImportedAttendanceDay(Base):
+    __tablename__ = "imported_attendance_days"
+    __table_args__ = (
+        UniqueConstraint("source", "external_person_id", "attendance_date", name="uq_imported_attendance_source_person_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    source = Column(String(40), nullable=False, index=True)
+    external_person_id = Column(String(120), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+    attendance_date = Column(Date, nullable=False, index=True)
+    first_in_utc = Column(DateTime(timezone=True), nullable=True)
+    last_out_utc = Column(DateTime(timezone=True), nullable=True)
+    first_in_local = Column(DateTime(timezone=True), nullable=True)
+    last_out_local = Column(DateTime(timezone=True), nullable=True)
+    worked_seconds = Column(Integer, default=0, nullable=False)
+    tracked_seconds = Column(Integer, default=0, nullable=False)
+    payroll_seconds = Column(Integer, default=0, nullable=False)
+    break_seconds = Column(Integer, default=0, nullable=False)
+    paid_break_seconds = Column(Integer, default=0, nullable=False)
+    unpaid_break_seconds = Column(Integer, default=0, nullable=False)
+    auto_deduction_seconds = Column(Integer, default=0, nullable=False)
+    regular_seconds = Column(Integer, default=0, nullable=False)
+    daily_overtime_seconds = Column(Integer, default=0, nullable=False)
+    daily_double_overtime_seconds = Column(Integer, default=0, nullable=False)
+    rest_day_overtime_seconds = Column(Integer, default=0, nullable=False)
+    holiday_overtime_seconds = Column(Integer, default=0, nullable=False)
+    weekly_overtime_seconds = Column(Integer, default=0, nullable=False)
+    paid_time_off_seconds = Column(Integer, default=0, nullable=False)
+    unpaid_time_off_seconds = Column(Integer, default=0, nullable=False)
+    is_rest_day_from_source = Column(Boolean, default=False, nullable=False)
+    has_archived_screenshots = Column(Boolean, default=False, nullable=False)
+    payload_hash = Column(String(64), nullable=False)
+    last_sync_run_id = Column(Integer, ForeignKey("jibble_sync_runs.id"), nullable=False)
+    source_updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
+
+
+class EmployeeAttendancePolicy(Base):
+    __tablename__ = "employee_attendance_policies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    monthly_salary_paise = Column(Integer, default=0, nullable=False)
+    salary_divisor_type = Column(String(40), nullable=False)
+    fixed_salary_divisor = Column(Integer, nullable=True)
+    shift_start_local = Column(Time, nullable=False)
+    shift_end_local = Column(Time, nullable=False)
+    grace_minutes = Column(Integer, default=0, nullable=False)
+    full_day_required_minutes = Column(Integer, nullable=False)
+    half_day_required_minutes = Column(Integer, nullable=False)
+    missing_clock_out_buffer_minutes = Column(Integer, default=0, nullable=False)
+    weekly_off_days_json = Column(Text, default="[]", nullable=False)
+    effective_from = Column(Date, nullable=False, index=True)
+    effective_to = Column(Date, nullable=True, index=True)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
+
+    employee = relationship("Employee", back_populates="attendance_policies")
+
+
+class CalculatedDailyAttendance(Base):
+    __tablename__ = "calculated_daily_attendance"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "attendance_date", name="uq_calculated_attendance_employee_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    attendance_date = Column(Date, nullable=False, index=True)
+    imported_attendance_day_id = Column(Integer, ForeignKey("imported_attendance_days.id"), nullable=True)
+    policy_id = Column(Integer, ForeignKey("employee_attendance_policies.id"), nullable=True)
+    calculated_status = Column(String(40), nullable=False, index=True)
+    first_in_local = Column(DateTime(timezone=True), nullable=True)
+    last_out_local = Column(DateTime(timezone=True), nullable=True)
+    worked_minutes = Column(Integer, default=0, nullable=False)
+    payroll_minutes = Column(Integer, default=0, nullable=False)
+    late_minutes = Column(Integer, default=0, nullable=False)
+    early_departure_minutes = Column(Integer, default=0, nullable=False)
+    overtime_minutes = Column(Integer, default=0, nullable=False)
+    suggested_deduction_units = Column(Numeric(3, 1), default=0, nullable=False)
+    needs_review = Column(Boolean, default=False, nullable=False)
+    review_reason = Column(Text, nullable=True)
+    calculation_version = Column(String(40), nullable=False)
+    calculated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
+
+    employee = relationship("Employee", back_populates="calculated_attendance")

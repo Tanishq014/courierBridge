@@ -46,6 +46,9 @@
                 <a href="/customers" class="nav-link {% if path.startswith('/customers') %}active{% endif %}">
                     Customers
                 </a>
+                <a href="/attendance" class="nav-link {% if path.startswith('/attendance') %}active{% endif %}">
+                    Attendance
+                </a>
                 <a href="/tools/quick-add" class="nav-link {% if path.startswith('/tools') %}active{% endif %}">
                     Quick add
                 </a>
@@ -67,6 +70,7 @@
                     <a href="/" class="{% if path == '/' %}active{% endif %}">Home</a>
                     <a href="/shipments" class="{% if path.startswith('/shipments') %}active{% endif %}">Shipments</a>
                     <a href="/customers" class="{% if path.startswith('/customers') %}active{% endif %}">Customers</a>
+                    <a href="/attendance" class="{% if path.startswith('/attendance') %}active{% endif %}">Attendance</a>
                 </nav>
             </header>
 
