@@ -16,7 +16,7 @@
             {% if shipment.overall_status == 'delivered' %}badge-success
             {% elif shipment.overall_status in ['exception', 'rto', 'return_damage', 'undelivered'] %}badge-danger
             {% elif shipment.overall_status in ['customs', 'custom_clearance'] %}badge-warning
-            {% elif shipment.overall_status in ['in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged', 'bagging', 'in_scan', 'hand_over_to_airline', 'at_destination'] %}badge-info
+            {% elif shipment.overall_status in ['sent_to_courier', 'in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged', 'bagging', 'in_scan', 'hand_over_to_airline', 'at_destination'] %}badge-info
             {% else %}badge-neutral{% endif %}">
             {% if shipment.overall_status == 'received' %}
               Received by Courier
