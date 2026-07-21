@@ -1,0 +1,548 @@
+{% extends "base.html" %}
+{% block title %}Rate Compare - CourierBridge{% endblock %}
+
+{% block head %}
+<style>
+/* Premium SaaS Dashboard CSS */
+.rate-compare-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    font-family: 'Manrope', sans-serif;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+.dashboard-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+.dashboard-header p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Form Styles */
+.form-panel {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e5e7eb;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #1f2937;
+    background-color: #f9fafb;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    background-color: #ffffff;
+}
+
+.packages-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+.package-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 24px;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: end;
+}
+.package-row input {
+    padding: 8px;
+}
+.remove-pkg-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 8px 0;
+}
+.add-pkg-btn {
+    background: none;
+    border: none;
+    color: #10b981;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #174c3c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: background 0.2s;
+}
+.submit-btn:hover {
+    background: #10382c;
+}
+
+/* Results Area */
+.results-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px dashed #d1d5db;
+    color: #6b7280;
+}
+.empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #9ca3af;
+}
+
+.quote-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.quote-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.quote-badge {
+    position: absolute;
+    top: 12px;
+    right: -24px;
+    background: #10b981;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 24px;
+    transform: rotate(45deg);
+}
+.quote-badge.fastest { background: #3b82f6; }
+
+.provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.provider-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+}
+.service-name {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.quote-details {
+    display: flex;
+    gap: 32px;
+}
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.detail-label {
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+.detail-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.quote-price {
+    text-align: right;
+}
+.price-amount {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+}
+.price-currency {
+    font-size: 14px;
+    color: #6b7280;
+    margin-left: 4px;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (max-width: 900px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+    .quote-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .quote-details {
+        flex-wrap: wrap;
+    }
+    .quote-price {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rate-compare-container">
+    <div class="dashboard-header">
+        <h1>Rate Compare</h1>
+        <p>Instantly compare live shipping quotes across all providers.</p>
+    </div>
+
+    <div class="dashboard-layout">
+        <!-- Input Form -->
+        <div class="form-panel">
+            <form id="rateForm" onsubmit="event.preventDefault(); fetchQuotes();">
+                <div class="form-group" id="countryGroup">
+                    <label>Destination Country Code</label>
+                    <div class="country-input-wrapper">
+                        <!-- Text input for phase 1, can be swapped for select dynamically -->
+                        <input type="text" id="destinationCountry" name="destinationCountry" placeholder="e.g. CA, US, GB" required>
+                        <select id="destinationCountrySelect" name="destinationCountrySelect" style="display:none;" disabled>
+                            <option value="">Select country...</option>
+                            {% for code, name in countries.items() %}
+                            <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="stateGroup">
+                    <label>State / Province Code</label>
+                    <div class="state-input-wrapper">
+                        <!-- Text input for phase 1, can be swapped for select dynamically -->
+                        <input type="text" id="destinationState" name="destinationState" placeholder="e.g. CA, NY, ON" required>
+                        <select id="destinationStateSelect" name="destinationStateSelect" style="display:none;" disabled>
+                            <option value="">Select state...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" name="destinationCity" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Postal Code</label>
+                    <input type="text" name="postalCode" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Shipment Type</label>
+                    <select name="shipmentType" required>
+                        <option value="parcel">Parcel</option>
+                        <option value="document">Document</option>
+                    </select>
+                </div>
+
+                <div class="packages-section">
+                    <label style="font-size: 13px; font-weight: 600; color: #374151;">Packages (L x W x H in cm, W in kg)</label>
+                    <div id="packagesContainer">
+                        <div class="package-row">
+                            <input type="number" step="0.1" name="pkg_l[]" placeholder="L" required>
+                            <input type="number" step="0.1" name="pkg_w[]" placeholder="W" required>
+                            <input type="number" step="0.1" name="pkg_h[]" placeholder="H" required>
+                            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" required>
+                            <span></span>
+                        </div>
+                    </div>
+                    <button type="button" class="add-pkg-btn" onclick="addPackage()">+ Add Package</button>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Get Live Quotes</button>
+            </form>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel" id="resultsPanel">
+            <div class="empty-state" id="emptyState">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <h3>Ready to quote</h3>
+                <p>Fill out the destination and package details to see live rates.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addPackage() {
+        const container = document.getElementById('packagesContainer');
+        const row = document.createElement('div');
+        row.className = 'package-row';
+        row.innerHTML = `
+            <input type="number" step="0.1" name="pkg_l[]" placeholder="L" required>
+            <input type="number" step="0.1" name="pkg_w[]" placeholder="W" required>
+            <input type="number" step="0.1" name="pkg_h[]" placeholder="H" required>
+            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" required>
+            <button type="button" class="remove-pkg-btn" onclick="this.parentElement.remove()">×</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function renderSkeleton() {
+        const panel = document.getElementById('resultsPanel');
+        let html = '';
+        for(let i=0; i<3; i++) {
+            html += `
+            <div class="quote-card">
+                <div class="provider-info">
+                    <div class="skeleton" style="width: 120px; height: 24px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                </div>
+                <div class="quote-details">
+                    <div class="skeleton" style="width: 60px; height: 36px;"></div>
+                    <div class="skeleton" style="width: 60px; height: 36px;"></div>
+                </div>
+                <div class="quote-price">
+                    <div class="skeleton" style="width: 100px; height: 32px;"></div>
+                </div>
+            </div>`;
+        }
+        panel.innerHTML = html;
+    }
+
+    async function fetchQuotes() {
+        const form = document.getElementById('rateForm');
+        const btn = document.getElementById('submitBtn');
+        const formData = new FormData(form);
+        
+        // Build packages array
+        const lengths = formData.getAll('pkg_l[]');
+        const widths = formData.getAll('pkg_w[]');
+        const heights = formData.getAll('pkg_h[]');
+        const weights = formData.getAll('pkg_wt[]');
+        
+        const packages = [];
+        for (let i = 0; i < lengths.length; i++) {
+            packages.push({
+                length: parseFloat(lengths[i]),
+                width: parseFloat(widths[i]),
+                height: parseFloat(heights[i]),
+                weight: parseFloat(weights[i])
+            });
+        }
+
+        const payload = {
+            destinationCountry: formData.get('destinationCountry'),
+            destinationState: formData.get('destinationState'),
+            destinationCity: formData.get('destinationCity'),
+            postalCode: formData.get('postalCode'),
+            shipmentType: formData.get('shipmentType'),
+            packages: packages
+        };
+
+        btn.disabled = true;
+        btn.textContent = 'Fetching Quotes...';
+        renderSkeleton();
+
+        try {
+            const response = await fetch('/api/rates/quotes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to fetch quotes');
+            }
+
+            const data = await response.json();
+            renderProviderStatuses(data.providers);
+            renderQuotes(data.quotes);
+        } catch (error) {
+            document.getElementById('resultsPanel').innerHTML = `
+                <div class="empty-state" style="border-color: #ef4444; color: #ef4444;">
+                    <h3>Error</h3>
+                    <p>${error.message}</p>
+                </div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Get Live Quotes';
+        }
+    }
+
+    function renderProviderStatuses(providers) {
+        const panel = document.getElementById('resultsPanel');
+        
+        // Render statuses at the top of results
+        let statusHtml = '<div style="margin-bottom: 24px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">';
+        statusHtml += '<h4 style="margin:0 0 12px 0; font-size: 13px; color: #6b7280; text-transform: uppercase;">Provider Status</h4>';
+        statusHtml += '<div style="display:flex; flex-wrap:wrap; gap: 16px;">';
+        
+        providers.forEach(p => {
+            const isSuccess = p.status === 'SUCCESS';
+            const icon = isSuccess ? '<span style="color:#10b981;">✓</span>' : '<span style="color:#ef4444;">✗</span>';
+            const extra = !isSuccess && p.message ? ` <span style="font-size:12px; color:#ef4444;">(${p.message})</span>` : '';
+            statusHtml += `<div style="font-size:14px; font-weight:600; color:#374151;">${icon} ${p.provider}${extra}</div>`;
+        });
+        
+        statusHtml += '</div></div>';
+        
+        // Prepend status HTML but leave a container for quotes
+        panel.innerHTML = statusHtml + '<div id="quotesContainer"></div>';
+    }
+
+    function renderQuotes(quotes) {
+        const container = document.getElementById('quotesContainer') || document.getElementById('resultsPanel');
+        if (quotes.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>No quotes available</h3>
+                    <p>Try adjusting your package dimensions or destination.</p>
+                </div>`;
+            return;
+        }
+
+        // Sort by price to find cheapest, optionally identify fastest if transitDays exists
+        const sortedByPrice = [...quotes].sort((a, b) => a.totalPrice - b.totalPrice);
+        const cheapestId = sortedByPrice[0].providerCode + sortedByPrice[0].serviceCode;
+        
+        const sortedByTime = [...quotes].filter(q => q.transitDays).sort((a, b) => a.transitDays - b.transitDays);
+        const fastestId = sortedByTime.length > 0 ? sortedByTime[0].providerCode + sortedByTime[0].serviceCode : null;
+
+        let html = '';
+        quotes.forEach(quote => {
+            const uid = quote.providerCode + quote.serviceCode;
+            let badge = '';
+            if (uid === cheapestId) badge = '<div class="quote-badge">CHEAPEST</div>';
+            else if (uid === fastestId) badge = '<div class="quote-badge fastest">FASTEST</div>';
+            
+            let transitText = quote.transitDays ? `${quote.transitDays} Days` : 'Varies';
+            
+            let logoHtml = quote.logo ? `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo" style="width: 48px; height: 48px; object-fit: contain;">` : `<div class="provider-logo-placeholder" style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 4px;"></div>`;
+            
+            let badgesHtml = badge;
+            if (quote.zone) badgesHtml += `<span style="display:inline-block; margin-top:4px; font-size:11px; background:#e5e7eb; padding:2px 6px; border-radius:4px;">Zone ${quote.zone}</span>`;
+            if (quote.badges && quote.badges.includes('extended_area')) badgesHtml += `<span style="display:inline-block; margin-top:4px; margin-left:4px; font-size:11px; background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:4px;">Extended Area</span>`;
+            
+            let breakdownHtml = '';
+            if (quote.charges && quote.charges.length > 0) {
+                breakdownHtml = `<details style="margin-top:12px; font-size:13px; color:#6b7280;">
+                    <summary style="cursor:pointer; font-weight:600;">Charge Breakdown</summary>
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #e5e7eb;">
+                        ${quote.charges.map(c => `<div style="display:flex; justify-content:space-between;"><span>${c.name}</span><span>${c.amount.toFixed(2)}</span></div>`).join('')}
+                    </div>
+                </details>`;
+            }
+
+            let extraDetails = '';
+            const fuelSurcharge = quote.charges ? quote.charges.find(c => c.name.toLowerCase().includes('fuel')) : null;
+            if (fuelSurcharge) {
+                extraDetails += `<div class="detail-item"><span class="detail-label">Fuel</span><span class="detail-value">${fuelSurcharge.amount.toFixed(2)}</span></div>`;
+            }
+
+            html += `
+            <div class="quote-card">
+                ${badgesHtml}
+                <div style="display:flex; gap:16px; align-items:center;">
+                    ${logoHtml}
+                    <div class="provider-info">
+                        <div class="provider-name">${quote.provider}</div>
+                        <div class="service-name">${quote.service}</div>
+                    </div>
+                </div>
+                <div class="quote-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Transit</span>
+                        <span class="detail-value">${transitText}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Chg. Wt</span>
+                        <span class="detail-value">${quote.chargeableWeight} kg</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Vol. Wt</span>
+                        <span class="detail-value">${quote.volumetricWeight} kg</span>
+                    </div>
+                    ${extraDetails}
+                </div>
+                <div class="quote-price">
+                    <span class="price-amount">${quote.totalPrice.toFixed(2)}</span>
+                    <span class="price-currency">${quote.currency}</span>
+                    ${quote.gst > 0 ? `<div style="font-size:12px; color:#6b7280; margin-top:4px;">+ ${quote.gst.toFixed(2)} GST</div>` : ''}
+                    ${breakdownHtml}
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+</script>
+{% endblock %}
