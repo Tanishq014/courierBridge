@@ -7,8 +7,13 @@
     <div class="page-heading">
         <div class="heading-with-date">
             <h1>Create new booking</h1>
-            <div class="form-group inline-date page-inline-date">
-                <input form="new-shipment-form" type="date" name="booking_date" value="{{ today }}" required aria-label="Booking date" title="Booking date">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="booking_date" value="{{ today }}" required aria-label="Booking date" title="Booking date">
+                </div>
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="second_booking_date" aria-label="Second booking date" title="Second booking date">
+                </div>
             </div>
         </div>
     </div>

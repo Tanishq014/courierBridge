@@ -13,6 +13,7 @@ class Shipment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     booking_date = Column(DateTime, index=True, default=now_ist)
+    second_booking_date = Column(DateTime, nullable=True)
     
     # 1. Names and Destination (Messy fields)
     customer_name = Column(String, index=True)

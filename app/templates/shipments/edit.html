@@ -9,17 +9,26 @@
         <h1>Edit shipment</h1>
         <p class="page-description">Update booking, financial, and tracking details for {{ shipment.customer_name }}.</p>
     </div>
-    <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
+    <div class="page-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="/shipments" class="btn btn-secondary">Cancel</a>
+        <button form="edit-shipment-form" type="submit" class="btn btn-primary">Save changes</button>
+    </div>
 </header>
 
 <div class="card form-card">
-    <form method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form compact-shipment-form">
+    <form id="edit-shipment-form" method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form compact-shipment-form">
 
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
-            <div class="form-group inline-date">
-                <label>Booking Date <span class="required">*</span></label>
-                <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-left: auto;">
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Booking Date <span class="required">*</span></label>
+                    <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+                </div>
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Second Date</label>
+                    <input type="date" name="second_booking_date" value="{% if shipment.second_booking_date %}{{ shipment.second_booking_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
             </div>
         </div>
         <div class="grid-4">

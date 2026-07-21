@@ -379,7 +379,9 @@ def list_shipments(
     custom_duty: str = "",
     service: str = "",
     quick: str = "",
-    date: str = ""
+    date: str = "",
+    weight_from: str = "",
+    weight_to: str = ""
 ):
     query = db.query(Shipment).outerjoin(TrackingNumber)
 
@@ -419,10 +421,23 @@ def list_shipments(
             Shipment.courier_company.ilike(normalized_service_filter),
             Shipment.tracking_numbers.any(TrackingNumber.courier_name.ilike(normalized_service_filter))
         ))
+        
+
     shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
 
     terminal_statuses = {"delivered", "rto", "return_damage"}
     today = now_ist().date()
+
+    def get_effective_weight(shipment):
+        cust_w = parse_rate_details(shipment.raw_excel_notes).get('customer_charged_weight')
+        if cust_w:
+            try:
+                return float(cust_w)
+            except ValueError:
+                pass
+        if shipment.charged_weight is not None:
+            return float(shipment.charged_weight)
+        return None
 
     def shipment_date(shipment):
         if not shipment.booking_date:
@@ -442,6 +457,20 @@ def list_shipments(
         if not shipment.booking_date or not shipment.promised_days_number or not is_active(shipment):
             return False
         return shipment.booking_date.date() + timedelta(days=shipment.promised_days_number) < today
+
+    if weight_from and weight_from.strip():
+        try:
+            w_from = float(weight_from.strip())
+            shipments = [s for s in shipments if get_effective_weight(s) is not None and get_effective_weight(s) >= w_from]
+        except ValueError:
+            pass
+
+    if weight_to and weight_to.strip():
+        try:
+            w_to = float(weight_to.strip())
+            shipments = [s for s in shipments if get_effective_weight(s) is not None and get_effective_weight(s) <= w_to]
+        except ValueError:
+            pass
 
     if date == "today" or quick == "today":
         shipments = [s for s in shipments if shipment_date(s) == today]
@@ -533,6 +562,8 @@ def list_shipments(
         "service": normalized_service_filter,
         "quick": quick,
         "date": date,
+        "weight_from": weight_from,
+        "weight_to": weight_to,
     })
 
 @router.get("/new")
@@ -598,6 +629,7 @@ def create_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    second_booking_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
@@ -622,6 +654,13 @@ def create_shipment(
     if booking_date and booking_date.strip():
         try:
             parsed_booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+            
+    parsed_second_booking_date = None
+    if second_booking_date and second_booking_date.strip():
+        try:
+            parsed_second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
         except ValueError:
             pass
 
@@ -668,6 +707,7 @@ def create_shipment(
 
     shipment = Shipment(
         booking_date=parsed_booking_date,
+        second_booking_date=parsed_second_booking_date,
         customer_name=customer_name,
         receiver_name=receiver_name,
         destination_country=normalize_country(destination_country),
@@ -732,6 +772,7 @@ def create_shipment(
     return RedirectResponse(url="/shipments", status_code=303)
 @router.post("/{shipment_id}/quick-update")
 def quick_update_shipment(
+    request: Request,
     shipment_id: int,
     db: Session = Depends(get_db),
     overall_status: str = Form("booked"),
@@ -744,6 +785,7 @@ def quick_update_shipment(
     custom_duty: str | None = Form(None),
     row_color: str | None = Form(None),
     booking_date: str = Form(""),
+    second_booking_date: str = Form(""),
     next_url: str = Form("/shipments")
 ):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
@@ -770,6 +812,12 @@ def quick_update_shipment(
         except ValueError:
             pass
 
+    if second_booking_date and second_booking_date.strip():
+        try:
+            shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
     if row_color is not None and row_color.strip() != "":
         selected_color = row_color.strip().lower()
         if selected_color == "clear":
@@ -782,6 +830,9 @@ def quick_update_shipment(
     db.commit()
     register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
+
+    if request.headers.get("accept", "").startswith("application/json") or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return {"status": "success", "message": "Shipment updated successfully"}
 
     return RedirectResponse(url=redirect_url, status_code=303)
 @router.get("/{shipment_id}")
@@ -921,6 +972,7 @@ def update_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    second_booking_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
@@ -953,6 +1005,16 @@ def update_shipment(
             shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
         except ValueError:
             pass
+
+    if second_booking_date and second_booking_date.strip():
+        try:
+            shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+            
+    # Set to None if explicitly cleared (if you want clearing to be possible, maybe handle empty string)
+    if not second_booking_date or second_booking_date.strip() == "":
+        shipment.second_booking_date = None
 
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
