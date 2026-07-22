@@ -1,11 +1,16 @@
 from typing import List, Dict
 from app.rates.providers.base import RateProvider
+from app.rates.providers.quickship.provider import QuickShipProvider
+from app.rates.providers.overseas.provider import OverseasProvider
 
 class ProviderRegistry:
     # TODO: Provider registration should eventually become configuration-driven.
     # This will allow operators to enable or disable providers without modifying code.
     def __init__(self):
         self._providers: Dict[str, RateProvider] = {}
+        # Register available providers
+        self.register(QuickShipProvider())
+        self.register(OverseasProvider())
 
     def register(self, provider: RateProvider):
         """Registers a new provider."""

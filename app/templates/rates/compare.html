@@ -538,6 +538,7 @@
                     stateSelect.select2({
                         placeholder: "Select state...",
                         allowClear: true,
+                        tags: true,
                         theme: "classic"
                     });
                     
@@ -785,75 +786,98 @@
         const fastestId = sortedByTime.length > 0 ? sortedByTime[0].providerCode + sortedByTime[0].serviceCode : null;
 
         let html = '';
-        quotes.forEach(quote => {
-            const uid = quote.providerCode + quote.serviceCode;
-            let cornerBadge = '';
-            if (uid === cheapestId) cornerBadge = '<div class="quote-badge">CHEAPEST</div>';
-            else if (uid === fastestId) cornerBadge = '<div class="quote-badge fastest">FASTEST</div>';
-            
-            let transitText = quote.transitEstimate ? `${quote.transitEstimate} Days` : 'Varies';
-            
-            let logoHtml = `<div class="provider-logo-container">`;
-            if (quote.logo) {
-                logoHtml += `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo">`;
-            }
-            logoHtml += `</div>`;
-            
-            let inlineBadges = '';
-            if (quote.zone) inlineBadges += `<span class="badge-sm badge-zone">Zone ${quote.zone}</span>`;
-            if (quote.badges && quote.badges.includes('extended_area')) inlineBadges += `<span class="badge-sm badge-ext">Extended Area</span>`;
-            
-            let breakdownHtml = '';
-            if (quote.charges && quote.charges.length > 0) {
-                breakdownHtml = `<details class="charge-breakdown">
-                    <summary>Breakdown</summary>
-                    <div class="charge-breakdown-list">
-                        ${quote.charges.map(c => `<div class="charge-item"><span>${c.name}</span><span>${c.amount.toFixed(2)}</span></div>`).join('')}
-                    </div>
-                </details>`;
-            }
-
-            const fuelSurcharge = quote.charges ? quote.charges.find(c => c.name.toLowerCase().includes('fuel')) : null;
-
-            html += `
-            <div class="quote-card">
-                ${cornerBadge}
-                
-                <div class="quote-col-main">
-                    ${logoHtml}
-                    <div class="provider-info">
-                        <div class="provider-name">${quote.provider}</div>
-                        <div class="service-name">${quote.service}</div>
-                        ${inlineBadges ? `<div class="badges-inline">${inlineBadges}</div>` : ''}
-                    </div>
-                </div>
-                
-                <div class="quote-col-stats">
-                    <div class="stat-group">
-                        <span class="stat-val">${transitText}</span>
-                        <span class="stat-lbl">Transit</span>
-                    </div>
-                    <div class="stat-group">
-                        <span class="stat-val">${quote.chargeableWeight} kg</span>
-                        <span class="stat-lbl">Weight</span>
-                    </div>
-                    ${fuelSurcharge ? `
-                    <div class="stat-group">
-                        <span class="stat-val">${fuelSurcharge.amount.toFixed(2)}</span>
-                        <span class="stat-lbl">Fuel</span>
-                    </div>` : ''}
-                </div>
-                
-                <div class="quote-col-price">
-                    <div class="price-main">
-                        <span class="price-amount">${(quote.totalPrice + (quote.gst || 0)).toFixed(2)}</span>
-                        <span class="price-currency">${quote.currency}</span>
-                    </div>
-                    ${quote.gst > 0 ? `<div class="price-tax">Includes ${quote.gst.toFixed(2)} GST</div>` : ''}
-                    ${breakdownHtml}
-                </div>
-            </div>`;
+        
+        // Group quotes by API Provider (QuickShip vs Overseas)
+        const grouped = {};
+        const providerNames = {
+            'quickship': 'QuickShip',
+            'overseas': 'Overseas Logistics'
+        };
+        
+        quotes.forEach(q => {
+            const apiCode = q.providerCode; // 'quickship' or 'overseas'
+            const sectionName = providerNames[apiCode] || apiCode;
+            if (!grouped[sectionName]) grouped[sectionName] = [];
+            grouped[sectionName].push(q);
         });
+
+        for (const [providerName, providerQuotes] of Object.entries(grouped)) {
+            html += `<h4 style="margin: 24px 0 12px 0; font-size: 15px; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">${providerName}</h4>`;
+            
+            providerQuotes.forEach(quote => {
+                const uid = quote.providerCode + quote.serviceCode;
+                let cornerBadge = '';
+                if (uid === cheapestId) cornerBadge = '<div class="quote-badge">CHEAPEST</div>';
+                else if (uid === fastestId) cornerBadge = '<div class="quote-badge fastest">FASTEST</div>';
+                
+                let transitText = quote.transitEstimate ? `${quote.transitEstimate} Days` : 'Varies';
+                
+                let logoHtml = `<div class="provider-logo-container">`;
+                if (quote.logo) {
+                    logoHtml += `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo">`;
+                }
+                logoHtml += `</div>`;
+                
+                let inlineBadges = '';
+                if (quote.zone) inlineBadges += `<span class="badge-sm badge-zone">Zone ${quote.zone}</span>`;
+                if (quote.badges && quote.badges.includes('extended_area')) inlineBadges += `<span class="badge-sm badge-ext">Extended Area</span>`;
+                
+                let breakdownHtml = '';
+                if (quote.charges && quote.charges.length > 0) {
+                    breakdownHtml = `<details class="charge-breakdown">
+                        <summary>Breakdown</summary>
+                        <div class="charge-breakdown-list">
+                            ${quote.charges.map(c => `<div class="charge-item"><span>${c.name}</span><span>${c.amount.toFixed(2)}</span></div>`).join('')}
+                        </div>
+                    </details>`;
+                }
+
+                const fuelSurcharge = quote.charges ? quote.charges.find(c => c.name.toLowerCase().includes('fuel')) : null;
+
+                const finalPrice = quote.totalPrice + (quote.gst || 0);
+                const perKgRate = quote.chargeableWeight > 0 ? (finalPrice / quote.chargeableWeight) : 0;
+
+                html += `
+                <div class="quote-card">
+                    ${cornerBadge}
+                    
+                    <div class="quote-col-main">
+                        ${logoHtml}
+                        <div class="provider-info">
+                            <div class="provider-name">${quote.provider}</div>
+                            <div class="service-name">${quote.service}</div>
+                            ${inlineBadges ? `<div class="badges-inline">${inlineBadges}</div>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="quote-col-stats">
+                        <div class="stat-group">
+                            <span class="stat-val">${transitText}</span>
+                            <span class="stat-lbl">Transit</span>
+                        </div>
+                        <div class="stat-group">
+                            <span class="stat-val">${quote.chargeableWeight} kg</span>
+                            <span class="stat-lbl">Weight</span>
+                        </div>
+                        ${fuelSurcharge ? `
+                        <div class="stat-group">
+                            <span class="stat-val">${fuelSurcharge.amount.toFixed(2)}</span>
+                            <span class="stat-lbl">Fuel</span>
+                        </div>` : ''}
+                    </div>
+                    
+                    <div class="quote-col-price">
+                        <div class="price-main">
+                            <span class="price-amount">${finalPrice.toFixed(2)}</span>
+                            <span class="price-currency">${quote.currency}</span>
+                        </div>
+                        <div class="price-tax">${perKgRate.toFixed(2)} ${quote.currency} / kg</div>
+                        ${breakdownHtml}
+                    </div>
+                </div>`;
+            });
+        }
+        
         container.innerHTML = html;
     }
 </script>

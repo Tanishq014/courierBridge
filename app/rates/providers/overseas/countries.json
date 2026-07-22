@@ -1,0 +1,1307 @@
+{
+    "AF": {
+        "canonical_iso2": "AF",
+        "iso2": "AF",
+        "display_name": "AFGANISTAN"
+    },
+    "AL": {
+        "canonical_iso2": "AL",
+        "iso2": "AL",
+        "display_name": "ALBANIA"
+    },
+    "DZ": {
+        "canonical_iso2": "DZ",
+        "iso2": "DZ",
+        "display_name": "ALGERIA"
+    },
+    "AS": {
+        "canonical_iso2": "AS",
+        "iso2": "AS",
+        "display_name": "AMERICAN SAMOA"
+    },
+    "AD": {
+        "canonical_iso2": "AD",
+        "iso2": "AD",
+        "display_name": "ANDORRA"
+    },
+    "AO": {
+        "canonical_iso2": "AO",
+        "iso2": "AO",
+        "display_name": "ANGOLA"
+    },
+    "AI": {
+        "canonical_iso2": "AI",
+        "iso2": "AI",
+        "display_name": "ANGULIA"
+    },
+    "AG": {
+        "canonical_iso2": "AG",
+        "iso2": "AG",
+        "display_name": "ANTIGUA & BARBADOS"
+    },
+    "AR": {
+        "canonical_iso2": "AR",
+        "iso2": "AR",
+        "display_name": "ARGENTINA"
+    },
+    "AM": {
+        "canonical_iso2": "AM",
+        "iso2": "AM",
+        "display_name": "ARMENIA"
+    },
+    "AW": {
+        "canonical_iso2": "AW",
+        "iso2": "AW",
+        "display_name": "ARUBA"
+    },
+    "AU": {
+        "canonical_iso2": "AU",
+        "iso2": "AU",
+        "display_name": "AUSTRALIA"
+    },
+    "AT": {
+        "canonical_iso2": "AT",
+        "iso2": "AT",
+        "display_name": "AUSTRIA"
+    },
+    "AZ": {
+        "canonical_iso2": "AZ",
+        "iso2": "AZ",
+        "display_name": "AZERBAIJAN"
+    },
+    "BS": {
+        "canonical_iso2": "BS",
+        "iso2": "BS",
+        "display_name": "BAHAMAS"
+    },
+    "BH": {
+        "canonical_iso2": "BH",
+        "iso2": "BH",
+        "display_name": "BAHRAIN"
+    },
+    "BD": {
+        "canonical_iso2": "BD",
+        "iso2": "BD",
+        "display_name": "BANGLADESH"
+    },
+    "BB": {
+        "canonical_iso2": "BB",
+        "iso2": "BB",
+        "display_name": "BARBADOS"
+    },
+    "BY": {
+        "canonical_iso2": "BY",
+        "iso2": "BY",
+        "display_name": "BELARUS"
+    },
+    "BE": {
+        "canonical_iso2": "BE",
+        "iso2": "BE",
+        "display_name": "BELGIUM"
+    },
+    "BZ": {
+        "canonical_iso2": "BZ",
+        "iso2": "BZ",
+        "display_name": "BELIZE"
+    },
+    "BJ": {
+        "canonical_iso2": "BJ",
+        "iso2": "BJ",
+        "display_name": "BENIN"
+    },
+    "BM": {
+        "canonical_iso2": "BM",
+        "iso2": "BM",
+        "display_name": "BERMUDA"
+    },
+    "BT": {
+        "canonical_iso2": "BT",
+        "iso2": "BT",
+        "display_name": "BHUTAN"
+    },
+    "BO": {
+        "canonical_iso2": "BO",
+        "iso2": "BO",
+        "display_name": "BOLIVIA"
+    },
+    "BQ": {
+        "canonical_iso2": "BQ",
+        "iso2": "BQ",
+        "display_name": "BONAIRE"
+    },
+    "BA": {
+        "canonical_iso2": "BA",
+        "iso2": "BA",
+        "display_name": "BOSNIA AND HERZEGOVINA"
+    },
+    "BW": {
+        "canonical_iso2": "BW",
+        "iso2": "BW",
+        "display_name": "BOTSWANA"
+    },
+    "BV": {
+        "canonical_iso2": "BV",
+        "iso2": "BV",
+        "display_name": "BOUVET ISL"
+    },
+    "BR": {
+        "canonical_iso2": "BR",
+        "iso2": "BR",
+        "display_name": "BRAZIL"
+    },
+    "IO": {
+        "canonical_iso2": "IO",
+        "iso2": "IO",
+        "display_name": "BRITISH INDIAN OCEAN"
+    },
+    "VG": {
+        "canonical_iso2": "VG",
+        "iso2": "VG",
+        "display_name": "BRITISH VIRGIN ISL"
+    },
+    "BN": {
+        "canonical_iso2": "BN",
+        "iso2": "BN",
+        "display_name": "BRUNEI"
+    },
+    "BG": {
+        "canonical_iso2": "BG",
+        "iso2": "BG",
+        "display_name": "BULGARIA"
+    },
+    "BF": {
+        "canonical_iso2": "BF",
+        "iso2": "BF",
+        "display_name": "BURKINA FASO"
+    },
+    "BI": {
+        "canonical_iso2": "BI",
+        "iso2": "BI",
+        "display_name": "BURUNDI"
+    },
+    "KH": {
+        "canonical_iso2": "KH",
+        "iso2": "KH",
+        "display_name": "CAMBODIA"
+    },
+    "CM": {
+        "canonical_iso2": "CM",
+        "iso2": "CM",
+        "display_name": "CAMEROON"
+    },
+    "CA": {
+        "canonical_iso2": "CA",
+        "iso2": "CA",
+        "display_name": "CANADA"
+    },
+    "IC": {
+        "canonical_iso2": "IC",
+        "iso2": "IC",
+        "display_name": "CANARY ISL"
+    },
+    "CV": {
+        "canonical_iso2": "CV",
+        "iso2": "CV",
+        "display_name": "CAPE VERDE"
+    },
+    "KY": {
+        "canonical_iso2": "KY",
+        "iso2": "KY",
+        "display_name": "CAYMAN ISL"
+    },
+    "CF": {
+        "canonical_iso2": "CF",
+        "iso2": "CF",
+        "display_name": "CENTRAL AFRICAN REP"
+    },
+    "TD": {
+        "canonical_iso2": "TD",
+        "iso2": "TD",
+        "display_name": "CHAD"
+    },
+    "NN": {
+        "canonical_iso2": "NN",
+        "iso2": "NN",
+        "display_name": "CHANNEL ISL"
+    },
+    "CL": {
+        "canonical_iso2": "CL",
+        "iso2": "CL",
+        "display_name": "CHILE"
+    },
+    "CN": {
+        "canonical_iso2": "CN",
+        "iso2": "CN",
+        "display_name": "CHINA"
+    },
+    "CC": {
+        "canonical_iso2": "CC",
+        "iso2": "CC",
+        "display_name": "COCOS ISL"
+    },
+    "CO": {
+        "canonical_iso2": "CO",
+        "iso2": "CO",
+        "display_name": "COLOMBIA"
+    },
+    "KM": {
+        "canonical_iso2": "KM",
+        "iso2": "KM",
+        "display_name": "COMOROS"
+    },
+    "CG": {
+        "canonical_iso2": "CG",
+        "iso2": "CG",
+        "display_name": "CONGO"
+    },
+    "CK": {
+        "canonical_iso2": "CK",
+        "iso2": "CK",
+        "display_name": "COOK ISL"
+    },
+    "CR": {
+        "canonical_iso2": "CR",
+        "iso2": "CR",
+        "display_name": "COSTA RICA"
+    },
+    "HR": {
+        "canonical_iso2": "HR",
+        "iso2": "HR",
+        "display_name": "CROATIA"
+    },
+    "CU": {
+        "canonical_iso2": "CU",
+        "iso2": "CU",
+        "display_name": "CUBA"
+    },
+    "XC": {
+        "canonical_iso2": "XC",
+        "iso2": "XC",
+        "display_name": "CURACAO"
+    },
+    "CY": {
+        "canonical_iso2": "CY",
+        "iso2": "CY",
+        "display_name": "CYPRUS"
+    },
+    "CZ": {
+        "canonical_iso2": "CZ",
+        "iso2": "CZ",
+        "display_name": "CZECH REP"
+    },
+    "CD": {
+        "canonical_iso2": "CD",
+        "iso2": "CD",
+        "display_name": "DEMOCRATIC REPUBLIC OF THE CONGO"
+    },
+    "DK": {
+        "canonical_iso2": "DK",
+        "iso2": "DK",
+        "display_name": "DENMARK"
+    },
+    "DJ": {
+        "canonical_iso2": "DJ",
+        "iso2": "DJ",
+        "display_name": "DJIBOUTI"
+    },
+    "DM": {
+        "canonical_iso2": "DM",
+        "iso2": "DM",
+        "display_name": "DOMINICA"
+    },
+    "DO": {
+        "canonical_iso2": "DO",
+        "iso2": "DO",
+        "display_name": "DOMINICAN REP"
+    },
+    "EC": {
+        "canonical_iso2": "EC",
+        "iso2": "EC",
+        "display_name": "ECUADOR"
+    },
+    "EG": {
+        "canonical_iso2": "EG",
+        "iso2": "EG",
+        "display_name": "EGYPT"
+    },
+    "SV": {
+        "canonical_iso2": "SV",
+        "iso2": "SV",
+        "display_name": "EL SALVADOR"
+    },
+    "GQ": {
+        "canonical_iso2": "GQ",
+        "iso2": "GQ",
+        "display_name": "EQUATORIAL GUINEA"
+    },
+    "ER": {
+        "canonical_iso2": "ER",
+        "iso2": "ER",
+        "display_name": "ERITREA"
+    },
+    "EE": {
+        "canonical_iso2": "EE",
+        "iso2": "EE",
+        "display_name": "ESTONIA"
+    },
+    "ET": {
+        "canonical_iso2": "ET",
+        "iso2": "ET",
+        "display_name": "ETHIOPIA"
+    },
+    "FK": {
+        "canonical_iso2": "FK",
+        "iso2": "FK",
+        "display_name": "FALKLAND ISL"
+    },
+    "FO": {
+        "canonical_iso2": "FO",
+        "iso2": "FO",
+        "display_name": "FAROE ISL"
+    },
+    "FJ": {
+        "canonical_iso2": "FJ",
+        "iso2": "FJ",
+        "display_name": "FIJI ISL"
+    },
+    "FI": {
+        "canonical_iso2": "FI",
+        "iso2": "FI",
+        "display_name": "FINLAND"
+    },
+    "FR": {
+        "canonical_iso2": "FR",
+        "iso2": "FR",
+        "display_name": "FRANCE"
+    },
+    "GF": {
+        "canonical_iso2": "GF",
+        "iso2": "GF",
+        "display_name": "FRENCH GUINEA"
+    },
+    "PF": {
+        "canonical_iso2": "PF",
+        "iso2": "PF",
+        "display_name": "FRENCH POLYNESIA/TAHITI"
+    },
+    "GA": {
+        "canonical_iso2": "GA",
+        "iso2": "GA",
+        "display_name": "GABON"
+    },
+    "GM": {
+        "canonical_iso2": "GM",
+        "iso2": "GM",
+        "display_name": "GAMBIA"
+    },
+    "GE": {
+        "canonical_iso2": "GE",
+        "iso2": "GE",
+        "display_name": "GEORGIA"
+    },
+    "DE": {
+        "canonical_iso2": "DE",
+        "iso2": "DE",
+        "display_name": "GERMANY"
+    },
+    "GH": {
+        "canonical_iso2": "GH",
+        "iso2": "GH",
+        "display_name": "GHANA"
+    },
+    "GI": {
+        "canonical_iso2": "GI",
+        "iso2": "GI",
+        "display_name": "GIBRALTOR"
+    },
+    "GR": {
+        "canonical_iso2": "GR",
+        "iso2": "GR",
+        "display_name": "GREECE"
+    },
+    "GL": {
+        "canonical_iso2": "GL",
+        "iso2": "GL",
+        "display_name": "GREENLAND"
+    },
+    "GD": {
+        "canonical_iso2": "GD",
+        "iso2": "GD",
+        "display_name": "GRENADA"
+    },
+    "GP": {
+        "canonical_iso2": "GP",
+        "iso2": "GP",
+        "display_name": "GUADELOUPE"
+    },
+    "GU": {
+        "canonical_iso2": "GU",
+        "iso2": "GU",
+        "display_name": "GUAM"
+    },
+    "GT": {
+        "canonical_iso2": "GT",
+        "iso2": "GT",
+        "display_name": "GUATEMALA"
+    },
+    "GG": {
+        "canonical_iso2": "GG",
+        "iso2": "GG",
+        "display_name": "GUERNSEY"
+    },
+    "GN": {
+        "canonical_iso2": "GN",
+        "iso2": "GN",
+        "display_name": "GUINEA REP"
+    },
+    "GW": {
+        "canonical_iso2": "GW",
+        "iso2": "GW",
+        "display_name": "GUINEA-BISSAU"
+    },
+    "GY": {
+        "canonical_iso2": "GY",
+        "iso2": "GY",
+        "display_name": "GUYANA"
+    },
+    "HT": {
+        "canonical_iso2": "HT",
+        "iso2": "HT",
+        "display_name": "HAITI"
+    },
+    "HM": {
+        "canonical_iso2": "HM",
+        "iso2": "HM",
+        "display_name": "HEARD & MCDONALD ISL"
+    },
+    "HO": {
+        "canonical_iso2": "HO",
+        "iso2": "HO",
+        "display_name": "HOLLAND"
+    },
+    "HN": {
+        "canonical_iso2": "HN",
+        "iso2": "HN",
+        "display_name": "HONDURAS"
+    },
+    "HK": {
+        "canonical_iso2": "HK",
+        "iso2": "HK",
+        "display_name": "HONG KONG"
+    },
+    "HU": {
+        "canonical_iso2": "HU",
+        "iso2": "HU",
+        "display_name": "HUNGARY"
+    },
+    "IS": {
+        "canonical_iso2": "IS",
+        "iso2": "IS",
+        "display_name": "ICELAND"
+    },
+    "IN": {
+        "canonical_iso2": "IN",
+        "iso2": "IN",
+        "display_name": "INDIA"
+    },
+    "ID": {
+        "canonical_iso2": "ID",
+        "iso2": "ID",
+        "display_name": "INDONESIA"
+    },
+    "IR": {
+        "canonical_iso2": "IR",
+        "iso2": "IR",
+        "display_name": "IRAN"
+    },
+    "IQ": {
+        "canonical_iso2": "IQ",
+        "iso2": "IQ",
+        "display_name": "IRAQ"
+    },
+    "IE": {
+        "canonical_iso2": "IE",
+        "iso2": "IE",
+        "display_name": "IRELAND"
+    },
+    "IM": {
+        "canonical_iso2": "IM",
+        "iso2": "IM",
+        "display_name": "ISLE OF MAN"
+    },
+    "IL": {
+        "canonical_iso2": "IL",
+        "iso2": "IL",
+        "display_name": "ISRAEL"
+    },
+    "IT": {
+        "canonical_iso2": "IT",
+        "iso2": "IT",
+        "display_name": "ITALY"
+    },
+    "CI": {
+        "canonical_iso2": "CI",
+        "iso2": "CI",
+        "display_name": "IVORY COST"
+    },
+    "JM": {
+        "canonical_iso2": "JM",
+        "iso2": "JM",
+        "display_name": "JAMAICA"
+    },
+    "JP": {
+        "canonical_iso2": "JP",
+        "iso2": "JP",
+        "display_name": "JAPAN"
+    },
+    "JE": {
+        "canonical_iso2": "JE",
+        "iso2": "JE",
+        "display_name": "JERSEY"
+    },
+    "JO": {
+        "canonical_iso2": "JO",
+        "iso2": "JO",
+        "display_name": "JORDAN"
+    },
+    "KZ": {
+        "canonical_iso2": "KZ",
+        "iso2": "KZ",
+        "display_name": "KAZAKISTAN"
+    },
+    "KE": {
+        "canonical_iso2": "KE",
+        "iso2": "KE",
+        "display_name": "KENYA"
+    },
+    "KI": {
+        "canonical_iso2": "KI",
+        "iso2": "KI",
+        "display_name": "KIRIBATI"
+    },
+    "KV": {
+        "canonical_iso2": "KV",
+        "iso2": "KV",
+        "display_name": "KOSOVO"
+    },
+    "KW": {
+        "canonical_iso2": "KW",
+        "iso2": "KW",
+        "display_name": "KUWAIT"
+    },
+    "KG": {
+        "canonical_iso2": "KG",
+        "iso2": "KG",
+        "display_name": "KYRGYZSTAN"
+    },
+    "LA": {
+        "canonical_iso2": "LA",
+        "iso2": "LA",
+        "display_name": "LAOS"
+    },
+    "LV": {
+        "canonical_iso2": "LV",
+        "iso2": "LV",
+        "display_name": "LATVIA"
+    },
+    "LB": {
+        "canonical_iso2": "LB",
+        "iso2": "LB",
+        "display_name": "LEBANON"
+    },
+    "LS": {
+        "canonical_iso2": "LS",
+        "iso2": "LS",
+        "display_name": "LESOTHO"
+    },
+    "LR": {
+        "canonical_iso2": "LR",
+        "iso2": "LR",
+        "display_name": "LIBERIA"
+    },
+    "LY": {
+        "canonical_iso2": "LY",
+        "iso2": "LY",
+        "display_name": "LIBYA"
+    },
+    "LI": {
+        "canonical_iso2": "LI",
+        "iso2": "LI",
+        "display_name": "LIECHTENSTEIN"
+    },
+    "LT": {
+        "canonical_iso2": "LT",
+        "iso2": "LT",
+        "display_name": "LITHUANIA"
+    },
+    "LU": {
+        "canonical_iso2": "LU",
+        "iso2": "LU",
+        "display_name": "LUXEMBOURG"
+    },
+    "MO": {
+        "canonical_iso2": "MO",
+        "iso2": "MO",
+        "display_name": "MACAU"
+    },
+    "MK": {
+        "canonical_iso2": "MK",
+        "iso2": "MK",
+        "display_name": "MACEDONIA"
+    },
+    "MG": {
+        "canonical_iso2": "MG",
+        "iso2": "MG",
+        "display_name": "MADAGASCAR"
+    },
+    "MW": {
+        "canonical_iso2": "MW",
+        "iso2": "MW",
+        "display_name": "MALAWI"
+    },
+    "MY": {
+        "canonical_iso2": "MY",
+        "iso2": "MY",
+        "display_name": "MALAYSIA"
+    },
+    "MV": {
+        "canonical_iso2": "MV",
+        "iso2": "MV",
+        "display_name": "MALDIVES"
+    },
+    "ML": {
+        "canonical_iso2": "ML",
+        "iso2": "ML",
+        "display_name": "MALI"
+    },
+    "MT": {
+        "canonical_iso2": "MT",
+        "iso2": "MT",
+        "display_name": "MALTA"
+    },
+    "MH": {
+        "canonical_iso2": "MH",
+        "iso2": "MH",
+        "display_name": "MARSHAL ISL"
+    },
+    "MQ": {
+        "canonical_iso2": "MQ",
+        "iso2": "MQ",
+        "display_name": "MARTINIQUE"
+    },
+    "MR": {
+        "canonical_iso2": "MR",
+        "iso2": "MR",
+        "display_name": "MAURITANIA"
+    },
+    "MU": {
+        "canonical_iso2": "MU",
+        "iso2": "MU",
+        "display_name": "MAURITIUS"
+    },
+    "YT": {
+        "canonical_iso2": "YT",
+        "iso2": "YT",
+        "display_name": "MAYOTTE"
+    },
+    "MX": {
+        "canonical_iso2": "MX",
+        "iso2": "MX",
+        "display_name": "MEXICO"
+    },
+    "FM": {
+        "canonical_iso2": "FM",
+        "iso2": "FM",
+        "display_name": "MICRONESIA"
+    },
+    "MD": {
+        "canonical_iso2": "MD",
+        "iso2": "MD",
+        "display_name": "MOLDOVA"
+    },
+    "MC": {
+        "canonical_iso2": "MC",
+        "iso2": "MC",
+        "display_name": "MONACO"
+    },
+    "MN": {
+        "canonical_iso2": "MN",
+        "iso2": "MN",
+        "display_name": "MONGOLIA"
+    },
+    "ME": {
+        "canonical_iso2": "ME",
+        "iso2": "ME",
+        "display_name": "MONTENEGRO"
+    },
+    "MS": {
+        "canonical_iso2": "MS",
+        "iso2": "MS",
+        "display_name": "MONTSERRAT"
+    },
+    "MA": {
+        "canonical_iso2": "MA",
+        "iso2": "MA",
+        "display_name": "MOROCCO"
+    },
+    "MZ": {
+        "canonical_iso2": "MZ",
+        "iso2": "MZ",
+        "display_name": "MOZAMBIQUE"
+    },
+    "MM": {
+        "canonical_iso2": "MM",
+        "iso2": "MM",
+        "display_name": "MYANMAR"
+    },
+    "NA": {
+        "canonical_iso2": "NA",
+        "iso2": "NA",
+        "display_name": "NAMIBIA"
+    },
+    "NR": {
+        "canonical_iso2": "NR",
+        "iso2": "NR",
+        "display_name": "NAURU"
+    },
+    "NP": {
+        "canonical_iso2": "NP",
+        "iso2": "NP",
+        "display_name": "NEPAL"
+    },
+    "NL": {
+        "canonical_iso2": "NL",
+        "iso2": "NL",
+        "display_name": "NETHERLAND"
+    },
+    "AN": {
+        "canonical_iso2": "AN",
+        "iso2": "AN",
+        "display_name": "NETHERLANDS ANTILLES"
+    },
+    "NC": {
+        "canonical_iso2": "NC",
+        "iso2": "NC",
+        "display_name": "NEW CALEDONIA"
+    },
+    "NZ": {
+        "canonical_iso2": "NZ",
+        "iso2": "NZ",
+        "display_name": "NEW ZEALAND"
+    },
+    "NI": {
+        "canonical_iso2": "NI",
+        "iso2": "NI",
+        "display_name": "NICARAGUA"
+    },
+    "NE": {
+        "canonical_iso2": "NE",
+        "iso2": "NE",
+        "display_name": "NIGER"
+    },
+    "NG": {
+        "canonical_iso2": "NG",
+        "iso2": "NG",
+        "display_name": "NIGERIA"
+    },
+    "NU": {
+        "canonical_iso2": "NU",
+        "iso2": "NU",
+        "display_name": "NIUE"
+    },
+    "NF": {
+        "canonical_iso2": "NF",
+        "iso2": "NF",
+        "display_name": "NORFOLK ISL"
+    },
+    "KP": {
+        "canonical_iso2": "KP",
+        "iso2": "KP",
+        "display_name": "NORTH KOREA"
+    },
+    "MP": {
+        "canonical_iso2": "MP",
+        "iso2": "MP",
+        "display_name": "NORTHERN MARIANA ISL"
+    },
+    "NO": {
+        "canonical_iso2": "NO",
+        "iso2": "NO",
+        "display_name": "NORWAY"
+    },
+    "NB": {
+        "canonical_iso2": "NB",
+        "iso2": "NB",
+        "display_name": "NOTHERN IRELAND"
+    },
+    "OM": {
+        "canonical_iso2": "OM",
+        "iso2": "OM",
+        "display_name": "OMAN"
+    },
+    "PK": {
+        "canonical_iso2": "PK",
+        "iso2": "PK",
+        "display_name": "PAKISTAN"
+    },
+    "PW": {
+        "canonical_iso2": "PW",
+        "iso2": "PW",
+        "display_name": "PALAU"
+    },
+    "PS": {
+        "canonical_iso2": "PS",
+        "iso2": "PS",
+        "display_name": "PALESTINE"
+    },
+    "PA": {
+        "canonical_iso2": "PA",
+        "iso2": "PA",
+        "display_name": "PANAMA"
+    },
+    "PG": {
+        "canonical_iso2": "PG",
+        "iso2": "PG",
+        "display_name": "PAPUA NEW GUINEA"
+    },
+    "PY": {
+        "canonical_iso2": "PY",
+        "iso2": "PY",
+        "display_name": "PARAGUAY"
+    },
+    "PE": {
+        "canonical_iso2": "PE",
+        "iso2": "PE",
+        "display_name": "PERU"
+    },
+    "PH": {
+        "canonical_iso2": "PH",
+        "iso2": "PH",
+        "display_name": "PHILIPPINES"
+    },
+    "PN": {
+        "canonical_iso2": "PN",
+        "iso2": "PN",
+        "display_name": "PITCAIRN"
+    },
+    "PL": {
+        "canonical_iso2": "PL",
+        "iso2": "PL",
+        "display_name": "POLAND"
+    },
+    "PT": {
+        "canonical_iso2": "PT",
+        "iso2": "PT",
+        "display_name": "PORTUGAL"
+    },
+    "PR": {
+        "canonical_iso2": "PR",
+        "iso2": "PR",
+        "display_name": "PUERTO RICO"
+    },
+    "QA": {
+        "canonical_iso2": "QA",
+        "iso2": "QA",
+        "display_name": "QATAR"
+    },
+    "RE": {
+        "canonical_iso2": "RE",
+        "iso2": "RE",
+        "display_name": "REUNION ISL"
+    },
+    "RT": {
+        "canonical_iso2": "RT",
+        "iso2": "RT",
+        "display_name": "RITA"
+    },
+    "RO": {
+        "canonical_iso2": "RO",
+        "iso2": "RO",
+        "display_name": "ROMANIA"
+    },
+    "RU": {
+        "canonical_iso2": "RU",
+        "iso2": "RU",
+        "display_name": "RUSSIA"
+    },
+    "RW": {
+        "canonical_iso2": "RW",
+        "iso2": "RW",
+        "display_name": "RWANDA"
+    },
+    "MF": {
+        "canonical_iso2": "MF",
+        "iso2": "MF",
+        "display_name": "SAINT MARTIN"
+    },
+    "SP": {
+        "canonical_iso2": "SP",
+        "iso2": "SP",
+        "display_name": "SAIPAN"
+    },
+    "WS": {
+        "canonical_iso2": "WS",
+        "iso2": "WS",
+        "display_name": "SAMOA"
+    },
+    "SM": {
+        "canonical_iso2": "SM",
+        "iso2": "SM",
+        "display_name": "SAN MARINO"
+    },
+    "ST": {
+        "canonical_iso2": "ST",
+        "iso2": "ST",
+        "display_name": "SAO TOME & PRINCIPE"
+    },
+    "SA": {
+        "canonical_iso2": "SA",
+        "iso2": "SA",
+        "display_name": "SAUDI ARABIA"
+    },
+    "SF": {
+        "canonical_iso2": "SF",
+        "iso2": "SF",
+        "display_name": "SCOTLAND"
+    },
+    "SN": {
+        "canonical_iso2": "SN",
+        "iso2": "SN",
+        "display_name": "SENEGAL"
+    },
+    "RS": {
+        "canonical_iso2": "RS",
+        "iso2": "RS",
+        "display_name": "SERBIA MONTENEGRO"
+    },
+    "SC": {
+        "canonical_iso2": "SC",
+        "iso2": "SC",
+        "display_name": "SEYCHELLES"
+    },
+    "SL": {
+        "canonical_iso2": "SL",
+        "iso2": "SL",
+        "display_name": "SIERRA LEONE"
+    },
+    "SG": {
+        "canonical_iso2": "SG",
+        "iso2": "SG",
+        "display_name": "SINGAPORE"
+    },
+    "SK": {
+        "canonical_iso2": "SK",
+        "iso2": "SK",
+        "display_name": "SLOVAKIA"
+    },
+    "SI": {
+        "canonical_iso2": "SI",
+        "iso2": "SI",
+        "display_name": "SLOVENIA"
+    },
+    "SB": {
+        "canonical_iso2": "SB",
+        "iso2": "SB",
+        "display_name": "SOLOMAN ISL"
+    },
+    "SO": {
+        "canonical_iso2": "SO",
+        "iso2": "SO",
+        "display_name": "SOMALILAND, REP OF (NORTH SOMALIA)"
+    },
+    "ZA": {
+        "canonical_iso2": "ZA",
+        "iso2": "ZA",
+        "display_name": "SOUTH AFRICA"
+    },
+    "GS": {
+        "canonical_iso2": "GS",
+        "iso2": "GS",
+        "display_name": "SOUTH GEORGIA ISL"
+    },
+    "KR": {
+        "canonical_iso2": "KR",
+        "iso2": "KR",
+        "display_name": "SOUTH KOREA"
+    },
+    "SS": {
+        "canonical_iso2": "SS",
+        "iso2": "SS",
+        "display_name": "SOUTH SUDAN"
+    },
+    "ES": {
+        "canonical_iso2": "ES",
+        "iso2": "ES",
+        "display_name": "SPAIN"
+    },
+    "LK": {
+        "canonical_iso2": "LK",
+        "iso2": "LK",
+        "display_name": "SRI LANKA"
+    },
+    "XY": {
+        "canonical_iso2": "XY",
+        "iso2": "XY",
+        "display_name": "ST BARTHELEMY"
+    },
+    "SW": {
+        "canonical_iso2": "SW",
+        "iso2": "SW",
+        "display_name": "ST CHRISTOFER"
+    },
+    "EU": {
+        "canonical_iso2": "EU",
+        "iso2": "EU",
+        "display_name": "ST EUSTATIUS"
+    },
+    "SH": {
+        "canonical_iso2": "SH",
+        "iso2": "SH",
+        "display_name": "ST HELENA"
+    },
+    "KN": {
+        "canonical_iso2": "KN",
+        "iso2": "KN",
+        "display_name": "ST KITTS & NEVIS"
+    },
+    "LC": {
+        "canonical_iso2": "LC",
+        "iso2": "LC",
+        "display_name": "ST LUCIA"
+    },
+    "XM": {
+        "canonical_iso2": "XM",
+        "iso2": "XM",
+        "display_name": "ST MATEEN"
+    },
+    "PM": {
+        "canonical_iso2": "PM",
+        "iso2": "PM",
+        "display_name": "ST PIERRE & MIQUELON"
+    },
+    "VC": {
+        "canonical_iso2": "VC",
+        "iso2": "VC",
+        "display_name": "ST VINCENT & GRENADI"
+    },
+    "SD": {
+        "canonical_iso2": "SD",
+        "iso2": "SD",
+        "display_name": "SUDAN"
+    },
+    "SR": {
+        "canonical_iso2": "SR",
+        "iso2": "SR",
+        "display_name": "SURINAME"
+    },
+    "SJ": {
+        "canonical_iso2": "SJ",
+        "iso2": "SJ",
+        "display_name": "SVALBARD & JAN MAYEN ISL"
+    },
+    "SZ": {
+        "canonical_iso2": "SZ",
+        "iso2": "SZ",
+        "display_name": "SWAZILAND"
+    },
+    "SE": {
+        "canonical_iso2": "SE",
+        "iso2": "SE",
+        "display_name": "SWEDEN"
+    },
+    "CH": {
+        "canonical_iso2": "CH",
+        "iso2": "CH",
+        "display_name": "SWITZERLAND"
+    },
+    "SY": {
+        "canonical_iso2": "SY",
+        "iso2": "SY",
+        "display_name": "SYRIA"
+    },
+    "TW": {
+        "canonical_iso2": "TW",
+        "iso2": "TW",
+        "display_name": "TAIWAN"
+    },
+    "TJ": {
+        "canonical_iso2": "TJ",
+        "iso2": "TJ",
+        "display_name": "TAJIKISTAN"
+    },
+    "TZ": {
+        "canonical_iso2": "TZ",
+        "iso2": "TZ",
+        "display_name": "TANZANIA"
+    },
+    "TH": {
+        "canonical_iso2": "TH",
+        "iso2": "TH",
+        "display_name": "THAILAND"
+    },
+    "TL": {
+        "canonical_iso2": "TL",
+        "iso2": "TL",
+        "display_name": "TIMOR LESTE"
+    },
+    "TI": {
+        "canonical_iso2": "TI",
+        "iso2": "TI",
+        "display_name": "TINIAN"
+    },
+    "TG": {
+        "canonical_iso2": "TG",
+        "iso2": "TG",
+        "display_name": "TOGO"
+    },
+    "TO": {
+        "canonical_iso2": "TO",
+        "iso2": "TO",
+        "display_name": "TONGA"
+    },
+    "TT": {
+        "canonical_iso2": "TT",
+        "iso2": "TT",
+        "display_name": "TRINIDAD & TOBAGO"
+    },
+    "TU": {
+        "canonical_iso2": "TU",
+        "iso2": "TU",
+        "display_name": "TRUK"
+    },
+    "TN": {
+        "canonical_iso2": "TN",
+        "iso2": "TN",
+        "display_name": "TUNISIA"
+    },
+    "TR": {
+        "canonical_iso2": "TR",
+        "iso2": "TR",
+        "display_name": "TURKEY"
+    },
+    "TM": {
+        "canonical_iso2": "TM",
+        "iso2": "TM",
+        "display_name": "TURKMENISTAN"
+    },
+    "TC": {
+        "canonical_iso2": "TC",
+        "iso2": "TC",
+        "display_name": "TURKS &  CAICAS ISL"
+    },
+    "TV": {
+        "canonical_iso2": "TV",
+        "iso2": "TV",
+        "display_name": "TUVALU"
+    },
+    "AE": {
+        "canonical_iso2": "AE",
+        "iso2": "AE",
+        "display_name": "UAE"
+    },
+    "UG": {
+        "canonical_iso2": "UG",
+        "iso2": "UG",
+        "display_name": "UGANDA"
+    },
+    "GB": {
+        "canonical_iso2": "GB",
+        "iso2": "GB",
+        "display_name": "UK"
+    },
+    "UA": {
+        "canonical_iso2": "UA",
+        "iso2": "UA",
+        "display_name": "UKRAINE"
+    },
+    "VR": {
+        "canonical_iso2": "VR",
+        "iso2": "VR",
+        "display_name": "UNION ISL"
+    },
+    "UY": {
+        "canonical_iso2": "UY",
+        "iso2": "UY",
+        "display_name": "URUGUAY"
+    },
+    "UM": {
+        "canonical_iso2": "UM",
+        "iso2": "UM",
+        "display_name": "US MINOR OUTLYING ISL"
+    },
+    "VI": {
+        "canonical_iso2": "VI",
+        "iso2": "VI",
+        "display_name": "US VIRGIN ISL"
+    },
+    "US": {
+        "canonical_iso2": "US",
+        "iso2": "US",
+        "display_name": "USA"
+    },
+    "UZ": {
+        "canonical_iso2": "UZ",
+        "iso2": "UZ",
+        "display_name": "UZBEKISTAN"
+    },
+    "VU": {
+        "canonical_iso2": "VU",
+        "iso2": "VU",
+        "display_name": "VANUATU"
+    },
+    "VA": {
+        "canonical_iso2": "VA",
+        "iso2": "VA",
+        "display_name": "VATICAN CITY"
+    },
+    "VE": {
+        "canonical_iso2": "VE",
+        "iso2": "VE",
+        "display_name": "VENEZUELA"
+    },
+    "VN": {
+        "canonical_iso2": "VN",
+        "iso2": "VN",
+        "display_name": "VIETNAM"
+    },
+    "WL": {
+        "canonical_iso2": "WL",
+        "iso2": "WL",
+        "display_name": "WALES"
+    },
+    "WF": {
+        "canonical_iso2": "WF",
+        "iso2": "WF",
+        "display_name": "WALLIS & FUTUNA ISL"
+    },
+    "EH": {
+        "canonical_iso2": "EH",
+        "iso2": "EH",
+        "display_name": "WESTERN SAHARA"
+    },
+    "YE": {
+        "canonical_iso2": "YE",
+        "iso2": "YE",
+        "display_name": "YEMEN"
+    },
+    "YU": {
+        "canonical_iso2": "YU",
+        "iso2": "YU",
+        "display_name": "YOGOSLAVIA"
+    },
+    "ZR": {
+        "canonical_iso2": "ZR",
+        "iso2": "ZR",
+        "display_name": "ZAIRE"
+    },
+    "ZM": {
+        "canonical_iso2": "ZM",
+        "iso2": "ZM",
+        "display_name": "ZAMBIA"
+    },
+    "ZW": {
+        "canonical_iso2": "ZW",
+        "iso2": "ZW",
+        "display_name": "ZIMBABWE"
+    }
+}
