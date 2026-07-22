@@ -81,9 +81,28 @@ class MawwParser:
                 if fsc > 0:
                     charges.append(Charge(name="Fuel Surcharge", amount=fsc, total=fsc))
                     
+                # Logo mapping based on service name
+                service_upper = service_name.upper()
+                logo_url = None
+                
+                # Material Design truck SVG for fallback
+                truck_svg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234a5568'><path d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/></svg>"
+
+                if "UPS" in service_upper:
+                    logo_url = "https://cdn.simpleicons.org/ups/00688B"
+                elif "FEDEX" in service_upper:
+                    logo_url = "https://cdn.simpleicons.org/fedex/4d148c"
+                elif "DHL" in service_upper:
+                    logo_url = "https://cdn.simpleicons.org/dhl/D40511"
+                elif "ARAMEX" in service_upper:
+                    logo_url = truck_svg
+                else:
+                    logo_url = truck_svg
+                    
                 quote = ShipmentQuote(
                     providerCode="maww",
                     provider="MAWW Logistics",
+                    logo=logo_url,
                     serviceCode=service_name.replace(" ", "_").upper(),
                     service=service_name,
                     totalPrice=total_amount - total_gst, # Base price without GST

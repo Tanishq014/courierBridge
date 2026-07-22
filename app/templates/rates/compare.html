@@ -749,11 +749,13 @@
             if (p.provider === 'quickship') providerNameMapped = 'QuickShip';
             if (p.provider === 'overseas') providerNameMapped = 'Overseas Logistics';
             if (p.provider === 'maww' || p.provider === 'MAWW Logistics') providerNameMapped = 'MAWW Logistics';
+            if (p.provider === 'atlantic' || p.provider === 'Atlantic Logistics') providerNameMapped = 'Atlantic Logistics';
 
             let providerCode = p.provider;
             if (providerNameMapped === 'QuickShip') providerCode = 'quickship';
             if (providerNameMapped === 'Overseas Logistics') providerCode = 'overseas';
             if (providerNameMapped === 'MAWW Logistics') providerCode = 'maww';
+            if (providerNameMapped === 'Atlantic Logistics') providerCode = 'atlantic';
             
             const providerQuotesCount = quotes ? quotes.filter(q => q.providerCode === providerCode).length : 0;
             
@@ -818,7 +820,8 @@
         const providerNames = {
             'quickship': 'QuickShip',
             'overseas': 'Overseas Logistics',
-            'maww': 'MAWW Logistics'
+            'maww': 'MAWW Logistics',
+            'atlantic': 'Atlantic Logistics'
         };
         
         quotes.forEach(q => {
@@ -828,7 +831,15 @@
             grouped[sectionName].push(q);
         });
 
-        for (const [providerName, providerQuotes] of Object.entries(grouped)) {
+        // Enforce the strict rendering order defined in providerNames
+        const orderedSections = Object.values(providerNames).filter(name => grouped[name]);
+        // Append any other unknown providers at the end just in case
+        Object.keys(grouped).forEach(name => {
+            if (!orderedSections.includes(name)) orderedSections.push(name);
+        });
+
+        for (const providerName of orderedSections) {
+            const providerQuotes = grouped[providerName];
             const sectionId = 'provider-section-' + providerName.trim().replace(/ /g, '-');
             html += `<h4 id="${sectionId}" style="margin: 16px 0 12px 0; font-size: 15px; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">${providerName}</h4>`;
             html += `<div class="quotes-grid">`;
