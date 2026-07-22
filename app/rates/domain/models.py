@@ -33,7 +33,7 @@ class ShipmentQuote(BaseModel):
     totalPrice: float
     gst: float = 0.0
     
-    transitDays: Optional[int] = None
+    transitEstimate: Optional[str] = None
     chargeableWeight: float
     volumetricWeight: float
     deadWeight: float

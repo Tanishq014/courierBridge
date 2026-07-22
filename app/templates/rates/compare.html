@@ -2,6 +2,8 @@
 {% block title %}Rate Compare - CourierBridge{% endblock %}
 
 {% block head %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
 /* Premium SaaS Dashboard CSS */
 .rate-compare-container {
@@ -67,6 +69,31 @@
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     background-color: #ffffff;
+}
+
+/* Select2 overrides to match our UI */
+.select2-container--classic .select2-selection--single {
+    height: 42px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    background-color: #f9fafb !important;
+    background-image: none !important;
+    display: flex;
+    align-items: center;
+}
+.select2-container--classic.select2-container--open .select2-selection--single {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+    background-color: #ffffff !important;
+}
+.select2-container--classic .select2-selection--single .select2-selection__rendered {
+    color: #1f2937 !important;
+    line-height: normal !important;
+}
+.select2-container--classic .select2-selection--single .select2-selection__arrow {
+    height: 40px !important;
+    border-left: none !important;
+    background: transparent !important;
 }
 
 .packages-section {
@@ -145,85 +172,163 @@
 
 .quote-card {
     background: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid #e5e7eb;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 24px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    transition: transform 0.2s, box-shadow 0.2s;
+    gap: 20px;
     position: relative;
     overflow: hidden;
 }
 .quote-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+    background: #f9fafb;
 }
 
 .quote-badge {
     position: absolute;
-    top: 12px;
-    right: -24px;
+    top: 0;
+    right: 0;
     background: #10b981;
     color: white;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 4px 24px;
-    transform: rotate(45deg);
+    padding: 4px 12px;
+    border-bottom-left-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 .quote-badge.fastest { background: #3b82f6; }
 
+.quote-col-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 250px;
+}
+.provider-logo-container {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.provider-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
 .provider-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 .provider-name {
-    font-size: 18px;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 700;
     color: #111827;
 }
 .service-name {
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 13px;
+    color: #4b5563;
 }
-
-.quote-details {
+.badges-inline {
     display: flex;
-    gap: 32px;
+    gap: 6px;
+    margin-top: 2px;
 }
-.detail-item {
+.badge-sm {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.badge-zone { background: #e5e7eb; color: #374151; }
+.badge-ext { background: #fef08a; color: #854d0e; }
+
+.quote-col-stats {
+    display: flex;
+    gap: 24px;
+    flex: 2;
+    justify-content: center;
+}
+.stat-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 2px;
 }
-.detail-label {
-    font-size: 12px;
-    color: #6b7280;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-}
-.detail-value {
-    font-size: 15px;
+.stat-val {
+    font-size: 14px;
     font-weight: 600;
     color: #1f2937;
 }
+.stat-lbl {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
-.quote-price {
+.quote-col-price {
     text-align: right;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.price-main {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
 }
 .price-amount {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     color: #111827;
 }
 .price-currency {
-    font-size: 14px;
+    font-size: 12px;
     color: #6b7280;
-    margin-left: 4px;
+    font-weight: 600;
+}
+.price-tax {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.charge-breakdown {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #6b7280;
+    width: 100%;
+}
+.charge-breakdown summary {
+    cursor: pointer;
+    text-align: right;
+    font-weight: 600;
+}
+.charge-breakdown-list {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.charge-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 /* Skeleton Loading */
@@ -243,13 +348,22 @@
         grid-template-columns: 1fr;
     }
     .quote-card {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 16px;
+        padding-top: 32px;
     }
-    .quote-details {
+    .quote-col-stats {
+        width: 100%;
+        justify-content: flex-start;
         flex-wrap: wrap;
     }
-    .quote-price {
+    .quote-col-price {
+        width: 100%;
+        align-items: flex-start;
+        text-align: left;
+    }
+    .charge-breakdown summary {
         text-align: left;
     }
 }
@@ -268,12 +382,10 @@
         <div class="form-panel">
             <form id="rateForm" onsubmit="event.preventDefault(); fetchQuotes();">
                 <div class="form-group" id="countryGroup">
-                    <label>Destination Country Code</label>
+                    <label>Destination Country</label>
                     <div class="country-input-wrapper">
-                        <!-- Text input for phase 1, can be swapped for select dynamically -->
-                        <input type="text" id="destinationCountry" name="destinationCountry" placeholder="e.g. CA, US, GB" required>
-                        <select id="destinationCountrySelect" name="destinationCountrySelect" style="display:none;" disabled>
-                            <option value="">Select country...</option>
+                        <select id="destinationCountry" name="destinationCountry" class="searchable-select" style="width: 100%;" required>
+                            <option value="">Search for a country...</option>
                             {% for code, name in countries.items() %}
                             <option value="{{ code }}">{{ name }}</option>
                             {% endfor %}
@@ -281,12 +393,17 @@
                     </div>
                 </div>
                 
+                <div class="form-group">
+                    <label>Postal Code</label>
+                    <input type="text" name="postalCode" required>
+                </div>
+                
                 <div class="form-group" id="stateGroup">
                     <label>State / Province Code</label>
                     <div class="state-input-wrapper">
                         <!-- Text input for phase 1, can be swapped for select dynamically -->
                         <input type="text" id="destinationState" name="destinationState" placeholder="e.g. CA, NY, ON" required>
-                        <select id="destinationStateSelect" name="destinationStateSelect" style="display:none;" disabled>
+                        <select id="destinationStateSelect" name="destinationStateSelect" style="display:none; width: 100%;" disabled>
                             <option value="">Select state...</option>
                         </select>
                     </div>
@@ -295,11 +412,6 @@
                 <div class="form-group">
                     <label>City</label>
                     <input type="text" name="destinationCity" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Postal Code</label>
-                    <input type="text" name="postalCode" required>
                 </div>
 
                 <div class="form-group">
@@ -311,13 +423,13 @@
                 </div>
 
                 <div class="packages-section">
-                    <label style="font-size: 13px; font-weight: 600; color: #374151;">Packages (L x W x H in cm, W in kg)</label>
+                    <label style="font-size: 13px; font-weight: 600; color: #374151;">Packages (Weight in kg, L x W x H in cm)</label>
                     <div id="packagesContainer">
                         <div class="package-row">
+                            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" required>
                             <input type="number" step="0.1" name="pkg_l[]" placeholder="L" required>
                             <input type="number" step="0.1" name="pkg_w[]" placeholder="W" required>
                             <input type="number" step="0.1" name="pkg_h[]" placeholder="H" required>
-                            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" required>
                             <span></span>
                         </div>
                     </div>
@@ -341,20 +453,208 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- jQuery and Select2 -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    function addPackage() {
+    let pendingStateRestore = null;
+
+    function saveFormState() {
+        const formData = {
+            destinationCountry: $('#destinationCountry').val(),
+            postalCode: $('input[name="postalCode"]').val(),
+            destinationCity: $('input[name="destinationCity"]').val(),
+            destinationState: $('#destinationStateSelect').prop('disabled') ? $('#destinationState').val() : $('#destinationStateSelect').val(),
+            shipmentType: $('select[name="shipmentType"]').val(),
+            packages: []
+        };
+        
+        $('.package-row').each(function() {
+            formData.packages.push({
+                weight: $(this).find('input[name="pkg_wt[]"]').val(),
+                length: $(this).find('input[name="pkg_l[]"]').val(),
+                width: $(this).find('input[name="pkg_w[]"]').val(),
+                height: $(this).find('input[name="pkg_h[]"]').val()
+            });
+        });
+        
+        sessionStorage.setItem('rateFormData', JSON.stringify(formData));
+    }
+
+    function addPackage(weight='', length='', width='', height='', showRemove=true) {
         const container = document.getElementById('packagesContainer');
         const row = document.createElement('div');
         row.className = 'package-row';
         row.innerHTML = `
-            <input type="number" step="0.1" name="pkg_l[]" placeholder="L" required>
-            <input type="number" step="0.1" name="pkg_w[]" placeholder="W" required>
-            <input type="number" step="0.1" name="pkg_h[]" placeholder="H" required>
-            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" required>
-            <button type="button" class="remove-pkg-btn" onclick="this.parentElement.remove()">×</button>
+            <input type="number" step="0.1" name="pkg_wt[]" placeholder="kg" value="${weight}" required>
+            <input type="number" step="0.1" name="pkg_l[]" placeholder="L" value="${length}" required>
+            <input type="number" step="0.1" name="pkg_w[]" placeholder="W" value="${width}" required>
+            <input type="number" step="0.1" name="pkg_h[]" placeholder="H" value="${height}" required>
+            <button type="button" class="remove-pkg-btn" onclick="this.parentElement.remove(); saveFormState();" ${showRemove ? '' : 'style="visibility: hidden;"'}>×</button>
         `;
         container.appendChild(row);
     }
+
+    $(document).ready(function() {
+        // Prevent form submission on Enter key globally
+        $('#rateForm').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $('.searchable-select').select2({
+            placeholder: "Search for a country...",
+            allowClear: true,
+            theme: "classic"
+        });
+
+        // Cascading State Dropdown Logic
+        $('#destinationCountry').on('change', async function() {
+            const countryCode = $(this).val();
+            const stateInput = $('#destinationState');
+            const stateSelect = $('#destinationStateSelect');
+            
+            if (!countryCode) return;
+
+            try {
+                const response = await fetch(`/api/locations/states/${countryCode}`);
+                const states = await response.json();
+                
+                if (Object.keys(states).length > 0) {
+                    // Populate and show select dropdown
+                    stateSelect.empty().append('<option value="">Select state...</option>');
+                    for (const [code, name] of Object.entries(states)) {
+                        stateSelect.append(`<option value="${code}">${name}</option>`);
+                    }
+                    
+                    stateInput.hide().prop('disabled', true).removeAttr('name');
+                    stateSelect.show().prop('disabled', false).attr('name', 'destinationState').addClass('searchable-select');
+                    
+                    if(stateSelect.data('select2')) {
+                        stateSelect.select2('destroy');
+                    }
+                    stateSelect.select2({
+                        placeholder: "Select state...",
+                        allowClear: true,
+                        theme: "classic"
+                    });
+                    
+                    if (pendingStateRestore) {
+                        if (stateSelect.find(`option[value="${pendingStateRestore}"]`).length > 0) {
+                            stateSelect.val(pendingStateRestore).trigger('change');
+                        } else {
+                            stateSelect.find('option').each(function() {
+                                if ($(this).text().toLowerCase() === pendingStateRestore.toLowerCase()) {
+                                    stateSelect.val($(this).val()).trigger('change');
+                                }
+                            });
+                        }
+                        pendingStateRestore = null;
+                    }
+                } else {
+                    // Revert to text input
+                    if(stateSelect.data('select2')) {
+                        stateSelect.select2('destroy');
+                    }
+                    stateSelect.hide().prop('disabled', true).removeAttr('name');
+                    stateInput.show().prop('disabled', false).attr('name', 'destinationState').val(pendingStateRestore || '');
+                    pendingStateRestore = null;
+                }
+            } catch (error) {
+                console.error("Failed to load states:", error);
+            }
+        });
+
+        // Pincode Resolution Logic
+        $('input[name="postalCode"]').on('keydown', async function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                
+                const pincode = $(this).val();
+                const country = $('#destinationCountry').val();
+                
+                if (!pincode || !country) return;
+                
+                // Visual feedback
+                $(this).css('opacity', '0.5');
+                
+                try {
+                    const response = await fetch(`/api/locations/resolve-pincode?pincode=${encodeURIComponent(pincode)}&country=${encodeURIComponent(country)}`);
+                    const data = await response.json();
+                    
+                    if (data && Object.keys(data).length > 0) {
+                        // Fill City
+                        if (data.city) {
+                            $('input[name="destinationCity"]').val(data.city);
+                        }
+                        
+                        // Fill State (Works for both Select2 and Text Input)
+                        const stateCode = data.stateIsoCode || data.stateCode;
+                        const stateName = data.state;
+                        
+                        const stateSelect = $('#destinationStateSelect');
+                        const stateInput = $('#destinationState');
+                        
+                        if (stateSelect.prop('disabled') === false) {
+                            if (stateCode && stateSelect.find(`option[value="${stateCode}"]`).length > 0) {
+                                stateSelect.val(stateCode).trigger('change');
+                            } else if (stateName) {
+                                stateSelect.find('option').each(function() {
+                                    if ($(this).text().toLowerCase() === stateName.toLowerCase()) {
+                                        stateSelect.val($(this).val()).trigger('change');
+                                    }
+                                });
+                            }
+                        } else {
+                            if (stateName) {
+                                stateInput.val(stateName);
+                                saveFormState();
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to resolve pincode:", err);
+                } finally {
+                    $(this).css('opacity', '1');
+                }
+            }
+        });
+        
+        // Attach listener to save state on any input change
+        $('#rateForm').on('change input', saveFormState);
+
+        // Load saved state on initialization
+        function loadFormState() {
+            const saved = sessionStorage.getItem('rateFormData');
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                
+                if (data.destinationCountry) {
+                    pendingStateRestore = data.destinationState;
+                    $('#destinationCountry').val(data.destinationCountry).trigger('change');
+                }
+                
+                if (data.postalCode) $('input[name="postalCode"]').val(data.postalCode);
+                if (data.destinationCity) $('input[name="destinationCity"]').val(data.destinationCity);
+                if (data.shipmentType) $('select[name="shipmentType"]').val(data.shipmentType);
+                
+                if (data.packages && data.packages.length > 0) {
+                    $('#packagesContainer').empty();
+                    data.packages.forEach((pkg, index) => {
+                        addPackage(pkg.weight, pkg.length, pkg.width, pkg.height, index > 0);
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to load form state:", e);
+            }
+        }
+        
+        loadFormState();
+    });
 
     function renderSkeleton() {
         const panel = document.getElementById('resultsPanel');
@@ -471,73 +771,85 @@
             return;
         }
 
-        // Sort by price to find cheapest, optionally identify fastest if transitDays exists
-        const sortedByPrice = [...quotes].sort((a, b) => a.totalPrice - b.totalPrice);
-        const cheapestId = sortedByPrice[0].providerCode + sortedByPrice[0].serviceCode;
+        // Sort by inclusive price to find cheapest
+        const sortedByPrice = [...quotes].sort((a, b) => (a.totalPrice + (a.gst || 0)) - (b.totalPrice + (b.gst || 0)));
+        const cheapestId = sortedByPrice.length > 0 ? sortedByPrice[0].providerCode + sortedByPrice[0].serviceCode : null;
+
+        const getDays = (est) => {
+            if (!est) return Infinity;
+            const match = est.match(/\d+/);
+            return match ? parseInt(match[0]) : Infinity;
+        };
         
-        const sortedByTime = [...quotes].filter(q => q.transitDays).sort((a, b) => a.transitDays - b.transitDays);
+        const sortedByTime = [...quotes].filter(q => q.transitEstimate).sort((a, b) => getDays(a.transitEstimate) - getDays(b.transitEstimate));
         const fastestId = sortedByTime.length > 0 ? sortedByTime[0].providerCode + sortedByTime[0].serviceCode : null;
 
         let html = '';
         quotes.forEach(quote => {
             const uid = quote.providerCode + quote.serviceCode;
-            let badge = '';
-            if (uid === cheapestId) badge = '<div class="quote-badge">CHEAPEST</div>';
-            else if (uid === fastestId) badge = '<div class="quote-badge fastest">FASTEST</div>';
+            let cornerBadge = '';
+            if (uid === cheapestId) cornerBadge = '<div class="quote-badge">CHEAPEST</div>';
+            else if (uid === fastestId) cornerBadge = '<div class="quote-badge fastest">FASTEST</div>';
             
-            let transitText = quote.transitDays ? `${quote.transitDays} Days` : 'Varies';
+            let transitText = quote.transitEstimate ? `${quote.transitEstimate} Days` : 'Varies';
             
-            let logoHtml = quote.logo ? `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo" style="width: 48px; height: 48px; object-fit: contain;">` : `<div class="provider-logo-placeholder" style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 4px;"></div>`;
+            let logoHtml = `<div class="provider-logo-container">`;
+            if (quote.logo) {
+                logoHtml += `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo">`;
+            }
+            logoHtml += `</div>`;
             
-            let badgesHtml = badge;
-            if (quote.zone) badgesHtml += `<span style="display:inline-block; margin-top:4px; font-size:11px; background:#e5e7eb; padding:2px 6px; border-radius:4px;">Zone ${quote.zone}</span>`;
-            if (quote.badges && quote.badges.includes('extended_area')) badgesHtml += `<span style="display:inline-block; margin-top:4px; margin-left:4px; font-size:11px; background:#fef08a; color:#854d0e; padding:2px 6px; border-radius:4px;">Extended Area</span>`;
+            let inlineBadges = '';
+            if (quote.zone) inlineBadges += `<span class="badge-sm badge-zone">Zone ${quote.zone}</span>`;
+            if (quote.badges && quote.badges.includes('extended_area')) inlineBadges += `<span class="badge-sm badge-ext">Extended Area</span>`;
             
             let breakdownHtml = '';
             if (quote.charges && quote.charges.length > 0) {
-                breakdownHtml = `<details style="margin-top:12px; font-size:13px; color:#6b7280;">
-                    <summary style="cursor:pointer; font-weight:600;">Charge Breakdown</summary>
-                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #e5e7eb;">
-                        ${quote.charges.map(c => `<div style="display:flex; justify-content:space-between;"><span>${c.name}</span><span>${c.amount.toFixed(2)}</span></div>`).join('')}
+                breakdownHtml = `<details class="charge-breakdown">
+                    <summary>Breakdown</summary>
+                    <div class="charge-breakdown-list">
+                        ${quote.charges.map(c => `<div class="charge-item"><span>${c.name}</span><span>${c.amount.toFixed(2)}</span></div>`).join('')}
                     </div>
                 </details>`;
             }
 
-            let extraDetails = '';
             const fuelSurcharge = quote.charges ? quote.charges.find(c => c.name.toLowerCase().includes('fuel')) : null;
-            if (fuelSurcharge) {
-                extraDetails += `<div class="detail-item"><span class="detail-label">Fuel</span><span class="detail-value">${fuelSurcharge.amount.toFixed(2)}</span></div>`;
-            }
 
             html += `
             <div class="quote-card">
-                ${badgesHtml}
-                <div style="display:flex; gap:16px; align-items:center;">
+                ${cornerBadge}
+                
+                <div class="quote-col-main">
                     ${logoHtml}
                     <div class="provider-info">
                         <div class="provider-name">${quote.provider}</div>
                         <div class="service-name">${quote.service}</div>
+                        ${inlineBadges ? `<div class="badges-inline">${inlineBadges}</div>` : ''}
                     </div>
                 </div>
-                <div class="quote-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Transit</span>
-                        <span class="detail-value">${transitText}</span>
+                
+                <div class="quote-col-stats">
+                    <div class="stat-group">
+                        <span class="stat-val">${transitText}</span>
+                        <span class="stat-lbl">Transit</span>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Chg. Wt</span>
-                        <span class="detail-value">${quote.chargeableWeight} kg</span>
+                    <div class="stat-group">
+                        <span class="stat-val">${quote.chargeableWeight} kg</span>
+                        <span class="stat-lbl">Weight</span>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Vol. Wt</span>
-                        <span class="detail-value">${quote.volumetricWeight} kg</span>
-                    </div>
-                    ${extraDetails}
+                    ${fuelSurcharge ? `
+                    <div class="stat-group">
+                        <span class="stat-val">${fuelSurcharge.amount.toFixed(2)}</span>
+                        <span class="stat-lbl">Fuel</span>
+                    </div>` : ''}
                 </div>
-                <div class="quote-price">
-                    <span class="price-amount">${quote.totalPrice.toFixed(2)}</span>
-                    <span class="price-currency">${quote.currency}</span>
-                    ${quote.gst > 0 ? `<div style="font-size:12px; color:#6b7280; margin-top:4px;">+ ${quote.gst.toFixed(2)} GST</div>` : ''}
+                
+                <div class="quote-col-price">
+                    <div class="price-main">
+                        <span class="price-amount">${(quote.totalPrice + (quote.gst || 0)).toFixed(2)}</span>
+                        <span class="price-currency">${quote.currency}</span>
+                    </div>
+                    ${quote.gst > 0 ? `<div class="price-tax">Includes ${quote.gst.toFixed(2)} GST</div>` : ''}
                     ${breakdownHtml}
                 </div>
             </div>`;
