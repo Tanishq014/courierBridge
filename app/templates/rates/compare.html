@@ -748,10 +748,12 @@
             let providerNameMapped = p.provider;
             if (p.provider === 'quickship') providerNameMapped = 'QuickShip';
             if (p.provider === 'overseas') providerNameMapped = 'Overseas Logistics';
+            if (p.provider === 'maww' || p.provider === 'MAWW Logistics') providerNameMapped = 'MAWW Logistics';
 
             let providerCode = p.provider;
             if (providerNameMapped === 'QuickShip') providerCode = 'quickship';
             if (providerNameMapped === 'Overseas Logistics') providerCode = 'overseas';
+            if (providerNameMapped === 'MAWW Logistics') providerCode = 'maww';
             
             const providerQuotesCount = quotes ? quotes.filter(q => q.providerCode === providerCode).length : 0;
             
@@ -815,7 +817,8 @@
         const grouped = {};
         const providerNames = {
             'quickship': 'QuickShip',
-            'overseas': 'Overseas Logistics'
+            'overseas': 'Overseas Logistics',
+            'maww': 'MAWW Logistics'
         };
         
         quotes.forEach(q => {
