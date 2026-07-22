@@ -750,12 +750,14 @@
             if (p.provider === 'overseas') providerNameMapped = 'Overseas Logistics';
             if (p.provider === 'maww' || p.provider === 'MAWW Logistics') providerNameMapped = 'MAWW Logistics';
             if (p.provider === 'atlantic' || p.provider === 'Atlantic Logistics') providerNameMapped = 'Atlantic Logistics';
+            if (p.provider === 'skynet' || p.provider === 'SkyNet') providerNameMapped = 'SkyNet Logistics';
 
             let providerCode = p.provider;
             if (providerNameMapped === 'QuickShip') providerCode = 'quickship';
             if (providerNameMapped === 'Overseas Logistics') providerCode = 'overseas';
             if (providerNameMapped === 'MAWW Logistics') providerCode = 'maww';
             if (providerNameMapped === 'Atlantic Logistics') providerCode = 'atlantic';
+            if (providerNameMapped === 'SkyNet Logistics') providerCode = 'skynet';
             
             const providerQuotesCount = quotes ? quotes.filter(q => q.providerCode === providerCode).length : 0;
             
@@ -821,6 +823,7 @@
             'quickship': 'QuickShip',
             'overseas': 'Overseas Logistics',
             'maww': 'MAWW Logistics',
+            'skynet': 'SkyNet Logistics',
             'atlantic': 'Atlantic Logistics'
         };
         
