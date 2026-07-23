@@ -2,35 +2,78 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Dict, Any
 
-def get_best_rates(db: Session, weight: float, zone: str) -> List[Dict[str, Any]]:
+def get_best_rates(db: Session, weight: float, destination_or_zone: str) -> List[Dict[str, Any]]:
     """
-    Optimized SQL query to fetch quotes across all approved tariffs for a given weight and zone.
+    Optimized ORM query to fetch quotes across all approved tariffs for a given weight and destination.
+    Dynamically resolves destination strings (e.g. 'Denmark') to abstract zones (e.g. 'F Zone') per carrier.
     Returns the cheapest options first.
     """
-    query = text("""
-        SELECT 
-            v.name as vendor_name,
-            s.carrier,
-            s.service,
-            r.weight,
-            r.zone,
-            r.price,
-            r.price_type
-        FROM tariff_rate_rows r
-        JOIN tariff_sections s ON r.section_id = s.id
-        JOIN tariff_documents d ON s.document_id = d.id
-        JOIN vendors v ON d.vendor_id = v.id
-        WHERE d.status = 'APPROVED'
-          AND r.zone = :zone
-    """)
+    from app.models import ZoneMapping, TariffRateRow, TariffSection, TariffDocument, Vendor
+    from sqlalchemy import or_, and_
     
-    result = db.execute(query, {"zone": zone})
+    search_term = destination_or_zone.lower().strip()
+    
+    # 1. Scan ZoneMappings to find matching (carrier, service, zone) tuples for this destination
+    mappings = db.query(ZoneMapping).all()
+    valid_combos = []
+    
+    for m in mappings:
+        # Check if the destination search term exists in the mapped countries array
+        dests = [str(d).lower().strip() for d in m.mapped_destinations]
+        if search_term in dests:
+            valid_combos.append({
+                "carrier": m.carrier,
+                "service": m.service,
+                "zone_name": m.zone_name
+            })
+            
+    # 2. Build the query
+    query = db.query(
+        Vendor.name.label("vendor_name"),
+        TariffSection.id.label("section_id"),
+        TariffSection.carrier.label("carrier"),
+        TariffSection.service.label("service"),
+        TariffRateRow.weight.label("weight"),
+        TariffRateRow.zone.label("zone"),
+        TariffRateRow.price.label("price"),
+        TariffRateRow.price_type.label("price_type")
+    ).join(TariffSection, TariffRateRow.section_id == TariffSection.id) \
+     .join(TariffDocument, TariffSection.document_id == TariffDocument.id) \
+     .join(Vendor, TariffDocument.vendor_id == Vendor.id) \
+     .filter(TariffDocument.status == 'APPROVED')
+     
+    # 3. Dynamic Zone/Destination conditions
+    # Fallback: Allow direct search by zone name (e.g. if the caller passed "F Zone") to prevent breaking APIs
+    conditions = [TariffRateRow.zone == destination_or_zone]
+    
+    # Add mapped combinations
+    for combo in valid_combos:
+        conditions.append(and_(
+            TariffSection.carrier == combo["carrier"],
+            TariffSection.service == combo["service"],
+            TariffRateRow.zone == combo["zone_name"]
+        ))
+        
+    query = query.filter(or_(*conditions))
+    
+    result = query.all()
     
     from collections import defaultdict
     services = defaultdict(list)
-    for row in result.mappings():
-        service_key = f"{row['vendor_name']}|{row['carrier']}|{row['service']}"
-        services[service_key].append(row)
+    for row in result:
+        # row is a NamedTuple-like object in SQLAlchemy 2.0 or Row object
+        service_key = f"{row.vendor_name}|{row.carrier}|{row.service}"
+        # Convert to dict for compatibility with existing logic
+        services[service_key].append({
+            "vendor_name": row.vendor_name,
+            "section_id": row.section_id,
+            "carrier": row.carrier,
+            "service": row.service,
+            "weight": float(row.weight),
+            "zone": row.zone,
+            "price": float(row.price),
+            "price_type": row.price_type
+        })
         
     quotes = []
     
@@ -76,8 +119,20 @@ def get_best_rates(db: Session, weight: float, zone: str) -> List[Dict[str, Any]
     quotes.sort(key=lambda x: x['calculated_total_price'])
     quotes = quotes[:10]
     
+    section_ids = [q["section_id"] for q in quotes]
+    notes_by_section = {}
+    if section_ids:
+        from app.models import TariffNote
+        all_notes = db.query(TariffNote).filter(TariffNote.section_id.in_(section_ids)).all()
+        for n in all_notes:
+            key = (n.section_id, n.zone) # zone is None for global/section rules
+            if key not in notes_by_section:
+                notes_by_section[key] = []
+            notes_by_section[key].append(n.text)
+    
     final_quotes = []
     for q in quotes:
+        matched_notes = notes_by_section.get((q["section_id"], None), []) + notes_by_section.get((q["section_id"], q["zone"]), [])
         final_quotes.append({
             "vendor": q["vendor_name"],
             "carrier": q["carrier"],
@@ -87,7 +142,8 @@ def get_best_rates(db: Session, weight: float, zone: str) -> List[Dict[str, Any]
             "base_price": float(q["price"]),
             "price_type": q["price_type"],
             "total_price": float(q["calculated_total_price"]),
-            "calculation_logic": q["calculation_logic"]
+            "calculation_logic": q["calculation_logic"],
+            "notes": matched_notes
         })
         
     return final_quotes

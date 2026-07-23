@@ -364,6 +364,17 @@
             const container = document.getElementById('matrix-container');
             let html = '';
             
+            // PRE-PROCESSING: Collect all document-scoped notes
+            let documentNotes = [];
+            rawJson.sections.forEach(s => {
+                (s.notes || []).forEach(n => {
+                    if (n.scope === 'document') {
+                        documentNotes.push(n.text);
+                    }
+                });
+            });
+            documentNotes = [...new Set(documentNotes)]; // deduplicate
+            
             rawJson.sections.forEach((section, sIdx) => {
                 const secVal = validation.sections.find(s => s.index === sIdx) || { rate_errors: {}, errors: [] };
                 
@@ -429,9 +440,24 @@
                 
                 zones.forEach(z => {
                     const zId = z.replace(/\W/g, '');
+                    
+                    // First, check if AI explicitly extracted a zone_mapping for this zone
+                    let aiKnowledgeCountries = null;
+                    if (rawJson.knowledge) {
+                        const kObj = rawJson.knowledge.find(ko => ko.type === 'zone_mapping' && ko.zone === z);
+                        if (kObj && kObj.countries && kObj.countries.length > 0) {
+                            aiKnowledgeCountries = kObj.countries;
+                        }
+                    }
+
                     let suggestion = null;
                     let isAuto = false;
-                    if (section.carrier && section.service) {
+                    let isAiExtracted = false;
+                    
+                    if (aiKnowledgeCountries) {
+                        suggestion = aiKnowledgeCountries;
+                        isAiExtracted = true;
+                    } else if (section.carrier && section.service) {
                         const k = `${section.carrier}|${section.service}|${z}`;
                         if (zoneSuggestions[k]) {
                             suggestion = zoneSuggestions[k];
@@ -458,19 +484,17 @@
                     html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem; font-size:0.875rem;">`;
                     html += `<span style="font-weight:600; width:120px; color:#334155;">${z}</span>`;
                     
-                    if (suggestion) {
-                        const sugStr = suggestion.join(', ');
-                        const badgeText = isAuto ? "Auto-detected" : "Historical Map";
-                        
-                        html += `<div style="flex:1;">
-                            <input type="text" id="zone-map-${sIdx}-${zId}" value="${currentVal}" class="filter-select" style="width:100%; border-color:#d1d5db;" placeholder="Map this zone (e.g. UAE, Qatar)" onblur="applyMapping(${sIdx}, '${z}', this.value)">
-                        </div>
-                        <span style="font-size:0.75rem; color:#059669; font-weight:500; background:#d1fae5; padding:4px 8px; border-radius:4px;">✓ ${badgeText}</span>`;
-                    } else {
-                        html += `<div style="flex:1;">
+                    html += `<div style="flex:1;">
                             <input type="text" id="zone-map-${sIdx}-${zId}" value="${currentVal}" class="filter-select" style="width:100%; border-color:#d1d5db;" placeholder="Map this zone (e.g. UAE, Qatar)" onblur="applyMapping(${sIdx}, '${z}', this.value)">
                         </div>`;
+                    if (isAiExtracted && autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#059669; background:#d1fae5; padding:0.25rem 0.5rem; border-radius:4px;">✨ AI-Extracted</span>`;
+                    } else if (isAuto && autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#059669; background:#d1fae5; padding:0.25rem 0.5rem; border-radius:4px;">✓ Auto-detected</span>`;
+                    } else if (autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#475569; background:#e2e8f0; padding:0.25rem 0.5rem; border-radius:4px;">Historical</span>`;
                     }
+                    
                     html += `</div>`;
                 });
                 html += `</div>`;
@@ -525,19 +549,19 @@
                 html += `</div>`;
                 
                 // AI Notes for this section
-                let globalNotes = [];
+                let globalNotes = [...documentNotes]; // Initialize with all document-scoped notes
                 let zoneNotes = {};
                 
                 (section.notes || []).forEach(n => {
                     if (typeof n === 'string') {
-                        globalNotes.push(n);
+                        if (!globalNotes.includes(n)) globalNotes.push(n);
                     } else if (n.scope === 'zone' && n.applies_to) {
                         n.applies_to.forEach(z => {
                             if (!zoneNotes[z]) zoneNotes[z] = [];
                             zoneNotes[z].push(n.text);
                         });
-                    } else {
-                        globalNotes.push(n.text);
+                    } else if (n.scope === 'section') {
+                        if (!globalNotes.includes(n.text)) globalNotes.push(n.text);
                     }
                 });
                 

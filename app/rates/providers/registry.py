@@ -5,6 +5,7 @@ from app.rates.providers.overseas.provider import OverseasProvider
 from app.rates.providers.maww.provider import MawwProvider
 from app.rates.providers.atlantic.provider import AtlanticProvider
 from app.rates.providers.skynet.provider import SkyNetProvider
+from app.rates.providers.offline_tariffs.provider import OfflineTariffsProvider
 
 class ProviderRegistry:
     # TODO: Provider registration should eventually become configuration-driven.
@@ -17,6 +18,7 @@ class ProviderRegistry:
         self.register(MawwProvider())
         self.register(AtlanticProvider())
         self.register(SkyNetProvider())
+        self.register(OfflineTariffsProvider())
 
     def register(self, provider: RateProvider):
         """Registers a new provider."""

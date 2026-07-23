@@ -42,14 +42,11 @@ Step 3: Parse Notes & Rules
 - Locate terms and conditions (T&Cs).
 - If T&Cs appear directly below a specific column or are merged under a specific destination/zone, associate them ONLY with that destination/zone by setting scope='zone' and applies_to=[zone_name].
 - If T&Cs span the full width of the table or are globally applicable, they belong to the 'section' or 'document' scope.
+- If you find text defining which countries belong to a specific zone, put it in `notes` with `scope="zone"` and `applies_to=["Zone Name"]`. YOU MUST FORMAT the `text` of this note exactly as a pipe-separated list of countries (e.g., "Belgium|Denmark|France"). Do not include prefixes like "Countries:" or the zone name in the text itself.
 
-Step 4: Extract Knowledge Objects
-- If you find text defining which countries or regions belong to a specific zone (e.g. "F Zone: Belgium, Denmark..."), do NOT put this in `notes`.
-- Instead, extract it into the `knowledge` array with `type="zone_mapping"`. This allows our system to automatically map those countries to the zone in our database.
-
-Step 5: Output JSON
+Step 4: Output JSON
 - Extract every single rate row. Do not summarize.
-- Convert all weights to KG. If there is a weight bracket (e.g., 11-15), extract each integer weight individually (11, 12, 13, 14, 15) and duplicate the price for each.
+- Convert weights to KG. If there is a weight bracket (e.g., "21-30" or "0.5-2.5"), extract it EXACTLY as the string "21-30". Do NOT try to manually expand it. Our backend will handle the expansion.
 - Determine pricing models (FLAT vs PER_KG). Because pricing models can change per zone and per weight bracket (e.g. 1-10kg is FLAT, 11+ is PER_KG), extract a `zone_segments` array for each section. Determine this from explicit evidence in the document (headers, table titles, notes such as "Per Kg", "Rate/Kg", "Additional Kg"). If there is no clear evidence, return "UNKNOWN" rather than guessing.
 - Return the EXACT schema below.
 
@@ -77,9 +74,9 @@ JSON SCHEMA:
       ],
       "rates": [
         {
-          "weight": numeric (e.g. 0.5),
-          "zone": "Zone name (e.g. Zone 1, USA)",
-          "price": numeric (e.g. 15.50),
+          "weight": "Numeric weight OR string bracket (e.g. '21-30')",
+          "zone": "Zone identifier",
+          "price": "Numeric price (e.g. 15.50)",
           "source_ref": {"sheet": "SheetName", "row": 15},
           "confidence": numeric (0.0 to 1.0)
         }
@@ -91,16 +88,6 @@ JSON SCHEMA:
           "applies_to": ["Zone Name"]
         }
       ]
-    }
-  ],
-  "knowledge": [
-    {
-      "type": "zone_mapping",
-      "carrier": "Carrier name if specific, else null",
-      "service": "Service name if specific, else null",
-      "zone": "Zone Name (e.g. F Zone)",
-      "countries": ["Belgium", "Denmark"],
-      "confidence": numeric (0.0 to 1.0)
     }
   ]
 }
@@ -248,6 +235,50 @@ async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str) -> Dic
                         match = re.search(r'\{.*\}', text_content, re.DOTALL)
                         if match:
                             raw_json = json_repair.loads(match.group(0))
+                            
+                    # Expand string brackets and deduplicate rates by weight and zone
+                    if isinstance(raw_json, dict) and "sections" in raw_json:
+                        for s in raw_json["sections"]:
+                            if "rates" in s:
+                                expanded_rates = []
+                                for r in s["rates"]:
+                                    w = r.get("weight")
+                                    if isinstance(w, str) and "-" in w:
+                                        import re
+                                        # Parse e.g. "21-30" or "0.5-2.5" or "21-30 kg"
+                                        nums = re.findall(r'\d+(?:\.\d+)?', w)
+                                        if len(nums) == 2:
+                                            start = float(nums[0])
+                                            end = float(nums[1])
+                                            step = 0.5 if "." in w else 1.0
+                                            current = start
+                                            while current <= end:
+                                                new_r = dict(r)
+                                                new_r["weight"] = current
+                                                expanded_rates.append(new_r)
+                                                current += step
+                                        else:
+                                            try:
+                                                r["weight"] = float(w.replace("kg", "").replace("KG", "").replace("+", "").strip())
+                                                expanded_rates.append(r)
+                                            except ValueError:
+                                                pass # drop invalid
+                                    else:
+                                        try:
+                                            r["weight"] = float(str(w).replace("kg", "").replace("KG", "").replace("+", "").strip())
+                                            expanded_rates.append(r)
+                                        except (ValueError, TypeError):
+                                            pass
+                                
+                                unique_rates = {}
+                                for r in expanded_rates:
+                                    w = r.get("weight")
+                                    z = r.get("zone")
+                                    if w is not None and z is not None:
+                                        key = f"{z}_{w}"
+                                        unique_rates[key] = r
+                                s["rates"] = list(unique_rates.values())
+                                
                 except Exception as e:
                     logger.error(f"Failed to parse JSON using json_repair: {e}")
                     raise RuntimeError(f"Failed to parse JSON from AI response: {e}")

@@ -136,10 +136,56 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
     zone_suggestions = {}
     auto_suggestions = {}
     
+    def parse_countries_from_text(text: str) -> list:
+        if not text: return []
+        clean_str = re.sub(r'\(.*?\)', '', text).strip().upper()
+        from app.rates.constants import COUNTRY_ALIASES
+        for k, v in COUNTRY_ALIASES.items():
+            clean_str = re.sub(rf'\b{k}\b', v.upper(), clean_str)
+            
+        found = []
+        try:
+            found = [pycountry.countries.lookup(clean_str).name]
+        except LookupError:
+            words = [w.strip() for w in re.split(r'[\s/&,|]+', clean_str) if w.strip()]
+            i = 0
+            while i < len(words):
+                matched = False
+                for length in [3, 2, 1]:
+                    if i + length <= len(words):
+                        phrase = ' '.join(words[i:i+length])
+                        # Ignore 2-letter codes for generic words like "IN", "TO", "OR", etc.
+                        if len(phrase) <= 2 and phrase.lower() in ["in", "to", "or", "an", "is", "at", "be", "it", "do", "as", "he", "we", "me"]:
+                            continue
+                        try:
+                            c = pycountry.countries.lookup(phrase)
+                            if c.name not in found:
+                                found.append(c.name)
+                            i += length
+                            matched = True
+                            break
+                        except LookupError:
+                            pass
+                if not matched:
+                    i += 1
+        return found
+    
     if doc.raw_extraction_json and "sections" in doc.raw_extraction_json:
         for s in doc.raw_extraction_json["sections"]:
             carrier = s.get("carrier")
             service = s.get("service")
+            
+            # Scan notes for potential zone mappings
+            for n in s.get("notes", []):
+                if n.get("scope") == "zone" and n.get("applies_to"):
+                    extracted = parse_countries_from_text(n.get("text", ""))
+                    if extracted: # Allow single-country zones
+                        for z in n.get("applies_to"):
+                            if z not in auto_suggestions:
+                                auto_suggestions[z] = extracted
+                            else:
+                                existing = auto_suggestions[z]
+                                auto_suggestions[z] = list(dict.fromkeys(existing + extracted))
             
             rates = s.get("rates", [])
             for r in rates:
@@ -158,45 +204,9 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
                                 zone_suggestions[key] = mapping.mapped_destinations
                                 
                     if z not in auto_suggestions:
-                        clean_str = re.sub(r'\(.*?\)', '', z).strip().upper()
-                        
-                        # Apply Aliases
-                        aliases = {
-                            'UK': 'United Kingdom',
-                            'USA': 'United States',
-                            'UAE': 'United Arab Emirates',
-                            'ROI': 'Ireland'
-                        }
-                        for k, v in aliases.items():
-                            clean_str = re.sub(rf'\b{k}\b', v.upper(), clean_str)
-                            
-                        found = []
-                        
-                        try:
-                            found = [pycountry.countries.lookup(clean_str).name]
-                        except LookupError:
-                            # Heuristic: try splitting by spaces and checking combinations (up to 3 words)
-                            words = [w.strip() for w in re.split(r'[\s/&,]+', clean_str) if w.strip()]
-                            i = 0
-                            while i < len(words):
-                                matched = False
-                                for length in [3, 2, 1]:
-                                    if i + length <= len(words):
-                                        phrase = ' '.join(words[i:i+length])
-                                        try:
-                                            c = pycountry.countries.lookup(phrase)
-                                            if c.name not in found:
-                                                found.append(c.name)
-                                            i += length
-                                            matched = True
-                                            break
-                                        except LookupError:
-                                            pass
-                                if not matched:
-                                    i += 1
-                                    
-                        if found:
-                            auto_suggestions[z] = found
+                        extracted = parse_countries_from_text(z)
+                        if extracted:
+                            auto_suggestions[z] = extracted
     
     return templates.TemplateResponse(
         "rates/review_tariff.html",
@@ -232,6 +242,15 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
     
     # Normalization Layer
     from datetime import datetime
+    
+    # Pre-process: Extract all document-scoped notes so they can be applied to EVERY section
+    global_notes = set()
+    for s in sections:
+        for note_obj in s.get("notes", []):
+            if isinstance(note_obj, dict) and note_obj.get("scope") == "document":
+                text = note_obj.get("text", "").strip()
+                if text:
+                    global_notes.add(text)
     
     for s in sections:
         valid_from_str = s.get("valid_from")
@@ -305,11 +324,14 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                 # Skip invalid rows during final save
                 continue
             
+        saved_texts = set()
         for note_obj in s.get("notes", []):
             if isinstance(note_obj, str):
                 # Backwards compatibility for old JSON
-                note_record = TariffNote(section_id=sec_record.id, text=note_obj)
-                db.add(note_record)
+                if note_obj not in saved_texts:
+                    note_record = TariffNote(section_id=sec_record.id, text=note_obj)
+                    db.add(note_record)
+                    saved_texts.add(note_obj)
                 continue
                 
             text = note_obj.get("text", "")
@@ -329,41 +351,20 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                     db.add(note_record)
             else:
                 # Document or section level
-                note_record = TariffNote(
-                    section_id=sec_record.id,
-                    text=text
-                )
-                db.add(note_record)
+                if text not in saved_texts:
+                    note_record = TariffNote(
+                        section_id=sec_record.id,
+                        text=text
+                    )
+                    db.add(note_record)
+                    saved_texts.add(text)
+                    
+        # Apply any document-scoped notes that weren't in this section's array
+        for g_text in global_notes:
+            if g_text not in saved_texts:
+                db.add(TariffNote(section_id=sec_record.id, text=g_text))
+                saved_texts.add(g_text)
             
-    # Process Knowledge base updates
-    for k in knowledge:
-        if k.get("type") == "zone_mapping":
-            c_carrier = k.get("carrier") or ""
-            c_service = k.get("service") or ""
-            c_zone = k.get("zone")
-            c_countries = k.get("countries", [])
-            
-            if not c_zone or not c_countries:
-                continue
-                
-            existing_zm = db.query(ZoneMapping).filter(
-                ZoneMapping.carrier == c_carrier,
-                ZoneMapping.service == c_service,
-                ZoneMapping.zone_name == c_zone
-            ).first()
-            
-            # Since the user clicked approve, we accept the AI's latest mapping
-            if existing_zm:
-                existing_zm.mapped_destinations = list(set(c_countries))
-            else:
-                new_zm = ZoneMapping(
-                    carrier=c_carrier,
-                    service=c_service,
-                    zone_name=c_zone,
-                    mapped_destinations=list(set(c_countries))
-                )
-                db.add(new_zm)
-                
     doc.status = "APPROVED"
     db.commit()
     
