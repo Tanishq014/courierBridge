@@ -15,7 +15,14 @@ class RateService:
         """
         Fetches quotes from all registered providers concurrently.
         """
-        providers = provider_registry.get_all_providers()
+        all_providers = provider_registry.get_all_providers()
+        if request.providers:
+            providers = [p for p in all_providers if p.provider_code in request.providers]
+            if not providers:
+                logger.warning(f"No valid providers found for requested codes: {request.providers}. Defaulting to all.")
+                providers = all_providers
+        else:
+            providers = all_providers
         
         # We use asyncio.gather to fetch quotes concurrently, ignoring failures of individual providers
         tasks = []

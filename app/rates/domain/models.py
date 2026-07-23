@@ -15,6 +15,7 @@ class ShipmentRequest(BaseModel):
     postalCode: str = Field(..., description="Postal or zip code")
     shipmentType: str = Field(..., description="Type of shipment, e.g., 'document', 'parcel'")
     packages: List[Package]
+    providers: Optional[List[str]] = Field(None, description="List of provider codes to query. If None or empty, query all providers.")
 
 class Charge(BaseModel):
     name: str
