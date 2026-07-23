@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Numeric
+import uuid
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Numeric, JSON, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
 from app.database import Base
@@ -215,3 +216,92 @@ class ShipmentAIStatus(Base):
 
     shipment = relationship("Shipment")
     tracking_check = relationship("TrackingCheck")
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+class Vendor(Base):
+    __tablename__ = "vendors"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=now_ist)
+    
+    documents = relationship("TariffDocument", back_populates="vendor")
+
+class TariffDocument(Base):
+    __tablename__ = "tariff_documents"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    vendor_id = Column(String(36), ForeignKey("vendors.id"), nullable=False)
+    file_url = Column(String, nullable=True)
+    status = Column(String, default="DRAFT") # DRAFT, APPROVED, REJECTED
+    uploaded_at = Column(DateTime, default=now_ist)
+    
+    raw_extraction_json = Column(JSON, nullable=True)
+    prompt_version = Column(String, nullable=True)
+    audit_log = Column(JSON, nullable=True)
+    
+    vendor = relationship("Vendor", back_populates="documents")
+    sections = relationship("TariffSection", back_populates="document", cascade="all, delete-orphan")
+
+class TariffSection(Base):
+    __tablename__ = "tariff_sections"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    document_id = Column(String(36), ForeignKey("tariff_documents.id"), nullable=False)
+    carrier = Column(String, nullable=True)
+    service = Column(String, nullable=True)
+    valid_from = Column(Date, nullable=True)
+    valid_to = Column(Date, nullable=True)
+    currency = Column(String, default="INR")
+    
+    document = relationship("TariffDocument", back_populates="sections")
+    rate_rows = relationship("TariffRateRow", back_populates="section", cascade="all, delete-orphan")
+    notes = relationship("TariffNote", back_populates="section", cascade="all, delete-orphan")
+
+class TariffRateRow(Base):
+    __tablename__ = "tariff_rate_rows"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    section_id = Column(String(36), ForeignKey("tariff_sections.id"), nullable=False)
+    weight = Column(Numeric(10, 3), nullable=True)
+    zone = Column(String, nullable=True)
+    price = Column(Numeric(12, 2), nullable=True)
+    price_type = Column(String, default="FLAT") # FLAT, PER_KG, INCREMENTAL
+    import_status = Column(String, default="AUTO_APPROVED")
+    source_ref = Column(JSON, nullable=True) # {"sheet": "Rates", "row": 15}
+    
+    __table_args__ = (
+        UniqueConstraint('section_id', 'weight', 'zone', name='uix_section_weight_zone'),
+    )
+    
+    section = relationship("TariffSection", back_populates="rate_rows")
+
+class TariffNote(Base):
+    __tablename__ = "tariff_notes"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    section_id = Column(String(36), ForeignKey("tariff_sections.id"), nullable=False)
+    zone = Column(String, nullable=True) # If null, applies to whole section/document
+    text = Column(Text, nullable=False)
+    
+    section = relationship("TariffSection", back_populates="notes")
+
+class ZoneMapping(Base):
+    """
+    Knowledge base for abstract zone mappings (e.g. Aramex 'METRO' -> ['UAE', 'Qatar']).
+    Keyed uniquely by (carrier, service, zone_name) conceptually.
+    """
+    __tablename__ = "zone_mappings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    carrier = Column(String, index=True, nullable=False)
+    service = Column(String, index=True, nullable=False)
+    zone_name = Column(String, index=True, nullable=False)
+    
+    # Store mapped destinations as JSON array of strings
+    mapped_destinations = Column(JSON, nullable=False)
+    
+    created_at = Column(DateTime, default=now_ist)
+    updated_at = Column(DateTime, default=now_ist, onupdate=now_ist)

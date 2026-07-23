@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Upload Tariff - CourierBridge{% endblock %}
+
+{% block head %}
+    <style>
+        .upload-container { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); width: 100%; max-width: 480px; margin: 0 auto; margin-top: 2rem; }
+        h2 { margin-top: 0; font-size: 1.5rem; font-weight: 600; color: #1f2937; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: #374151; }
+        select, input[type="file"] { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; outline: none; transition: border-color 0.15s; }
+        select:focus, input[type="file"]:focus { border-color: #2563eb; }
+        button { width: 100%; background-color: #2563eb; color: white; padding: 0.75rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 0.15s; margin-top: 1rem; }
+        button:hover { background-color: #1d4ed8; }
+        button:disabled { background-color: #93c5fd; cursor: not-allowed; }
+        
+        .progress-box { display: none; margin-top: 2rem; background: #f3f4f6; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .step { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.875rem; color: #4b5563; }
+        .step:last-child { margin-bottom: 0; }
+        .icon { width: 20px; height: 20px; margin-right: 12px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .spinner { border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .check { color: #10b981; font-weight: bold; }
+        
+        .retry-box { display: none; margin-top: 1rem; text-align: center; }
+        .retry-btn { background-color: #ef4444; margin-bottom: 0.5rem; }
+        .retry-btn:hover { background-color: #dc2626; }
+        .secondary-btn { background-color: white; color: #374151; border: 1px solid #d1d5db; }
+        .secondary-btn:hover { background-color: #f3f4f6; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="upload-container">
+        <h2>Upload Rate Card</h2>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="vendor_id">Vendor</label>
+                <select id="vendor_id" name="vendor_id" required>
+                    {% for vendor in vendors %}
+                    <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="file">Rate Document (Excel, PDF, Image)</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls,.pdf,.png,.jpg,.jpeg" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">Upload & Process</button>
+        </form>
+
+        <div class="progress-box" id="progressBox">
+            <div class="step" id="step1"><div class="icon" id="icon1"><div class="spinner"></div></div> <span id="text1">Uploading file...</span></div>
+            <div class="step" id="step2" style="opacity: 0.4;"><div class="icon" id="icon2"></div> <span id="text2">Reading document format...</span></div>
+            <div class="step" id="step3" style="opacity: 0.4;"><div class="icon" id="icon3"></div> <span id="text3">Extracting rates via AI...</span></div>
+            <div class="step" id="step4" style="opacity: 0.4;"><div class="icon" id="icon4"></div> <span id="text4">Validating rules...</span></div>
+        </div>
+
+        <div class="retry-box" id="retryBox">
+            <p id="errorText" style="color: #b91c1c; font-size: 0.875rem; margin-bottom: 0.5rem; font-weight: 600;">AI Extraction Failed.</p>
+            <pre id="rawErrorText" style="display:none; text-align: left; background: #fef2f2; border: 1px solid #fca5a5; padding: 1rem; border-radius: 6px; font-size: 0.75rem; overflow-y: auto; max-height: 200px; margin-bottom: 1.5rem; white-space: pre-wrap; color: #991b1b;"></pre>
+            <button class="retry-btn" onclick="startUpload()">Retry AI Extraction</button>
+            <button class="secondary-btn" onclick="resetForm()">Upload Another File</button>
+        </div>
+        <div class="sheet-selector-box" id="sheetSelectorBox" style="display:none; margin-top: 1.5rem; background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h3 style="margin-top:0; font-size:1.125rem;">Select Sheets to Import</h3>
+            <p style="font-size:0.875rem; color:#4b5563; margin-bottom:1rem;">We detected multiple tabs. Uncheck the ones that are not rates (like instructions or indexes) to speed up AI processing.</p>
+            <div id="sheetList" style="max-height: 200px; overflow-y: auto; margin-bottom:1rem; border: 1px solid #e5e7eb; border-radius: 4px; padding: 0.5rem;">
+                <!-- Checkboxes go here -->
+            </div>
+            <button type="button" onclick="processSheets()">Process Selected Sheets</button>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const checkIcon = '✓';
+        const spinnerHtml = '<div class="spinner"></div>';
+        const crossIcon = '✗';
+
+        let globalTempFileId = null;
+        let globalOriginalFilename = null;
+
+        function updateStep(stepNum, status, text=null) {
+            const stepEl = document.getElementById(`step${stepNum}`);
+            const iconEl = document.getElementById(`icon${stepNum}`);
+            const textEl = document.getElementById(`text${stepNum}`);
+            
+            stepEl.style.opacity = '1';
+            if (text) textEl.innerText = text;
+            
+            if (status === 'active') {
+                iconEl.innerHTML = spinnerHtml;
+                iconEl.style.color = '';
+            } else if (status === 'done') {
+                iconEl.innerHTML = '<span class="check">✓</span>';
+            } else if (status === 'error') {
+                iconEl.innerHTML = '<span style="color: #ef4444; font-weight: bold;">✗</span>';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('uploadForm').style.display = 'block';
+            document.getElementById('progressBox').style.display = 'none';
+            document.getElementById('retryBox').style.display = 'none';
+            document.getElementById('sheetSelectorBox').style.display = 'none';
+            document.getElementById('file').value = '';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        async function startUpload(e) {
+            if (e) e.preventDefault();
+            
+            const fileInput = document.getElementById('file');
+            if (!fileInput.files.length) return;
+
+            document.getElementById('uploadForm').style.display = 'none';
+            document.getElementById('progressBox').style.display = 'block';
+            document.getElementById('retryBox').style.display = 'none';
+            document.getElementById('sheetSelectorBox').style.display = 'none';
+            
+            // Reset steps
+            for(let i=1; i<=4; i++) {
+                document.getElementById(`step${i}`).style.opacity = i===1 ? '1' : '0.4';
+                document.getElementById(`icon${i}`).innerHTML = i===1 ? spinnerHtml : '';
+            }
+
+            updateStep(1, 'active', 'Uploading and analyzing file...');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/tariffs/analyze-file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Failed to analyze file");
+                }
+                const data = await response.json();
+                
+                globalTempFileId = data.temp_file_id;
+                globalOriginalFilename = data.original_filename;
+                
+                updateStep(1, 'done', 'File uploaded');
+                
+                if (data.is_excel && data.sheets && data.sheets.length > 0) {
+                    // Show sheet selector
+                    const listEl = document.getElementById('sheetList');
+                    listEl.innerHTML = '';
+                    data.sheets.forEach(sheet => {
+                        const div = document.createElement('div');
+                        div.style.marginBottom = '0.5rem';
+                        div.innerHTML = `<label style="display:flex; align-items:center; cursor:pointer; margin:0;"><input type="checkbox" value="${sheet}" checked style="width:auto; margin-right:0.5rem;"> ${sheet}</label>`;
+                        listEl.appendChild(div);
+                    });
+                    
+                    document.getElementById('sheetSelectorBox').style.display = 'block';
+                    updateStep(2, 'active', 'Waiting for sheet selection...');
+                } else {
+                    // Not excel, proceed directly
+                    await processSheets(null);
+                }
+                
+            } catch (err) {
+                showError(err);
+            }
+        }
+        
+        async function processSheets(selectedSheetsArray = null) {
+            document.getElementById('sheetSelectorBox').style.display = 'none';
+            
+            let sheetsJson = null;
+            if (selectedSheetsArray === null) {
+                // Read from checkboxes if they exist
+                const checkboxes = document.querySelectorAll('#sheetList input[type="checkbox"]');
+                if (checkboxes.length > 0) {
+                    const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+                    if (selected.length === 0) {
+                        alert("Please select at least one sheet to process.");
+                        document.getElementById('sheetSelectorBox').style.display = 'block';
+                        return;
+                    }
+                    sheetsJson = JSON.stringify(selected);
+                }
+            }
+            
+            updateStep(2, 'done', 'Layout read');
+            updateStep(3, 'active', 'Extracting rates via Gemini Flash...');
+            
+            const formData = new FormData();
+            formData.append('vendor_id', document.getElementById('vendor_id').value);
+            formData.append('temp_file_id', globalTempFileId);
+            formData.append('original_filename', globalOriginalFilename);
+            if (sheetsJson) {
+                formData.append('selected_sheets', sheetsJson);
+            }
+            
+            try {
+                const response = await fetch('/api/tariffs/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    let errMsg = 'Processing failed';
+                    try {
+                        errMsg = JSON.parse(text).detail || errMsg;
+                    } catch(e) {}
+                    throw new Error(errMsg);
+                }
+                const data = await response.json();
+                
+                updateStep(3, 'done', 'Data extracted');
+                updateStep(4, 'active');
+                
+                await new Promise(r => setTimeout(r, 500));
+                updateStep(4, 'done', 'Validation complete');
+                
+                setTimeout(() => {
+                    window.location.href = `/tariffs/review/${data.document_id}`;
+                }, 800);
+            } catch(err) {
+                showError(err);
+            }
+        }
+        
+        function showError(err) {
+            console.error(err);
+            updateStep(1, 'error', 'Failed');
+            updateStep(2, 'error', 'Failed');
+            updateStep(3, 'error', 'Failed');
+            document.getElementById('retryBox').style.display = 'block';
+            const rawErr = document.getElementById('rawErrorText');
+            rawErr.style.display = 'block';
+            rawErr.innerText = err.message || "Unable to understand document.";
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', startUpload);
+    </script>
+{% endblock %}

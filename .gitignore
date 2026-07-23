@@ -34,5 +34,6 @@ quickship.json
 diff.txt
 diff_new.txt
  - Copy.env
- - Copy.env
 diff_review.patch
+app/static/uploads/
+diff_review_final.patch

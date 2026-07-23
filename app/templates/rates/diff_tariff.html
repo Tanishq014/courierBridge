@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Visual Diff - CourierBridge{% endblock %}
+
+{% block head %}
+    <style>
+        .header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #dde4de; border-radius: 8px 8px 0 0; margin-bottom: 1rem; }
+        .header h1 { margin: 0; font-size: 1.25rem; }
+        .header p { margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #4b5563; }
+        .container { padding: 2rem; max-width: 1000px; margin: 0 auto; }
+        
+        .card { background: #fff; border: 1px solid #dde4de; border-radius: 8px; overflow: hidden; margin-bottom: 2rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #dde4de; }
+        th { background: #f9fafb; font-weight: 600; color: #4b5563; }
+        
+        .status-new { color: #059669; font-weight: bold; }
+        .status-inc { color: #dc2626; font-weight: bold; }
+        .status-dec { color: #059669; font-weight: bold; }
+        .status-unc { color: #9ca3af; }
+        
+        .diff-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 0.5rem; }
+        .tag-inc { background: #fee2e2; color: #991b1b; }
+        .tag-dec { background: #d1fae5; color: #065f46; }
+        .tag-new { background: #d1fae5; color: #065f46; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="header">
+        <h1>Visual Diff: {{ doc.vendor.name }}</h1>
+        {% if old_doc %}
+        <p>Comparing <strong>{{ doc.uploaded_at.strftime('%b %d, %Y') }}</strong> against <strong>{{ old_doc.uploaded_at.strftime('%b %d, %Y') }}</strong></p>
+        {% else %}
+        <p>No previous rate card found. All rates are new.</p>
+        {% endif %}
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Carrier/Service</th>
+                        <th>Zone</th>
+                        <th>Weight</th>
+                        <th>Previous Price</th>
+                        <th>New Price</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in diffs %}
+                    <tr>
+                        <td>{{ d.carrier }} - {{ d.service }}</td>
+                        <td>{{ d.zone }}</td>
+                        <td>{{ d.weight }} kg</td>
+                        <td style="color: #6b7280;">{% if d.status != 'NEW' %}{{ d.old_price }}{% else %}-{% endif %}</td>
+                        <td style="font-weight: 600;">{{ d.new_price }}</td>
+                        <td>
+                            {% if d.status == 'NEW' %}
+                                <span class="status-new">NEW</span>
+                            {% elif d.status == 'INCREASED' %}
+                                <span class="status-inc">↑ Increased</span>
+                                <span class="diff-tag tag-inc">+{{ "%.2f"|format(d.diff) }}</span>
+                            {% elif d.status == 'DECREASED' %}
+                                <span class="status-dec">↓ Decreased</span>
+                                <span class="diff-tag tag-dec">-{{ "%.2f"|format(d.diff) }}</span>
+                            {% else %}
+                                <span class="status-unc">Unchanged</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
