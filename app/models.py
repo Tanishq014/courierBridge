@@ -235,6 +235,8 @@ class TariffDocument(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     vendor_id = Column(String(36), ForeignKey("vendors.id"), nullable=False)
     file_url = Column(String, nullable=True)
+    original_filename = Column(String, nullable=True)
+    selected_sheets = Column(String, nullable=True)
     status = Column(String, default="DRAFT") # DRAFT, APPROVED, REJECTED
     uploaded_at = Column(DateTime, default=now_ist)
     
@@ -255,17 +257,42 @@ class TariffSection(Base):
     valid_from = Column(Date, nullable=True)
     valid_to = Column(Date, nullable=True)
     currency = Column(String, default="INR")
+    zone_resolver_id = Column(String(36), ForeignKey("reusable_zone_resolvers.id"), nullable=True)
     
     document = relationship("TariffDocument", back_populates="sections")
     rate_rows = relationship("TariffRateRow", back_populates="section", cascade="all, delete-orphan")
     notes = relationship("TariffNote", back_populates="section", cascade="all, delete-orphan")
+    zone_resolver = relationship("ReusableZoneResolver")
+
+class ReusableZoneResolver(Base):
+    """
+    Knowledge base for massive, deterministic Zone Mappings (extracted via Hybrid Python parser).
+    Stores mappings as an array of normalized objects: {"key_type": "postcode|suburb|country", "key": "3000 or Australia", "zone": "Metro"}
+    """
+    __tablename__ = "reusable_zone_resolvers"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    name = Column(String, nullable=False) # e.g. "Australia Postcodes (Extracted from Sheet 2)"
+    carrier = Column(String, index=True, nullable=True)
+    service = Column(String, index=True, nullable=True)
+    mapping_data = Column(JSON, nullable=False) # Array of normalized {key_type, key, zone}
+    
+    created_at = Column(DateTime, default=now_ist)
+    updated_at = Column(DateTime, default=now_ist, onupdate=now_ist)
 
 class TariffRateRow(Base):
+    """
+    Stores a single rate row. Supports both:
+    - Point rates: weight_min=5.0, weight_max=NULL (exact weight match, used for FLAT rates)
+    - Bracket rates: weight_min=30.1, weight_max=50.0 (range lookup, used for PER_KG brackets)
+    - Open-ended: weight_min=30.0, weight_max=99999.0 (for '30+' style ranges)
+    """
     __tablename__ = "tariff_rate_rows"
     
     id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     section_id = Column(String(36), ForeignKey("tariff_sections.id"), nullable=False)
-    weight = Column(Numeric(10, 3), nullable=True)
+    weight = Column(Numeric(10, 3), nullable=True)   # weight_min — lower bound of bracket (or exact weight)
+    weight_max = Column(Numeric(10, 3), nullable=True) # weight_max — upper bound; NULL means point rate
     zone = Column(String, nullable=True)
     price = Column(Numeric(12, 2), nullable=True)
     price_type = Column(String, default="FLAT") # FLAT, PER_KG, INCREMENTAL
@@ -273,7 +300,7 @@ class TariffRateRow(Base):
     source_ref = Column(JSON, nullable=True) # {"sheet": "Rates", "row": 15}
     
     __table_args__ = (
-        UniqueConstraint('section_id', 'weight', 'zone', name='uix_section_weight_zone'),
+        UniqueConstraint('section_id', 'weight', 'weight_max', 'zone', name='uix_section_weight_zone'),
     )
     
     section = relationship("TariffSection", back_populates="rate_rows")
@@ -283,8 +310,9 @@ class TariffNote(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     section_id = Column(String(36), ForeignKey("tariff_sections.id"), nullable=False)
-    zone = Column(String, nullable=True) # If null, applies to whole section/document
+    zone = Column(String, nullable=True) # if null, applies to whole section
     text = Column(Text, nullable=False)
+    category = Column(String, default="INFO") # CRITICAL, BILLING, INFO
     
     section = relationship("TariffSection", back_populates="notes")
 
@@ -302,6 +330,8 @@ class ZoneMapping(Base):
     
     # Store mapped destinations as JSON array of strings
     mapped_destinations = Column(JSON, nullable=False)
+    
+    transit_days = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=now_ist)
     updated_at = Column(DateTime, default=now_ist, onupdate=now_ist)

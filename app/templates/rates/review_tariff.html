@@ -4,6 +4,8 @@
 {% block container_class %}container-fluid{% endblock %}
 
 {% block head %}
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <style>
         /* Linear/Stripe Aesthetics */
         body { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; background: #fff; color: #111827; }
@@ -213,9 +215,11 @@
     const docId = "{{ doc.id }}";
     const rawJson = {{ raw_json | tojson | safe }};
     const validation = {{ validation | tojson | safe }};
-    const diffData = {{ diff_data | tojson | safe }};
-    const zoneSuggestions = {{ zone_suggestions | tojson | safe }};
-    const autoSuggestions = {{ auto_suggestions | tojson | safe }};
+    let diffData = {{ diff_data|tojson|safe if diff_data else '{"diffs":[]}' }};
+    let zoneSuggestions = {{ zone_suggestions|tojson|safe if zone_suggestions else '{}' }};
+    let autoSuggestions = {{ auto_suggestions|tojson|safe if auto_suggestions else '{}' }};
+    const allResolvers = {{ all_resolvers|tojson|safe if all_resolvers else '[]' }};
+    const allCountries = {{ all_countries|tojson|safe if all_countries else '[]' }};
         
         let activeSectionIndex = 0;
         let auditLog = [];
@@ -311,15 +315,15 @@
             let globalBlockers = 0;
             
             rawJson.sections.forEach((s, idx) => {
-                const secVal = validation.sections.find(v => v.index === idx);
+                const secVal = (validation.sections || []).find(v => v.index === idx) || { errors: [], rate_errors: {} };
                 let badgeClass = 'badge-clean';
                 let badgeText = '✓';
                 
-                let bCount = secVal.errors.filter(e => e.type==='BLOCKER').length;
-                let wCount = secVal.errors.filter(e => e.type==='WARNING').length;
-                Object.values(secVal.rate_errors).forEach(errs => {
-                    bCount += errs.filter(e => e.type==='BLOCKER').length;
-                    wCount += errs.filter(e => e.type==='WARNING').length;
+                let bCount = (secVal.errors || []).filter(e => e.type==='BLOCKER').length;
+                let wCount = (secVal.errors || []).filter(e => e.type==='WARNING').length;
+                Object.values(secVal.rate_errors || {}).forEach(errs => {
+                    bCount += (errs || []).filter(e => e.type==='BLOCKER').length;
+                    wCount += (errs || []).filter(e => e.type==='WARNING').length;
                 });
                 
                 totalIssues += bCount + wCount;
@@ -364,36 +368,72 @@
             const container = document.getElementById('matrix-container');
             let html = '';
             
-            // PRE-PROCESSING: Collect all document-scoped notes
+            // PRE-PROCESSING: Collect all document-scoped and sheet-scoped notes
             let documentNotes = [];
+            let sheetNotesMap = {}; // "sheet_name" -> [notes...]
             rawJson.sections.forEach(s => {
+                const sName = s.source ? s.source.source_name : '';
                 (s.notes || []).forEach(n => {
                     if (n.scope === 'document') {
                         documentNotes.push(n.text);
+                    } else if (n.scope === 'sheet' && sName) {
+                        if (!sheetNotesMap[sName]) sheetNotesMap[sName] = [];
+                        sheetNotesMap[sName].push(n.text);
                     }
                 });
             });
             documentNotes = [...new Set(documentNotes)]; // deduplicate
+            Object.keys(sheetNotesMap).forEach(k => {
+                sheetNotesMap[k] = [...new Set(sheetNotesMap[k])];
+            });
             
             rawJson.sections.forEach((section, sIdx) => {
                 const secVal = validation.sections.find(s => s.index === sIdx) || { rate_errors: {}, errors: [] };
                 
                 // Collect unique weights and zones
-                let weightsSet = new Set();
+                let weightsSet = new Set(); // key = "min_max" string
                 let zonesSet = new Set();
+                let weightKeyMap = {}; // "min_max" -> {weight_min, weight_max, label}
                 (section.rates || []).forEach(r => {
-                    if (r.weight !== null) weightsSet.add(r.weight);
+                    if (r.weight !== null && r.weight !== undefined) {
+                        const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                        const key = `${r.weight}_${wMax}`;
+                        weightsSet.add(key);
+                        if (!weightKeyMap[key]) {
+                            let label;
+                            if (wMax === null) {
+                                label = String(r.weight);
+                            } else if (wMax >= 99999) {
+                                label = `${r.weight} – ∞`;
+                            } else {
+                                label = `${r.weight} – ${wMax}`;
+                            }
+                            weightKeyMap[key] = { weight_min: r.weight, weight_max: wMax, label };
+                        }
+                    }
                     if (r.zone) zonesSet.add(r.zone);
                 });
                 
-                let weights = Array.from(weightsSet).sort((a,b) => a-b);
+                // Sort weight keys numerically by weight_min then weight_max
+                let weights = Array.from(weightsSet).sort((a, b) => {
+                    const aMin = weightKeyMap[a].weight_min;
+                    const bMin = weightKeyMap[b].weight_min;
+                    if (aMin !== bMin) return aMin - bMin;
+                    const aMax = weightKeyMap[a].weight_max ?? 0;
+                    const bMax = weightKeyMap[b].weight_max ?? 0;
+                    return aMax - bMax;
+                });
                 let zones = Array.from(zonesSet).sort();
                 
-                // Map rates to matrix
-                let matrix = {}; // weight -> zone -> rate_idx
+                // Map rates to matrix using the bracket key
+                let matrix = {}; // wKey -> zone -> rate_idx
                 (section.rates || []).forEach((r, rIdx) => {
-                    if (!matrix[r.weight]) matrix[r.weight] = {};
-                    matrix[r.weight][r.zone] = rIdx;
+                    if (r.weight !== null && r.weight !== undefined) {
+                        const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                        const key = `${r.weight}_${wMax}`;
+                        if (!matrix[key]) matrix[key] = {};
+                        matrix[key][r.zone] = rIdx;
+                    }
                 });
                 
                 // Build Table
@@ -420,23 +460,114 @@
                 
                 // Provenance (Source)
                 if (section.source) {
-                    html += `<div style="margin-bottom:1rem; font-size:0.875rem; color:#4b5563;">
-                        <strong>Source:</strong> <span style="background:#e0f2fe; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd; font-family: monospace;">${section.source.source_name}</span>
+                    let extractionStr = '';
+                    if (rawJson.metadata && rawJson.metadata.extracted_at) {
+                        const extDate = new Date(rawJson.metadata.extracted_at);
+                        extractionStr = `&nbsp; | &nbsp;<strong>Extracted:</strong> ${extDate.toLocaleString()}`;
+                    }
+                    html += `<div style="margin-bottom:1rem; font-size:0.875rem; color:#4b5563; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong>Source:</strong> <span style="background:#e0f2fe; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd; font-family: monospace;">${section.source.source_name}</span>${extractionStr}
+                        </div>
+                        <button class="btn btn-cancel" style="padding:0.25rem 0.5rem; font-size:0.75rem; border-color:#fca5a5; color:#b91c1c;" onclick="clearSectionRates(${sIdx})" title="Delete this rate table, but keep any T&Cs/Rules extracted from this sheet.">Discard Table Data</button>
                     </div>`;
                 }
                 
                 // Section level errors
-                if (secVal.errors.length > 0) {
+                if ((secVal.errors || []).length > 0) {
                     html += `<div id="sec-errors-${sIdx}" style="margin-bottom:1rem;">`;
-                    secVal.errors.forEach(e => {
+                    (secVal.errors || []).forEach(e => {
                         html += `<div class="sec-err-msg" data-code="${e.code}" style="background:#fee2e2; color:#991b1b; padding:0.5rem; border-radius:4px; font-size:0.875rem; margin-bottom:0.25rem;">🚨 ${e.message}</div>`;
                     });
                     html += `</div>`;
                 }
                 
+                // Reusable Zone Resolver Linking
+                const zoneMappings = section.zone_mappings || [];
+                const hasExtractedResolver = zoneMappings.some(zm => zm.mapping && zm.mapping.length > 0);
+                
+                html += `<div style="margin-bottom:1rem; padding:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px;">`;
+                html += `<h4 style="margin:0 0 0.5rem 0; font-size:0.875rem; color:#166534;">Reusable Zone Resolver</h4>`;
+                
+                let linkedDraftIdx = -1;
+                let linkedSavedResolver = null;
+                if (!hasExtractedResolver && section.zone_resolver_id) {
+                    if (section.zone_resolver_id.startsWith('draft_')) {
+                        linkedDraftIdx = parseInt(section.zone_resolver_id.replace('draft_', ''));
+                    } else {
+                        linkedSavedResolver = allResolvers.find(r => r.id === section.zone_resolver_id);
+                    }
+                }
+                
+                if (hasExtractedResolver || linkedDraftIdx >= 0 || linkedSavedResolver) {
+                    let totalRecords = 0;
+                    let sample = [];
+                    
+                    if (hasExtractedResolver || linkedDraftIdx >= 0) {
+                        const sourceZMs = hasExtractedResolver ? zoneMappings : (rawJson.sections[linkedDraftIdx].zone_mappings || []);
+                        totalRecords = sourceZMs.reduce((sum, zm) => sum + (zm.mapping ? zm.mapping.length : 0), 0);
+                        const allMap = sourceZMs.flatMap(zm => zm.mapping || []);
+                        sample = allMap.slice(0, 15);
+                    } else if (linkedSavedResolver) {
+                        totalRecords = linkedSavedResolver.totalRecords || 0;
+                        sample = linkedSavedResolver.sample || [];
+                    }
+                    
+                    let previewHtml = '';
+                    if (totalRecords > 0) {
+                        previewHtml = `<div style="margin-top: 0.75rem; background: #fff; border: 1px solid #bbf7d0; padding: 0.75rem; border-radius: 4px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; color: #166534; line-height: 1.5;">`;
+                        sample.forEach(m => {
+                            previewHtml += `<div style="display:inline-block; margin-right:1.5rem; background:#dcfce7; padding:0.1rem 0.4rem; border-radius:4px;"><strong>${m.key}</strong> ➔ ${m.zone}</div>`;
+                        });
+                        if (totalRecords > 15) previewHtml += `<div style="display:inline-block; color:#15803d; font-style:italic;">...and ${totalRecords - 15} more mappings</div>`;
+                        previewHtml += `</div>`;
+                    }
+                    
+                    if (hasExtractedResolver) {
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">✅ Successfully extracted Zone Resolver with ${totalRecords} records. This will be automatically saved as a reusable asset.</p>`;
+                    } else if (linkedDraftIdx >= 0) {
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to draft resolver with ${totalRecords} records.</p>`;
+                    } else if (linkedSavedResolver) {
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to saved resolver with ${totalRecords} records.</p>`;
+                    }
+                    html += previewHtml;
+                }
+                
+                html += `<p style="margin:${hasExtractedResolver ? '1rem' : '0'} 0 0.5rem 0; font-size:0.875rem; color:#15803d;">If this rate matrix relies on a separate massive postcode/zone list, you can override or link it here:</p>`;
+                html += `<select class="filter-select" style="width:100%; border-color:#86efac;" onchange="updateSectionData(${sIdx}, 'zone_resolver_id', this.value)">`;
+                html += `<option value="">-- Use Native / No Resolver --</option>`;
+                allResolvers.forEach(res => {
+                    const selected = (section.zone_resolver_id === res.id) ? 'selected' : '';
+                    html += `<option value="${res.id}" ${selected}>${res.name}</option>`;
+                });
+                
+                // Add draft resolvers extracted from this document
+                rawJson.sections.forEach((draftSec, draftIdx) => {
+                    const zm = draftSec.zone_mappings || [];
+                    if (zm.some(z => z.mapping && z.mapping.length > 0)) {
+                        const sheetName = draftSec.source && draftSec.source.source_name ? draftSec.source.source_name : `Section ${draftIdx}`;
+                        const val = `draft_${draftIdx}`;
+                        const selected = (section.zone_resolver_id === val) ? 'selected' : '';
+                        html += `<option value="${val}" ${selected}>[This Document] ${sheetName}</option>`;
+                    }
+                });
+                
+                html += `</select>`;
+                html += `</div>`;
+                
                 // Zone Mapping UI
                 html += `<div style="margin-bottom:1rem; padding:1rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">`;
                 html += `<h4 style="margin:0 0 0.5rem 0; font-size:0.875rem; color:#0f172a;">Zone Mapping (Interactive)</h4>`;
+                
+                let allMappings = zoneMappings.flatMap(zm => zm.mapping || []);
+                if (section.zone_resolver_id && section.zone_resolver_id.startsWith('draft_')) {
+                    const draftIdx = parseInt(section.zone_resolver_id.replace('draft_', ''));
+                    const draftSec = rawJson.sections[draftIdx];
+                    if (draftSec) {
+                        const draftZM = draftSec.zone_mappings || [];
+                        allMappings = draftZM.flatMap(zm => zm.mapping || []);
+                    }
+                }
                 
                 zones.forEach(z => {
                     const zId = z.replace(/\W/g, '');
@@ -472,20 +603,72 @@
                     if (!section.confirmed_zone_mappings) {
                         section.confirmed_zone_mappings = {};
                     }
-                    let currentVal = section.confirmed_zone_mappings[z] ? section.confirmed_zone_mappings[z].join(', ') : '';
+                    let currentVal = section.confirmed_zone_mappings[z] || [];
                     
                     let autoFilled = false;
-                    if (!currentVal && suggestion) {
+                    if (currentVal.length === 0 && suggestion) {
                         section.confirmed_zone_mappings[z] = suggestion;
-                        currentVal = suggestion.join(', ');
+                        currentVal = suggestion;
                         autoFilled = true;
                     }
                     
-                    html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem; font-size:0.875rem;">`;
-                    html += `<span style="font-weight:600; width:120px; color:#334155;">${z}</span>`;
+                    let currentTransit = '';
+                    if (section.zone_segments) {
+                        const zs = section.zone_segments.find(s => String(s.zone) === z);
+                        if (zs && zs.transit_days) currentTransit = zs.transit_days;
+                    }
                     
-                    html += `<div style="flex:1;">
-                            <input type="text" id="zone-map-${sIdx}-${zId}" value="${currentVal}" class="filter-select" style="width:100%; border-color:#d1d5db;" placeholder="Map this zone (e.g. UAE, Qatar)" onblur="applyMapping(${sIdx}, '${z}', this.value)">
+                    html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem; font-size:0.875rem;">`;
+                    html += `<div style="width:120px; display:flex; flex-direction:column; gap:0.25rem;">
+                        <span style="font-weight:600; color:#334155;">${z}</span>`;
+                        
+                    const zoneNum = z.replace(/[^0-9]/g, '');
+                    const mForZ = allMappings.filter(m => {
+                        if (m.zone === z) return true;
+                        const mNum = String(m.zone).replace(/[^0-9]/g, '');
+                        return zoneNum !== '' && mNum === zoneNum;
+                    });
+                    
+                    let badgeHtml = '';
+                    if (mForZ.length > 0) {
+                        const sampleText = mForZ.slice(0, 5).map(m => m.key).join(', ') + (mForZ.length > 5 ? '...' : '');
+                        const kt = mForZ[0].key_type;
+                        const label = kt === 'suburb' ? 'Suburbs' : kt === 'country' ? 'Countries' : 'Postcodes';
+                        const icon = kt === 'country' ? '🌍' : '📦';
+                        badgeHtml = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:0.1rem 0.3rem; border-radius:4px; align-self:flex-start;" title="${label}: ${sampleText}">${icon} ${mForZ.length} ${label}</span>`;
+                    } else if (linkedSavedResolver && linkedSavedResolver.zoneCounts) {
+                        let savedZoneCount = linkedSavedResolver.zoneCounts[z] || 0;
+                        if (savedZoneCount === 0 && zoneNum !== '') {
+                            Object.keys(linkedSavedResolver.zoneCounts).forEach(kz => {
+                                if (String(kz).replace(/[^0-9]/g, '') === zoneNum) {
+                                    savedZoneCount += linkedSavedResolver.zoneCounts[kz];
+                                }
+                            });
+                        }
+                        if (savedZoneCount > 0) {
+                            const kt = linkedSavedResolver.keyType || 'postcode';
+                            const label = kt === 'suburb' ? 'Suburbs' : kt === 'country' ? 'Countries' : 'Postcodes';
+                            const icon = kt === 'country' ? '🌍' : '📦';
+                            badgeHtml = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:0.1rem 0.3rem; border-radius:4px; align-self:flex-start;">${icon} ${savedZoneCount} ${label}</span>`;
+                        }
+                    }
+                    
+                    if (badgeHtml) {
+                        html += badgeHtml;
+                    }
+                    html += `</div>`;
+                    
+                    html += `<div style="width:120px;">
+                        <input type="text" value="${currentTransit}" placeholder="Transit (e.g. 3-5)" style="width:100%; font-size:0.75rem; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" onchange="updateTransitDays(${sIdx}, '${z.replace(/'/g, "\\'")}', this.value)">
+                    </div>`;
+                    
+                    html += `<div style="flex:1; min-width: 0;">
+                            <select id="zone-map-${sIdx}-${zId}" multiple class="country-select" style="width:100%;" placeholder="Select countries..." data-sidx="${sIdx}" data-z="${z}">`;
+                    allCountries.forEach(c => {
+                        const selected = currentVal.includes(c) ? 'selected' : '';
+                        html += `<option value="${c}" ${selected}>${c}</option>`;
+                    });
+                    html += `</select>
                         </div>`;
                     if (isAiExtracted && autoFilled) {
                         html += `<span style="font-size:0.75rem; color:#059669; background:#d1fae5; padding:0.25rem 0.5rem; border-radius:4px;">✨ AI-Extracted</span>`;
@@ -549,19 +732,39 @@
                 html += `</div>`;
                 
                 // AI Notes for this section
+                const sName = section.source ? section.source.source_name : '';
                 let globalNotes = [...documentNotes]; // Initialize with all document-scoped notes
+                if (sName && sheetNotesMap[sName]) {
+                    sheetNotesMap[sName].forEach(sn => {
+                        if (!globalNotes.includes(sn)) globalNotes.push(sn);
+                    });
+                }
+                
                 let zoneNotes = {};
                 
                 (section.notes || []).forEach(n => {
                     if (typeof n === 'string') {
                         if (!globalNotes.includes(n)) globalNotes.push(n);
                     } else if (n.scope === 'zone' && n.applies_to) {
-                        n.applies_to.forEach(z => {
+                        (n.applies_to || []).forEach(z => {
                             if (!zoneNotes[z]) zoneNotes[z] = [];
                             zoneNotes[z].push(n.text);
                         });
-                    } else if (n.scope === 'section') {
-                        if (!globalNotes.includes(n.text)) globalNotes.push(n.text);
+                    } else {
+                        if (n.category === 'POINTER' && n.applies_to && n.applies_to.length > 0) {
+                            const targetSheet = n.applies_to[0].toLowerCase().replace(' sheet', '').trim();
+                            Object.keys(sheetNotesMap).forEach(k => {
+                                const kLower = k.toLowerCase().trim();
+                                if (kLower.includes(targetSheet) || targetSheet.includes(kLower)) {
+                                    sheetNotesMap[k].forEach(sn => {
+                                        if (!globalNotes.includes(sn)) globalNotes.push(sn);
+                                    });
+                                }
+                            });
+                        }
+                        if (n.scope === 'section' || n.scope === 'sheet' || n.scope === 'document') {
+                            if (!globalNotes.includes(n.text)) globalNotes.push(n.text);
+                        }
                     }
                 });
                 
@@ -586,15 +789,35 @@
                 });
                 html += `</tr></thead><tbody>`;
                 
-                weights.forEach(w => {
-                    html += `<tr data-weight="${w}">`;
-                    html += `<td class="col-weight">${w}</td>`;
+                weights.forEach(wKey => {
+                    const wInfo = weightKeyMap[wKey];
+                    const isBracket = wInfo.weight_max !== null;
+                    html += `<tr data-weight="${wKey}">`;
+                    // Weight label cell — editable
+                    if (isBracket) {
+                        const maxDisp = wInfo.weight_max >= 99999 ? '∞' : wInfo.weight_max;
+                        html += `<td class="col-weight" title="Bracket row: ${wInfo.label} kg">
+                            <div style="display:flex; align-items:center; gap:3px; font-size:0.78rem;">
+                                <input type="number" step="0.1" value="${wInfo.weight_min}" style="width:48px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                    onblur="updateWeightBracket(${sIdx}, '${wKey}', this.value, null)" title="Min weight">
+                                <span style="color:#6b7280;">–</span>
+                                <input type="number" step="0.1" value="${wInfo.weight_max >= 99999 ? '' : wInfo.weight_max}" placeholder="∞" style="width:48px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                    onblur="updateWeightBracket(${sIdx}, '${wKey}', null, this.value || 99999)" title="Max weight (leave empty for open-ended)">
+                                <span style="color:#6b7280; font-size:0.7rem;">kg</span>
+                            </div>
+                        </td>`;
+                    } else {
+                        html += `<td class="col-weight">
+                            <input type="number" step="0.1" value="${wInfo.weight_min}" style="width:56px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                onblur="updateWeightBracket(${sIdx}, '${wKey}', this.value, null)" title="Weight (kg)">
+                        </td>`;
+                    }
                     
                     zones.forEach(z => {
-                        const rIdx = matrix[w][z];
+                        const rIdx = matrix[wKey] && matrix[wKey][z] !== undefined ? matrix[wKey][z] : undefined;
                         if (rIdx !== undefined) {
                             const rate = section.rates[rIdx];
-                            const errs = secVal.rate_errors[rIdx] || [];
+                            const errs = (secVal.rate_errors || {})[rIdx] || [];
                             
                             let cellClass = '';
                             let tooltip = '';
@@ -640,11 +863,63 @@
             });
             
             container.innerHTML = html;
+            
+            // Initialize TomSelect for country dropdowns
+            document.querySelectorAll('.country-select').forEach(selectEl => {
+                new TomSelect(selectEl, {
+                    plugins: ['remove_button'],
+                    maxItems: null,
+                    onChange: function(values) {
+                        const sIdx = selectEl.getAttribute('data-sidx');
+                        const z = selectEl.getAttribute('data-z');
+                        applyMapping(sIdx, z, values);
+                    }
+                });
+            });
         }
         
         // --- UX LOGIC ---
+        function updateTransitDays(sIdx, z, value) {
+            const section = rawJson.sections[sIdx];
+            if (!section.zone_segments) section.zone_segments = [];
+            let zs = section.zone_segments.find(s => String(s.zone) === String(z));
+            if (!zs) {
+                zs = { zone: z, segments: [] };
+                section.zone_segments.push(zs);
+            }
+            zs.transit_days = value.trim();
+        }
+
+        function updateWeightBracket(sIdx, oldKey, newMin, newMax) {
+            // Find all rates in this section that match the old bracket key
+            const section = rawJson.sections[sIdx];
+            if (!section || !section.rates) return;
+            
+            section.rates.forEach(r => {
+                const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                const key = `${r.weight}_${wMax}`;
+                if (key === oldKey) {
+                    if (newMin !== null && newMin !== '') r.weight = parseFloat(newMin);
+                    if (newMax !== null && newMax !== '') r.weight_max = parseFloat(newMax) >= 99999 ? 99999 : parseFloat(newMax);
+                    // Empty max = open-ended
+                    if (newMax === '' || newMax === null) r.weight_max = 99999;
+                }
+            });
+            
+            // Re-render the matrix table for this section
+            setTimeout(() => buildMatrices(), 0);
+        }
+
         function updateSectionData(sIdx, field, value) {
             rawJson.sections[sIdx][field] = value.trim();
+            
+            if (field === 'zone_resolver_id') {
+                setTimeout(() => {
+                    buildMatrices();
+                    showSection(activeSectionIndex);
+                }, 0);
+                return;
+            }
             
             if (field === 'carrier' && value.trim() !== '') {
                 const secVal = validation.sections.find(v => v.index === sIdx);
@@ -670,16 +945,7 @@
         }
         
         function applyMapping(sIdx, zoneName, destinations) {
-            const zId = zoneName.replace(/\W/g, '');
             rawJson.sections[sIdx].confirmed_zone_mappings[zoneName] = destinations;
-            const ui = document.getElementById(`map-sug-ui-${sIdx}-${zId}`);
-            if (ui) ui.innerHTML = `<span style="flex:1; color:#059669; font-weight:600;">✓ Mapped to: ${destinations.join(', ')}</span>`;
-        }
-        
-        function saveMapping(sIdx, zoneName, value) {
-            if (!value || value.trim() === '') return;
-            const dests = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            rawJson.sections[sIdx].confirmed_zone_mappings[zoneName] = dests;
         }
 
         function removePriceTypeWarnings(sIdx, zoneName) {
@@ -689,7 +955,11 @@
                 rates.forEach((r, rIdx) => {
                     if (r.zone === zoneName || !zoneName) {
                         if (secVal.rate_errors[rIdx]) {
-                            secVal.rate_errors[rIdx] = secVal.rate_errors[rIdx].filter(e => e.code !== 'UNKNOWN_PRICE_TYPE');
+                            const before = secVal.rate_errors[rIdx].length;
+                            secVal.rate_errors[rIdx] = secVal.rate_errors[rIdx].filter(e => e.code !== 'UNKNOWN_PRICE_TYPE' && e.code !== 'PRICE_NOT_INCREASING');
+                            const after = secVal.rate_errors[rIdx].length;
+                            resolvedIssues += (before - after);
+                            
                             if (secVal.rate_errors[rIdx].length === 0) {
                                 delete secVal.rate_errors[rIdx];
                             }
@@ -831,6 +1101,36 @@
             document.getElementById('progress-fill').style.width = `${pct}%`;
         }
         
+        function recalcIssues() {
+            totalIssues = 0;
+            resolvedIssues = 0;
+            validation.sections.forEach(sec => {
+                if (sec.rate_errors) {
+                    Object.values(sec.rate_errors).forEach(errs => {
+                        totalIssues += errs.length;
+                    });
+                }
+                if (sec.errors) {
+                    totalIssues += sec.errors.length;
+                }
+            });
+            updateProgress();
+        }
+        
+        function clearSectionRates(sIdx) {
+            if (confirm("Are you sure you want to discard the rate table for this section? Any global Terms & Conditions extracted from this sheet will still be saved.")) {
+                rawJson.sections[sIdx].rates = [];
+                const secVal = validation.sections.find(s => s.index === sIdx);
+                if (secVal) {
+                    secVal.rate_errors = {};
+                }
+                recalcIssues();
+                buildMatrices();
+                showSection(sIdx);
+                renderNavigation();
+            }
+        }
+        
         let currentIssueIdx = -1;
         function nextIssue() {
             // Re-fetch all issues in active section
@@ -915,6 +1215,12 @@
         }
         
         // Boot
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('uploaded') === 'true') {
+            showToast('Upload and processing complete!', 'success');
+            // Remove the param from URL to prevent showing on reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
         init();
     </script>
 {% endblock %}

@@ -35,11 +35,14 @@
         <form id="uploadForm">
             <div class="form-group">
                 <label for="vendor_id">Vendor</label>
-                <select id="vendor_id" name="vendor_id" required>
-                    {% for vendor in vendors %}
-                    <option value="{{ vendor.id }}">{{ vendor.name }}</option>
-                    {% endfor %}
-                </select>
+                <div style="display: flex; gap: 0.5rem;">
+                    <select id="vendor_id" name="vendor_id" required style="flex: 1;">
+                        {% for vendor in vendors %}
+                        <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" onclick="addVendor()" style="width: auto; margin-top: 0; padding: 0 1rem; background: #e5e7eb; color: #374151; border: 1px solid #d1d5db;">+ New</button>
+                </div>
             </div>
             
             <div class="form-group">
@@ -66,6 +69,9 @@
         <div class="sheet-selector-box" id="sheetSelectorBox" style="display:none; margin-top: 1.5rem; background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb;">
             <h3 style="margin-top:0; font-size:1.125rem;">Select Sheets to Import</h3>
             <p style="font-size:0.875rem; color:#4b5563; margin-bottom:1rem;">We detected multiple tabs. Uncheck the ones that are not rates (like instructions or indexes) to speed up AI processing.</p>
+            <label style="display:flex; align-items:center; cursor:pointer; margin-bottom: 0.5rem; font-weight: bold; color: #111827;">
+                <input type="checkbox" id="selectAllSheets" checked style="width:auto; margin-right:0.5rem;" onchange="toggleAllSheets(this)"> Select / Deselect All
+            </label>
             <div id="sheetList" style="max-height: 200px; overflow-y: auto; margin-bottom:1rem; border: 1px solid #e5e7eb; border-radius: 4px; padding: 0.5rem;">
                 <!-- Checkboxes go here -->
             </div>
@@ -83,6 +89,31 @@
 
         let globalTempFileId = null;
         let globalOriginalFilename = null;
+
+        async function addVendor() {
+            const name = prompt("Enter new vendor name:");
+            if (!name || name.trim() === "") return;
+            try {
+                const res = await fetch('/api/vendors', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: name})
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const select = document.getElementById('vendor_id');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.text = data.name;
+                    select.add(option);
+                    select.value = data.id;
+                } else {
+                    alert("Failed to create vendor.");
+                }
+            } catch (e) {
+                alert("Error communicating with server.");
+            }
+        }
 
         function updateStep(stepNum, status, text=null) {
             const stepEl = document.getElementById(`step${stepNum}`);
@@ -113,6 +144,10 @@
 
         async function startUpload(e) {
             if (e) e.preventDefault();
+            
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
             
             const fileInput = document.getElementById('file');
             if (!fileInput.files.length) return;
@@ -172,7 +207,12 @@
             }
         }
         
-        async function processSheets(selectedSheetsArray = null) {
+        function toggleAllSheets(checkbox) {
+            const checkboxes = document.querySelectorAll('#sheetList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        }
+        
+        async function processSheets(selectedSheetsArray = null, skipMiddleSheets = [], forceAllSheets = []) {
             document.getElementById('sheetSelectorBox').style.display = 'none';
             
             let sheetsJson = null;
@@ -200,6 +240,51 @@
             if (sheetsJson) {
                 formData.append('selected_sheets', sheetsJson);
             }
+            if (skipMiddleSheets.length > 0) {
+                formData.append('skip_middle_sheets', JSON.stringify(skipMiddleSheets));
+            }
+            if (forceAllSheets.length > 0) {
+                formData.append('force_all_sheets', JSON.stringify(forceAllSheets));
+            }
+            
+            // Duplicate Check
+            try {
+                const dupCheckData = new FormData();
+                dupCheckData.append('vendor_id', document.getElementById('vendor_id').value);
+                dupCheckData.append('original_filename', globalOriginalFilename);
+                if (sheetsJson) {
+                    dupCheckData.append('selected_sheets', sheetsJson);
+                }
+                
+                const dupRes = await fetch('/api/tariffs/check-duplicate', {
+                    method: 'POST',
+                    body: dupCheckData
+                });
+                
+                if (dupRes.ok) {
+                    const dupData = await dupRes.json();
+                    if (dupData.is_duplicate) {
+                        let msg = "";
+                        if (sheetsJson && dupData.duplicate_sheets && dupData.duplicate_sheets.length > 0) {
+                            msg = `The following sheets have already been uploaded from this file previously:\n\n- ${dupData.duplicate_sheets.join('\n- ')}\n\nAre you sure you want to run the AI extraction again and potentially duplicate these rates?`;
+                        } else {
+                            msg = "A file with this exact name has already been uploaded previously. Are you sure you want to run the AI extraction again?";
+                        }
+                        
+                        if (!confirm(msg)) {
+                            // Abort and reset UI
+                            document.getElementById('uploadForm').style.display = 'block';
+                            document.getElementById('progressBox').style.display = 'none';
+                            updateStep(1, 'pending', 'Upload Document');
+                            updateStep(2, 'pending', 'Read Layout');
+                            updateStep(3, 'pending', 'Extract Rates via Gemini Flash AI');
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Duplicate check failed", e);
+            }
             
             try {
                 const response = await fetch('/api/tariffs/upload', {
@@ -208,13 +293,35 @@
                 });
                 
                 if (!response.ok) {
-                    const text = await response.text();
-                    let errMsg = 'Processing failed';
-                    try {
-                        errMsg = JSON.parse(text).detail || errMsg;
-                    } catch(e) {}
-                    throw new Error(errMsg);
+                    const errData = await response.json().catch(() => null);
+                    if (errData && errData.error_type === "TOO_MANY_ROWS" && errData.violations) {
+                        const violatingSheets = Object.keys(errData.violations);
+                        const sheetDetails = violatingSheets.map(s => `${s} (${errData.violations[s]} rows)`).join(', ');
+                        
+                        const msg1 = `The following sheets exceed the safe AI payload limit of 500 rows:\n\n${sheetDetails}\n\nDo you want to skip the "smart middle anomalies" for these sheets to save tokens?`;
+                        
+                        if (confirm(msg1)) {
+                            // User chose to skip middle anomalies for these sheets
+                            return processSheets(selectedSheetsArray, skipMiddleSheets.concat(violatingSheets), forceAllSheets);
+                        } else {
+                            const msg2 = `Do you want to forcefully send ALL rows for these sheets anyway?\n(This may consume significant AI tokens or cause a timeout).`;
+                            if (confirm(msg2)) {
+                                // User chose to force send all
+                                return processSheets(selectedSheetsArray, skipMiddleSheets, forceAllSheets.concat(violatingSheets));
+                            } else {
+                                // Abort and reset UI
+                                document.getElementById('uploadForm').style.display = 'block';
+                                document.getElementById('progressBox').style.display = 'none';
+                                updateStep(1, 'pending', 'Upload Document');
+                                updateStep(2, 'pending', 'Read Layout');
+                                updateStep(3, 'pending', 'Extract Rates via Gemini Flash AI');
+                                return;
+                            }
+                        }
+                    }
+                    throw new Error(errData && errData.detail ? errData.detail : "Failed to process document");
                 }
+                
                 const data = await response.json();
                 
                 updateStep(3, 'done', 'Data extracted');
@@ -223,8 +330,15 @@
                 await new Promise(r => setTimeout(r, 500));
                 updateStep(4, 'done', 'Validation complete');
                 
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("Processing Complete", {
+                        body: "Your tariff document has been extracted and is ready for review.",
+                        icon: "/static/img/favicon.png"
+                    });
+                }
+                
                 setTimeout(() => {
-                    window.location.href = `/tariffs/review/${data.document_id}`;
+                    window.location.href = `/tariffs/review/${data.document_id}?uploaded=true`;
                 }, 800);
             } catch(err) {
                 showError(err);

@@ -173,7 +173,7 @@
 .quotes-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 8px;
 }
 @media (max-width: 1024px) {
     .quotes-grid {
@@ -184,14 +184,13 @@
 .quote-card {
     background: #ffffff;
     border-radius: 8px;
-    padding: 12px;
+    padding: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid #e5e7eb;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 4px;
     position: relative;
-    overflow: hidden;
 }
 .quote-card:hover {
     border-color: #d1d5db;
@@ -202,12 +201,13 @@
     position: absolute;
     top: 0;
     right: 0;
-    background: #10b981;
+    background: rgba(16, 185, 129, 0.85);
     color: white;
     font-size: 10px;
     font-weight: 700;
     padding: 4px 12px;
     border-bottom-left-radius: 8px;
+    border-top-right-radius: 8px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -273,10 +273,9 @@
     justify-content: flex-start;
     align-items: center;
     background: #f9fafb;
-    padding: 6px 8px;
+    padding: 4px 6px;
     border-radius: 6px;
-    margin-top: 2px;
-    overflow: hidden;
+    margin-top: 0px;
 }
 .stat-group {
     display: flex;
@@ -306,6 +305,7 @@
     font-size: 18px;
     font-weight: 800;
     color: #111827;
+    line-height: 1;
 }
 .price-currency {
     font-size: 12px;
@@ -378,6 +378,54 @@
         text-align: left;
     }
 }
+    
+
+    .tnc-hover {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        color: #ea580c;
+        background: #fff7ed;
+        border: 1px solid #ffedd5;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .tnc-hover .tnc-tooltip {
+        visibility: hidden;
+        background-color: #fff7ed;
+        color: #9a3412;
+        border: 1px solid #fed7aa;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 999;
+        bottom: calc(100% + 4px);
+        right: 0;
+        width: 375px;
+        max-height: 250px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        white-space: normal;
+    }
+    .tnc-hover .tnc-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        height: 10px;
+    }
+    .tnc-hover:hover .tnc-tooltip {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
 </style>
 {% endblock %}
 
@@ -907,11 +955,12 @@
                 
                 let transitText = quote.transitEstimate ? `${quote.transitEstimate} Days` : 'Varies';
                 
-                let logoHtml = `<div class="provider-logo-container">`;
+                let logoHtml = '';
                 if (quote.logo) {
-                    logoHtml += `<img src="${quote.logo}" alt="${quote.provider}" class="provider-logo">`;
+                    logoHtml = `<div class="provider-logo-container">
+                                    <img src="${quote.logo}" alt="${quote.provider}" class="provider-logo">
+                                </div>`;
                 }
-                logoHtml += `</div>`;
                 
                 let inlineBadges = '';
                 if (quote.zone) inlineBadges += `<span class="badge-sm badge-zone">Zone ${quote.zone}</span>`;
@@ -928,6 +977,54 @@
                 }
 
 
+                let notesHtml = '';
+                if ((quote.metadata && quote.metadata.notes && quote.metadata.notes.length > 0) || 
+                    (quote.metadata && quote.metadata.source_filename) ||
+                    (quote.metadata && quote.metadata.logic)) {
+                    let renderedNotes = '';
+                    if (quote.metadata.notes && quote.metadata.notes.length > 0) {
+                        const sortedNotes = quote.metadata.notes.slice().sort((a, b) => {
+                            const getPri = (note) => {
+                                const cat = (typeof note === 'object' && note !== null) ? note.category : 'INFO';
+                                if (cat === 'CRITICAL') return 0;
+                                if (cat === 'BILLING') return 1;
+                                return 2;
+                            };
+                            return getPri(a) - getPri(b);
+                        });
+
+                        renderedNotes = sortedNotes.map(n => {
+                            const text = (typeof n === 'object' && n !== null) ? n.text : n;
+                            const cat = (typeof n === 'object' && n !== null) ? n.category : 'INFO';
+                            
+                            let color = '#4b5563'; // info grey
+                            let icon = '•';
+                            if (cat === 'CRITICAL') { color = '#dc2626'; icon = '🛑'; }
+                            else if (cat === 'BILLING') { color = '#d97706'; icon = '💰'; }
+                            
+                            return `<div style="font-size: 11px; margin-bottom: 6px; line-height: 1.4; color: ${color}; font-weight: ${cat === 'CRITICAL' ? '700' : '500'};">${icon} ${text}</div>`;
+                        }).join('');
+                    }
+                    
+                    if (quote.metadata.logic) {
+                        renderedNotes += `<div style="font-size: 11px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1); line-height: 1.4; color: #4338ca; font-weight: 500;">
+                            🧮 Logic: <span style="font-style: italic;">${quote.metadata.logic}</span>
+                        </div>`;
+                    }
+                    
+                    if (quote.metadata.source_filename) {
+                        renderedNotes += `<div style="font-size: 11px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1); line-height: 1.4; color: #6b7280; font-weight: 500;">
+                            📄 Source: <span style="font-family: monospace;">${quote.metadata.source_filename}</span>
+                        </div>`;
+                    }
+
+                    notesHtml = `<div class="tnc-hover">T&Cs & Info
+                        <div class="tnc-tooltip">
+                            ${renderedNotes}
+                        </div>
+                    </div>`;
+                }
+
                 const finalPrice = quote.totalPrice + (quote.gst || 0);
                 const perKgRate = quote.chargeableWeight > 0 ? (finalPrice / quote.chargeableWeight) : 0;
 
@@ -935,13 +1032,14 @@
                 <div class="quote-card">
                     ${cornerBadge}
                     
-                    <div class="quote-col-main">
-                        <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;">
+                    <div class="quote-col-main" style="align-items: flex-start;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
                             ${logoHtml}
-                            <div class="provider-info">
-                                <div class="provider-name">${quote.provider}</div>
-                                <div class="service-name">${quote.service}</div>
-                                ${inlineBadges ? `<div class="badges-inline" style="flex-wrap: wrap;">${inlineBadges}</div>` : ''}
+                            <div class="provider-info" style="gap: 4px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div class="provider-name">${quote.metadata && quote.metadata.carrier ? quote.metadata.carrier : quote.provider}</div>
+                                    ${inlineBadges ? `<div class="badges-inline" style="margin-top: 0;">${inlineBadges}</div>` : ''}
+                                </div>
                             </div>
                         </div>
                         <div class="price-main" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
@@ -949,11 +1047,13 @@
                                 <span class="price-amount">${finalPrice.toFixed(2)}</span>
                                 <span class="price-currency">${quote.currency}</span>
                             </div>
-                            <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-top: 2px;">${perKgRate.toFixed(2)} ${quote.currency} / kg</div>
+                            <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-top: 0px;">${perKgRate.toFixed(2)} ${quote.currency} / kg</div>
                         </div>
                     </div>
                     
-                    <div class="quote-col-stats">
+                    <div class="service-name" style="margin-top: 0px; padding-bottom: 2px; border-bottom: 1px solid #f3f4f6; color: #4b5563; font-size: 13px;">${quote.service}</div>
+
+                    <div class="quote-col-stats" style="margin-top: 2px;">
                         <div class="stat-group">
                             <span class="stat-val">${transitText}</span>
                             <span class="stat-lbl">Transit</span>
@@ -963,8 +1063,8 @@
                             <span class="stat-lbl">Weight</span>
                         </div>
 
-                        
-                        <div style="margin-left: auto;">
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                            ${notesHtml}
                             ${breakdownHtml}
                         </div>
                     </div>

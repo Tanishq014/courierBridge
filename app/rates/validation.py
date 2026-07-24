@@ -23,13 +23,15 @@ def validate_tariff_json(raw_json: Dict[str, Any]) -> Dict[str, Any]:
             "rate_errors": {}
         }
         
+        rates = section.get("rates", [])
+        is_mapping_only = not rates and bool(section.get("zone_mappings", []))
+        
         # Section level validation
-        if not section.get("carrier"):
+        if not section.get("carrier") and not is_mapping_only:
             sec_result["errors"].append({"type": "BLOCKER", "code": "MISSING_CARRIER", "message": "Carrier name is missing."})
             validation_results["blockers"] += 1
             
-        rates = section.get("rates", [])
-        if not rates:
+        if not rates and not is_mapping_only:
             sec_result["errors"].append({"type": "BLOCKER", "code": "MISSING_RATES", "message": "No rates were extracted for this section."})
             validation_results["blockers"] += 1
             
@@ -93,9 +95,10 @@ def validate_tariff_json(raw_json: Dict[str, Any]) -> Dict[str, Any]:
                 
             # Duplicate check
             if weight is not None and zone:
-                key = f"{weight}-{zone}"
+                w_max = rate.get("weight_max")
+                key = f"{weight}-{w_max}-{zone}"
                 if key in seen_weight_zones:
-                    r_errors.append({"type": "BLOCKER", "code": "DUPLICATE_WEIGHT_ZONE", "message": f"Duplicate entry for weight {weight} and zone {zone}."})
+                    r_errors.append({"type": "BLOCKER", "code": "DUPLICATE_WEIGHT_ZONE", "message": f"Duplicate entry for weight {weight} (max: {w_max}) and zone {zone}."})
                     validation_results["blockers"] += 1
                 seen_weight_zones.add(key)
                 

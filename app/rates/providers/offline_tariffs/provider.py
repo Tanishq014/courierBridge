@@ -40,18 +40,27 @@ class OfflineTariffsProvider(RateProvider):
         try:
             # Run the synchronous SQLAlchemy query in the asyncio executor to avoid blocking the event loop
             loop = asyncio.get_event_loop()
-            raw_quotes = await loop.run_in_executor(None, get_best_rates, db, total_weight, destination)
+            raw_quotes = await loop.run_in_executor(
+                None, 
+                get_best_rates, 
+                db, 
+                total_weight, 
+                destination,
+                request.postalCode,
+                request.destinationCity,
+                request.destinationState
+            )
             
             final_quotes = []
             for rq in raw_quotes:
                 # The vendor name (e.g., 'Tobacco' or 'Jatin') dynamically becomes the provider display name!
-                vendor_name = rq["vendor_name"]
+                vendor_name = rq.get("vendor") or rq.get("vendor_name", "Unknown Vendor")
                 
                 final_quotes.append(
                     ShipmentQuote(
                         provider=vendor_name,
                         providerCode=vendor_name.lower().replace(" ", "_"),
-                        service=f"{rq['carrier']} - {rq['service']}",
+                        service=rq["service"],
                         serviceCode=rq["service"],
                         currency="INR",
                         totalPrice=rq["total_price"],
@@ -59,13 +68,16 @@ class OfflineTariffsProvider(RateProvider):
                         volumetricWeight=total_volumetric,
                         deadWeight=total_dead,
                         zone=rq["zone"],
+                        transitEstimate=rq.get("transit_days"),
                         charges=[
                             Charge(name="Freight", amount=rq["total_price"], total=rq["total_price"])
                         ],
                         badges=["Offline Contract", rq["price_type"]],
                         metadata={
+                            "carrier": rq["carrier"],
                             "logic": rq.get("calculation_logic", ""),
-                            "notes": rq.get("notes", [])
+                            "notes": rq.get("notes", []),
+                            "source_filename": rq.get("source_filename", "")
                         }
                     )
                 )
