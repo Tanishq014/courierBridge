@@ -82,9 +82,18 @@ def get_best_rates(
             zone = str(mapping.get("zone", "")).strip()
             
             if k_type == "postcode" and postal_code:
-                # Support alphanumeric (e.g. Canadian FSA) and prefix matching
                 norm_postal = postal_code.lower().replace(" ", "")
                 norm_k = k_val.lower().replace(" ", "")
+                
+                # Check for numeric range (e.g. "4000-4010")
+                if "-" in norm_k and norm_postal.isdigit():
+                    parts = norm_k.split("-")
+                    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                        if int(parts[0]) <= int(norm_postal) <= int(parts[1]):
+                            matched_zone = zone
+                            break
+                            
+                # Fallback to exact or prefix matching
                 if norm_postal == norm_k or norm_postal.startswith(norm_k):
                     matched_zone = zone
                     break
@@ -121,6 +130,8 @@ def get_best_rates(
         TariffSection.id.label("section_id"),
         TariffSection.carrier.label("carrier"),
         TariffSection.service.label("service"),
+        TariffSection.valid_from.label("valid_from"),
+        TariffSection.valid_to.label("valid_to"),
         TariffRateRow.weight.label("weight"),
         TariffRateRow.weight_max.label("weight_max"),
         TariffRateRow.zone.label("zone"),
@@ -212,9 +223,13 @@ def get_best_rates(
                 logic = f"Using {float(best_bracket['weight'])}–{w_max_disp}kg bracket rate ({float(best_bracket['price'])}/kg) for {weight}kg."
             else:
                 min_bracket = min(per_kgs, key=lambda x: float(x['weight']))
-                total_price = float(min_bracket['price']) * weight
+                billed_w = max(weight, float(min_bracket['weight']))
+                total_price = float(min_bracket['price']) * billed_w
                 best_rate = dict(min_bracket)
-                logic = f"Under minimum weight bracket. Using {float(min_bracket['weight'])}kg minimum ({float(min_bracket['price'])}/kg) for {weight}kg."
+                if billed_w > weight:
+                    logic = f"Billed at {billed_w}kg bracket minimum ({float(min_bracket['price'])}/kg) for {weight}kg package."
+                else:
+                    logic = f"Under minimum weight bracket. Using {float(min_bracket['weight'])}kg minimum ({float(min_bracket['price'])}/kg) for {weight}kg."
                 
         if flats:
             def flat_covers_weight(r, w):
@@ -271,7 +286,11 @@ def get_best_rates(
             "total_price": float(q["calculated_total_price"]),
             "calculation_logic": q["calculation_logic"],
             "notes": matched_notes,
-            "transit_days": q.get("transit_days")
+            "transit_days": q.get("transit_days"),
+            "valid_from": str(q.get("valid_from")) if q.get("valid_from") else None,
+            "valid_to": str(q.get("valid_to")) if q.get("valid_to") else None,
+            "extracted_at": str(q.get("uploaded_at")) if q.get("uploaded_at") else None,
+            "source_file": q.get("original_filename")
         })
         
     return final_quotes

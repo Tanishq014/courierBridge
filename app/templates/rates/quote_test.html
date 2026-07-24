@@ -85,6 +85,11 @@
                                 <div style="font-size: 0.75rem; color: #6b7280; font-weight: normal; margin-top: 4px;">
                                     ${q.calculation_logic}
                                 </div>
+                                <div style="font-size: 0.7rem; color: #9ca3af; font-weight: normal; margin-top: 6px; line-height: 1.4;">
+                                    <strong>Source:</strong> ${q.source_file} <br>
+                                    <strong>Extracted:</strong> ${q.extracted_at ? new Date(q.extracted_at).toLocaleDateString() : 'Unknown'} 
+                                    ${q.valid_from ? `<br><strong>Valid:</strong> ${q.valid_from} to ${q.valid_to || 'Ongoing'}` : ''}
+                                </div>
                             </td>
                         </tr>
                     `;

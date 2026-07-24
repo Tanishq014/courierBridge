@@ -81,6 +81,8 @@ def process_deterministic_zones(file_path: str, raw_json: dict):
             min_col_idx = min(openpyxl.utils.column_index_from_string(c) for c in roles.keys())
             start_role = roles[openpyxl.utils.get_column_letter(min_col_idx)].lower()
             
+            raw_rows = []
+            
             for row_idx in range(top, max_row + 1):
                 has_valid_record = False
                 current_record = {}
@@ -95,30 +97,10 @@ def process_deterministic_zones(file_path: str, raw_json: dict):
                     cell = sheet.cell(row=row_idx, column=col_idx)
                     val = cell.value
                     role = roles[col_letter].lower()
-
                     
                     if role == start_role and current_record:
                         if "zone" in current_record:
-                            zone_val = current_record.pop("zone")
-                            
-                            note_val = current_record.pop("note", None)
-                            for note_alias in ["notes", "remark", "remarks", "no_service", "service"]:
-                                if note_alias in current_record:
-                                    val = current_record.pop(note_alias)
-                                    if not note_val:
-                                        note_val = val
-                                        
-                            for k_type, k_val in current_record.items():
-                                if k_type and k_val:
-                                    record = {
-                                        "key_type": k_type,
-                                        "key": k_val,
-                                        "zone": zone_val
-                                    }
-                                    if note_val:
-                                        record["note"] = note_val
-                                    extracted_mapping.append(record)
-                                    has_valid_record = True
+                            raw_rows.append(current_record)
                         current_record = {}
                         
                     if val is not None and str(val).strip() != "":
@@ -128,31 +110,7 @@ def process_deterministic_zones(file_path: str, raw_json: dict):
                         
                 # End of row commit
                 if current_record and "zone" in current_record:
-                    zone_val = current_record.pop("zone")
-                    
-                    # Extract any non-key metadata (notes, remarks)
-                    note_val = current_record.pop("note", None)
-                    for note_alias in ["notes", "remark", "remarks", "no_service", "service"]:
-                        if note_alias in current_record:
-                            val = current_record.pop(note_alias)
-                            if not note_val:
-                                note_val = val
-                                
-                    added_any = False
-                    for k_type, k_val in current_record.items():
-                        if k_type and k_val: # e.g. k_type="postcode", k_val="3000"
-                            record = {
-                                "key_type": k_type,
-                                "key": k_val,
-                                "zone": zone_val
-                            }
-                            if note_val:
-                                record["note"] = note_val
-                            extracted_mapping.append(record)
-                            added_any = True
-                    
-                    if added_any:
-                        has_valid_record = True
+                    raw_rows.append(current_record)
                     
                 # Termination logic
                 if is_empty_row:
@@ -164,6 +122,111 @@ def process_deterministic_zones(file_path: str, raw_json: dict):
                 if consecutive_empty_rows >= 20:
                     break
                     
+            # Process and Deduplicate Rows
+            import re
+            def parse_postcodes(pc_str):
+                pcs = []
+                parts = re.split(r'[,/]', str(pc_str))
+                for p in parts:
+                    p = p.strip()
+                    if not p: continue
+                    if '-' in p:
+                        match = re.match(r'^(\d+)\s*-\s*(\d+)$', p)
+                        if match:
+                            start, end = int(match.group(1)), int(match.group(2))
+                            if end - start < 10000:
+                                pcs.extend(str(x) for x in range(start, end + 1))
+                                continue
+                    pcs.append(p)
+                return pcs
+            
+            pc_map = {}
+            suburb_map = {}
+            state_map = {}
+            country_map = {}
+            
+            for r in raw_rows:
+                z = r.get("zone")
+                n = r.pop("note", None)
+                for note_alias in ["notes", "remark", "remarks", "no_service", "service"]:
+                    if note_alias in r:
+                        val = r.pop(note_alias)
+                        if not n:
+                            n = val
+                            
+                if r.get("postcode"):
+                    pcs = parse_postcodes(r["postcode"])
+                    for pc in pcs:
+                        pc_map[pc] = {"zone": z, "note": n}
+                        
+                if r.get("suburb") or r.get("city"):
+                    sub = str(r.get("suburb") or r.get("city")).strip().upper()
+                    suburb_map[sub] = {"zone": z, "note": n}
+                    
+                if r.get("state"):
+                    st = str(r["state"]).strip().upper()
+                    state_map[st] = {"zone": z, "note": n}
+                    
+                if r.get("country"):
+                    ct = str(r["country"]).strip().upper()
+                    country_map[ct] = {"zone": z, "note": n}
+                    
+            extracted_mapping = []
+            
+            # Group consecutive numeric postcodes
+            sorted_pcs = []
+            alpha_pcs = []
+            for pc in pc_map.keys():
+                if pc.isdigit():
+                    sorted_pcs.append(int(pc))
+                else:
+                    alpha_pcs.append(pc)
+            sorted_pcs.sort()
+            
+            grouped_pcs = []
+            if sorted_pcs:
+                start_pc = sorted_pcs[0]
+                prev_pc = sorted_pcs[0]
+                
+                for i in range(1, len(sorted_pcs)):
+                    curr_pc = sorted_pcs[i]
+                    if curr_pc == prev_pc + 1 and pc_map[str(curr_pc)] == pc_map[str(prev_pc)]:
+                        prev_pc = curr_pc
+                    else:
+                        if start_pc == prev_pc:
+                            grouped_pcs.append(str(start_pc))
+                        else:
+                            grouped_pcs.append(f"{start_pc}-{prev_pc}")
+                        start_pc = curr_pc
+                        prev_pc = curr_pc
+                        
+                if start_pc == prev_pc:
+                    grouped_pcs.append(str(start_pc))
+                else:
+                    grouped_pcs.append(f"{start_pc}-{prev_pc}")
+                    
+            for g in grouped_pcs + alpha_pcs:
+                key_for_lookup = g.split('-')[0] if '-' in g else g
+                data = pc_map[key_for_lookup]
+                rec = {"key_type": "postcode", "key": g, "zone": data["zone"]}
+                if data["note"]: rec["note"] = data["note"]
+                extracted_mapping.append(rec)
+                
+            for sub, data in suburb_map.items():
+                rec = {"key_type": "suburb", "key": sub, "zone": data["zone"]}
+                if data["note"]: rec["note"] = data["note"]
+                extracted_mapping.append(rec)
+                
+            for st, data in state_map.items():
+                rec = {"key_type": "state", "key": st, "zone": data["zone"]}
+                if data["note"]: rec["note"] = data["note"]
+                extracted_mapping.append(rec)
+                
+            for ct, data in country_map.items():
+                rec = {"key_type": "country", "key": ct, "zone": data["zone"]}
+                if data["note"]: rec["note"] = data["note"]
+                extracted_mapping.append(rec)
+                
             # Update the JSON payload
             zm["mapping"] = extracted_mapping
             # Don't change mode to AI, so the UI still knows it was a PYTHON-extracted massive dataset.

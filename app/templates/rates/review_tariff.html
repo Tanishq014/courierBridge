@@ -624,7 +624,7 @@
                         
                     const zoneNum = z.replace(/[^0-9]/g, '');
                     const mForZ = allMappings.filter(m => {
-                        if (m.zone === z) return true;
+                        if (String(m.zone).toUpperCase() === String(z).toUpperCase()) return true;
                         const mNum = String(m.zone).replace(/[^0-9]/g, '');
                         return zoneNum !== '' && mNum === zoneNum;
                     });
@@ -638,9 +638,11 @@
                         badgeHtml = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:0.1rem 0.3rem; border-radius:4px; align-self:flex-start;" title="${label}: ${sampleText}">${icon} ${mForZ.length} ${label}</span>`;
                     } else if (linkedSavedResolver && linkedSavedResolver.zoneCounts) {
                         let savedZoneCount = linkedSavedResolver.zoneCounts[z] || 0;
-                        if (savedZoneCount === 0 && zoneNum !== '') {
+                        if (savedZoneCount === 0) {
                             Object.keys(linkedSavedResolver.zoneCounts).forEach(kz => {
-                                if (String(kz).replace(/[^0-9]/g, '') === zoneNum) {
+                                if (String(kz).toUpperCase() === String(z).toUpperCase()) {
+                                    savedZoneCount += linkedSavedResolver.zoneCounts[kz];
+                                } else if (zoneNum !== '' && String(kz).replace(/[^0-9]/g, '') === zoneNum) {
                                     savedZoneCount += linkedSavedResolver.zoneCounts[kz];
                                 }
                             });
