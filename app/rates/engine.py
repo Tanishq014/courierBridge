@@ -142,7 +142,7 @@ def get_best_rates(
     ).join(TariffSection, TariffRateRow.section_id == TariffSection.id) \
      .join(TariffDocument, TariffSection.document_id == TariffDocument.id) \
      .join(Vendor, TariffDocument.vendor_id == Vendor.id) \
-     .filter(TariffDocument.status == 'APPROVED')
+     .filter(TariffDocument.status.in_(['APPROVED', 'PARTIALLY_APPROVED']))
      
     # 3. Dynamic Zone/Destination conditions
     # Fallback: Allow direct search by zone name (e.g. if the caller passed "F Zone") to prevent breaking APIs
@@ -347,7 +347,7 @@ def get_tariff_diff(db: Session, new_doc_id: str):
     # Find previous document for same vendor that is approved, before this one
     old_doc = db.query(TariffDocument).filter(
         TariffDocument.vendor_id == new_doc.vendor_id,
-        TariffDocument.status == 'APPROVED',
+        TariffDocument.status.in_(['APPROVED', 'PARTIALLY_APPROVED']),
         TariffDocument.uploaded_at < new_doc.uploaded_at
     ).order_by(TariffDocument.uploaded_at.desc()).first()
     
@@ -401,7 +401,7 @@ def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str)
     # Find previous document for same vendor that is approved
     old_doc = db.query(TariffDocument).filter(
         TariffDocument.vendor_id == vendor_id,
-        TariffDocument.status == 'APPROVED'
+        TariffDocument.status.in_(['APPROVED', 'PARTIALLY_APPROVED'])
     ).order_by(TariffDocument.uploaded_at.desc()).first()
     
     if not old_doc:
