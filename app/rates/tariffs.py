@@ -148,6 +148,7 @@ async def upload_tariff(
     skip_middle_sheets: Optional[str] = Form(None),
     force_all_sheets: Optional[str] = Form(None),
     ai_context: Optional[str] = Form(None),
+    ai_model: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -188,7 +189,8 @@ async def upload_tariff(
             allowed_sheets=sheets_list, 
             skip_middle_sheets=skip_middle, 
             force_all_sheets=force_all,
-            ai_context=ai_context
+            ai_context=ai_context,
+            ai_model=ai_model
         )
         
         # Phase 3: Hybrid Python Deterministic Parser (for massive zone tables)

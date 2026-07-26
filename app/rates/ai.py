@@ -274,8 +274,9 @@ def get_excel_extraction_units(file_path: str, allowed_sheets: List[str] = None,
         
     return units
 
-async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str) -> Dict[str, Any]:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str, model: str = None) -> Dict[str, Any]:
+    active_model = model if model else MODEL_NAME
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{active_model}:generateContent?key={GEMINI_API_KEY}"
     body = {
         "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {
@@ -401,7 +402,7 @@ async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str) -> Dic
                 
     return {}
 
-async def extract_rates_from_document(file_path: str, filename: str, allowed_sheets: List[str] = None, skip_middle_sheets: List[str] = None, force_all_sheets: List[str] = None, ai_context: str = None) -> Dict[str, Any]:
+async def extract_rates_from_document(file_path: str, filename: str, allowed_sheets: List[str] = None, skip_middle_sheets: List[str] = None, force_all_sheets: List[str] = None, ai_context: str = None, ai_model: str = None) -> Dict[str, Any]:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set.")
 
@@ -433,7 +434,7 @@ async def extract_rates_from_document(file_path: str, filename: str, allowed_she
                 if ai_context:
                     parts.append({"text": f"\n\nUSER INSTRUCTIONS / CUSTOM CONTEXT:\n{ai_context}\nPlease strictly follow the user instructions above if they clarify ambiguous data."})
                 
-                unit_res = await call_gemini_api_with_retries(parts, unit_name)
+                unit_res = await call_gemini_api_with_retries(parts, unit_name, ai_model)
                 
                 # Inject provenance (source) into each section
                 for sec in unit_res.get("sections", []):
@@ -472,7 +473,7 @@ async def extract_rates_from_document(file_path: str, filename: str, allowed_she
         if ai_context:
             parts.append({"text": f"\n\nUSER INSTRUCTIONS / CUSTOM CONTEXT:\n{ai_context}\nPlease strictly follow the user instructions above if they clarify ambiguous data."})
         
-        unit_res = await call_gemini_api_with_retries(parts, "PDF/Image")
+        unit_res = await call_gemini_api_with_retries(parts, "PDF/Image", ai_model)
         for sec in unit_res.get("sections", []):
             sec["source"] = {"source_type": "file", "source_name": filename}
             for r in sec.get("rates", []):

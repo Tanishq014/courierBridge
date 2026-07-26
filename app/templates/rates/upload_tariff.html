@@ -51,6 +51,14 @@
             </div>
             
             <div class="form-group">
+                <label for="ai_model">AI Extraction Model</label>
+                <select id="ai_model" name="ai_model">
+                    <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+                    <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
                 <label for="ai_context">Custom AI Instructions (Optional)</label>
                 <textarea id="ai_context" name="ai_context" rows="3" placeholder="E.g. The first table is for import rates, ignore it. Focus on Export rates..." style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; outline: none; font-family: inherit; resize: vertical;"></textarea>
             </div>
@@ -263,6 +271,8 @@
                 formData.append('force_all_sheets', JSON.stringify(forceAllSheets));
             }
             
+            formData.append('ai_model', document.getElementById('ai_model').value);
+            
             const aiContext = document.getElementById('ai_context').value.trim();
             if (aiContext) {
                 formData.append('ai_context', aiContext);
@@ -378,5 +388,25 @@
         }
 
         document.getElementById('uploadForm').addEventListener('submit', startUpload);
+        
+        // LocalStorage persistence for dropdowns
+        document.addEventListener('DOMContentLoaded', () => {
+            const vendorSelect = document.getElementById('vendor_id');
+            const modelSelect = document.getElementById('ai_model');
+            
+            const savedVendor = localStorage.getItem('last_vendor_id');
+            if (savedVendor) {
+                const optionExists = Array.from(vendorSelect.options).some(opt => opt.value === savedVendor);
+                if (optionExists) vendorSelect.value = savedVendor;
+            }
+            
+            const savedModel = localStorage.getItem('last_ai_model');
+            if (savedModel) {
+                modelSelect.value = savedModel;
+            }
+            
+            vendorSelect.addEventListener('change', (e) => localStorage.setItem('last_vendor_id', e.target.value));
+            modelSelect.addEventListener('change', (e) => localStorage.setItem('last_ai_model', e.target.value));
+        });
     </script>
 {% endblock %}
