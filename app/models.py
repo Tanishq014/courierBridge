@@ -275,6 +275,7 @@ class ReusableZoneResolver(Base):
     name = Column(String, nullable=False) # e.g. "Australia Postcodes (Extracted from Sheet 2)"
     carrier = Column(String, index=True, nullable=True)
     service = Column(String, index=True, nullable=True)
+    source_document_id = Column(String(36), ForeignKey("tariff_documents.id"), nullable=True)
     mapping_data = Column(JSON, nullable=False) # Array of normalized {key_type, key, zone}
     
     created_at = Column(DateTime, default=now_ist)

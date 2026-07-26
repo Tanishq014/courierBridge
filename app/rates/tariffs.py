@@ -22,6 +22,17 @@ templates = Jinja2Templates(directory="app/templates")
 UPLOAD_DIR = "app/static/uploads/tariffs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+@router.get("/tariffs", response_class=HTMLResponse)
+async def list_tariffs_page(request: Request, db: Session = Depends(get_db)):
+    """
+    Renders the history dashboard for uploaded tariffs.
+    """
+    docs = db.query(TariffDocument).order_by(TariffDocument.uploaded_at.desc()).all()
+    return templates.TemplateResponse(
+        "rates/history.html",
+        {"request": request, "docs": docs}
+    )
+
 @router.get("/tariffs/upload", response_class=HTMLResponse)
 async def upload_page(request: Request, db: Session = Depends(get_db)):
     """
@@ -327,6 +338,43 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
                         extracted = parse_countries_from_text(z)
                         if extracted:
                             auto_suggestions[z] = extracted
+    vendor_sections = db.query(TariffSection.carrier, TariffSection.service, TariffDocument.uploaded_at, TariffDocument.original_filename)\
+        .join(TariffDocument, TariffDocument.id == TariffSection.document_id)\
+        .filter(TariffDocument.vendor_id == doc.vendor_id)\
+        .filter(TariffDocument.status.in_(["APPROVED", "PARTIALLY_APPROVED"]))\
+        .all()
+        
+    all_carriers = set()
+    all_services = set()
+    carrier_services = {}
+    existing_services_info = {}
+    
+    for c, s, uploaded_at, filename in vendor_sections:
+        if not c: continue
+        all_carriers.add(c)
+        
+        safe_s = s or ""
+        if safe_s:
+            all_services.add(safe_s)
+            if c not in carrier_services:
+                carrier_services[c] = set()
+            carrier_services[c].add(safe_s)
+            
+        key = f"{c}|{safe_s}".lower()
+        if key not in existing_services_info or (uploaded_at and existing_services_info[key].get('raw_date') and uploaded_at > existing_services_info[key]['raw_date']):
+            existing_services_info[key] = {
+                "filename": filename or "Unknown",
+                "date": uploaded_at.strftime("%Y-%m-%d %H:%M") if uploaded_at else "Unknown",
+                "raw_date": uploaded_at
+            }
+                
+    # Clean up raw_date before sending to frontend
+    for v in existing_services_info.values():
+        v.pop("raw_date", None)
+        
+    all_carriers = sorted(list(all_carriers))
+    all_services = sorted(list(all_services))
+    carrier_services = {k: sorted(list(v)) for k, v in carrier_services.items()}
     
     return templates.TemplateResponse(
         "rates/review_tariff.html",
@@ -339,7 +387,11 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
             "zone_suggestions": zone_suggestions,
             "auto_suggestions": auto_suggestions,
             "all_resolvers": all_resolvers,
-            "all_countries": [c.name for c in pycountry.countries]
+            "all_countries": [c.name for c in pycountry.countries],
+            "all_carriers": all_carriers,
+            "all_services": all_services,
+            "carrier_services": carrier_services,
+            "existing_services_info": existing_services_info
         }
     )
 
@@ -392,7 +444,8 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                     name=resolver_name,
                     carrier=s.get("carrier"),
                     service=s.get("service"),
-                    mapping_data=mapping_data
+                    mapping_data=mapping_data,
+                    source_document_id=doc.id
                 )
                 db.add(resolver)
                 db.flush()
@@ -604,6 +657,76 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
     diff_data = get_tariff_diff(db, doc_id)
     if not diff_data:
         raise HTTPException(status_code=404, detail="Document not found")
+    diffs = diff_data["diffs"]
+    
+    matrices = {}
+    for d in diffs:
+        svc_key = f"{d['carrier']} - {d['service']}"
+        if svc_key not in matrices:
+            matrices[svc_key] = {
+                "zones": set(),
+                "weights": set(),
+                "data": {},
+                "has_changes": False
+            }
+        
+        matrices[svc_key]["zones"].add(d["zone"])
+        matrices[svc_key]["weights"].add(d["weight"])
+        
+        if "section_id" not in matrices[svc_key] and d.get("section_id"):
+            matrices[svc_key]["section_id"] = d["section_id"]
+        
+        w = d["weight"]
+        z = d["zone"]
+        
+        if w not in matrices[svc_key]["data"]:
+            matrices[svc_key]["data"][w] = {}
+            
+        matrices[svc_key]["data"][w][z] = d
+        
+        if d["status"] != "UNCHANGED":
+            matrices[svc_key]["has_changes"] = True
+
+    for svc, m in matrices.items():
+        m["zones"] = sorted(list(m["zones"]))
+        m["weights"] = sorted(list(m["weights"]))
+        
+    # Fetch resolvers linked to this document
+    from app.models import ReusableZoneResolver, ZoneMapping, TariffDocument
+    resolvers = {}
+    for s in diff_data["new_doc"].sections:
+        if s.zone_resolver_id and s.zone_resolver_id not in resolvers:
+            r_db = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == s.zone_resolver_id).first()
+            if r_db:
+                source_doc_name = None
+                if r_db.source_document_id and r_db.source_document_id != doc_id:
+                    src_doc = db.query(TariffDocument).filter(TariffDocument.id == r_db.source_document_id).first()
+                    if src_doc:
+                        source_doc_name = src_doc.vendor.name if src_doc.vendor else "Another Document"
+                resolvers[s.zone_resolver_id] = {"db": r_db, "section_id": s.id, "source_doc_name": source_doc_name, "source_doc_id": r_db.source_document_id}
+                
+    # Fetch all resolvers for dropdown
+    all_resolvers = db.query(ReusableZoneResolver.id, ReusableZoneResolver.name).all()
+    all_resolvers_list = [{"id": r.id, "name": r.name} for r in all_resolvers]
+
+    # Fetch global ZoneMappings for the matrices
+    global_mappings = {}
+    for svc, m in matrices.items():
+        svc_parts = svc.split(" - ", 1)
+        if len(svc_parts) == 2:
+            carr, serv = svc_parts[0], svc_parts[1]
+            global_mappings[svc] = {}
+            for z in m["zones"]:
+                zm = db.query(ZoneMapping).filter(
+                    ZoneMapping.carrier == carr,
+                    ZoneMapping.service == serv,
+                    ZoneMapping.zone_name == z
+                ).first()
+                if zm:
+                    global_mappings[svc][z] = {
+                        "id": zm.id,
+                        "destinations": zm.mapped_destinations
+                    }
         
     return templates.TemplateResponse(
         "rates/diff_tariff.html",
@@ -611,6 +734,73 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
             "request": request, 
             "doc": diff_data["new_doc"],
             "old_doc": diff_data["old_doc"],
-            "diffs": diff_data["diffs"]
+            "diffs": diffs,
+            "matrices": matrices,
+            "resolvers": resolvers,
+            "all_resolvers": all_resolvers_list,
+            "global_mappings": global_mappings
         }
     )
+
+class RateUpdateRequest(BaseModel):
+    price: float
+
+@router.put("/api/tariffs/rates/{rate_id}")
+async def update_tariff_rate(rate_id: str, req: RateUpdateRequest, db: Session = Depends(get_db)):
+    from app.models import TariffRateRow
+    rate = db.query(TariffRateRow).filter(TariffRateRow.id == rate_id).first()
+    if not rate:
+        raise HTTPException(status_code=404, detail="Rate not found")
+    rate.price = req.price
+    db.commit()
+    return {"success": True}
+
+class ResolverUpdateRequest(BaseModel):
+    mapping_data: list
+
+@router.put("/api/tariffs/resolvers/{resolver_id}")
+async def update_resolver(resolver_id: str, req: ResolverUpdateRequest, db: Session = Depends(get_db)):
+    from app.models import ReusableZoneResolver
+    resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == resolver_id).first()
+    if not resolver:
+        raise HTTPException(status_code=404, detail="Resolver not found")
+    resolver.mapping_data = req.mapping_data
+    db.commit()
+    return {"success": True}
+
+@router.get("/tariffs/resolvers/{resolver_id}", response_class=HTMLResponse)
+async def resolver_edit_page(resolver_id: str, request: Request, db: Session = Depends(get_db)):
+    from app.models import ReusableZoneResolver
+    resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == resolver_id).first()
+    if not resolver:
+        raise HTTPException(status_code=404, detail="Resolver not found")
+    return templates.TemplateResponse("rates/resolver_edit.html", {"request": request, "resolver": resolver})
+
+class ZoneMappingUpdateRequest(BaseModel):
+    destinations: list
+
+@router.put("/api/tariffs/zonemappings/{mapping_id}")
+async def update_zonemapping(mapping_id: int, req: ZoneMappingUpdateRequest, db: Session = Depends(get_db)):
+    mapping = db.query(ZoneMapping).filter(ZoneMapping.id == mapping_id).first()
+    if not mapping:
+        raise HTTPException(status_code=404, detail="Mapping not found")
+    mapping.mapped_destinations = req.destinations
+    db.commit()
+    return {"success": True}
+
+class AttachResolverRequest(BaseModel):
+    resolver_id: str
+
+@router.post("/api/tariffs/sections/{section_id}/resolver")
+async def attach_resolver(section_id: str, req: AttachResolverRequest, db: Session = Depends(get_db)):
+    from app.models import TariffSection, ReusableZoneResolver
+    section = db.query(TariffSection).filter(TariffSection.id == section_id).first()
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found")
+    if req.resolver_id:
+        resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == req.resolver_id).first()
+        if not resolver:
+             raise HTTPException(status_code=404, detail="Resolver not found")
+    section.zone_resolver_id = req.resolver_id or None
+    db.commit()
+    return {"success": True}

@@ -351,15 +351,13 @@ def get_tariff_diff(db: Session, new_doc_id: str):
         TariffDocument.uploaded_at < new_doc.uploaded_at
     ).order_by(TariffDocument.uploaded_at.desc()).first()
     
-    if not old_doc:
-        return {"old_doc": None, "new_doc": new_doc, "diffs": []}
-        
     # Map old rates: (carrier, service, zone, weight) -> price
     old_rates = {}
-    for s in old_doc.sections:
-        for r in s.rate_rows:
-            key = (s.carrier, s.service, r.zone, r.weight)
-            old_rates[key] = float(r.price) if r.price is not None else 0
+    if old_doc:
+        for s in old_doc.sections:
+            for r in s.rate_rows:
+                key = (s.carrier, s.service, r.zone, r.weight)
+                old_rates[key] = float(r.price) if r.price is not None else 0
             
     # Map new rates
     diffs = []
@@ -383,6 +381,8 @@ def get_tariff_diff(db: Session, new_doc_id: str):
                 diff = 0
                 
             diffs.append({
+                "rate_id": r.id,
+                "section_id": s.id,
                 "carrier": s.carrier,
                 "service": s.service,
                 "zone": r.zone,

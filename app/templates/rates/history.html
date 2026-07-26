@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Tariff Management - CourierBridge{% endblock %}
+
+{% block head %}
+<style>
+/* Premium SaaS Dashboard CSS */
+.history-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+.dashboard-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+.dashboard-header p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.btn-primary {
+    background-color: #111827;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.btn-primary:hover {
+    background-color: #374151;
+    transform: translateY(-1px);
+}
+
+.history-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th {
+    background-color: #f9fafb;
+    padding: 16px 24px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.history-table td {
+    padding: 16px 24px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.history-table tr:last-child td {
+    border-bottom: none;
+}
+
+.history-table tr:hover td {
+    background-color: #f9fafb;
+}
+
+.vendor-name {
+    font-weight: 600;
+    color: #111827;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.file-name {
+    font-size: 13px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+.date-text {
+    font-size: 14px;
+    color: #374151;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-uploaded {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.badge-partially {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-approved {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.action-link {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.action-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.action-link.disabled {
+    color: #9ca3af;
+    cursor: default;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <div class="dashboard-header">
+        <div>
+            <h1>Tariff Management</h1>
+            <p>View your document upload history and resume partial imports.</p>
+        </div>
+        <a href="/tariffs/upload" class="btn-primary">+ Import New Tariff</a>
+    </div>
+
+    <div class="history-card">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Vendor & File</th>
+                    <th>Uploaded Date</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if docs %}
+                    {% for doc in docs %}
+                    <tr>
+                        <td>
+                            <div class="vendor-name">{{ doc.vendor.name if doc.vendor else 'Unknown Vendor' }}</div>
+                            <div class="file-name" title="{{ doc.original_filename }}">{{ doc.original_filename }}</div>
+                        </td>
+                        <td>
+                            <div class="date-text">{{ doc.uploaded_at.strftime('%Y-%m-%d %H:%M') if doc.uploaded_at else 'Unknown' }}</div>
+                        </td>
+                        <td>
+                            {% if doc.status == 'APPROVED' %}
+                                <span class="badge badge-approved">Approved</span>
+                            {% elif doc.status == 'PARTIALLY_APPROVED' %}
+                                <span class="badge badge-partially">Partially Approved</span>
+                            {% elif doc.status == 'DRAFT' %}
+                                <span class="badge badge-uploaded">Pending Review</span>
+                            {% elif doc.status == 'ERROR' %}
+                                <span class="badge badge-error">Error</span>
+                            {% else %}
+                                <span class="badge badge-uploaded">{{ doc.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if doc.status in ['DRAFT', 'PARTIALLY_APPROVED'] %}
+                                <a href="/tariffs/review/{{ doc.id }}" class="action-link">Resume Review &rarr;</a>
+                            {% elif doc.status == 'APPROVED' %}
+                                <a href="/tariffs/diff/{{ doc.id }}" class="action-link" style="color: #4b5563;">View Details</a>
+                            {% else %}
+                                <span class="action-link disabled">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; color: #6b7280;">
+                            No tariffs uploaded yet. <br><br>
+                            <a href="/tariffs/upload" style="color: #2563eb; text-decoration: none; font-weight: 600;">Import your first tariff</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

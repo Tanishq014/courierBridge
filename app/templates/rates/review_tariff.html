@@ -18,7 +18,7 @@
         .sidebar-header h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #111827; }
         .sidebar-header .meta { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
         
-        .nav-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .review-nav-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; display: block !important; }
         .nav-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
         .nav-item:hover { background: #f3f4f6; }
         .nav-item.active { background: #e0f2fe; border-right: 3px solid #0284c7; }
@@ -107,6 +107,12 @@
 {% endblock %}
 
 {% block content %}
+    <!-- Auto-complete datalists for Carrier and Service -->
+    <datalist id="carrier-list">
+        {% for c in all_carriers %}
+            <option value="{{ c }}"></option>
+        {% endfor %}
+    </datalist>
     <div class="review-layout">
         <!-- Sidebar Navigation -->
         <div class="review-sidebar">
@@ -114,7 +120,7 @@
                 <h2>Review Tariff</h2>
                 <div class="meta">{{ doc.vendor.name }} • {{ doc.uploaded_at.strftime('%d %b %Y') if doc.uploaded_at else 'Unknown' }}</div>
             </div>
-            <ul class="nav-list" id="review-nav-list">
+            <ul class="review-nav-list" id="review-nav-list">
                 <!-- Populated by JS -->
             </ul>
         </div>
@@ -370,6 +376,33 @@
         }
         
         // --- MATRIX BUILDER ---
+        // Dynamic Service Datalist
+        const carrierServicesMap = {{ carrier_services|tojson|safe }};
+        function updateServiceList(serviceInputEl) {
+            // Find the sibling carrier input in the same flex row container
+            const container = serviceInputEl.closest('div[style*="display:flex; gap: 1rem"]');
+            if (!container) return;
+            const carrierInput = container.querySelector('input[list="carrier-list"]');
+            if (!carrierInput) return;
+            
+            let datalist = document.getElementById('service-list');
+            if (!datalist) {
+                datalist = document.createElement('datalist');
+                datalist.id = 'service-list';
+                document.body.appendChild(datalist);
+            }
+            datalist.innerHTML = ''; // clear previous options
+            
+            const carrierName = carrierInput.value.trim();
+            const validServices = carrierServicesMap[carrierName] || [];
+            
+            validServices.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                datalist.appendChild(opt);
+            });
+        }
+        
         function buildMatrices() {
             const container = document.getElementById('matrix-container');
             let html = '';
@@ -449,11 +482,11 @@
                 html += `<div style="display:flex; gap: 1rem; margin-bottom: 1rem; background:#f9fafb; padding:1rem; border-radius:6px; border:1px solid #e5e7eb;">
                     <div style="flex:1;">
                         <label style="display:block; font-size:0.75rem; font-weight:bold; color:#4b5563; margin-bottom:0.25rem;">Carrier Name <span style="color:#dc2626">*</span></label>
-                        <input type="text" value="${section.carrier || ''}" class="filter-select" style="width:100%; border-color: ${!section.carrier ? '#f87171' : '#d1d5db'}" onblur="updateSectionData(${sIdx}, 'carrier', this.value)" placeholder="e.g. FedEx, Aramex">
+                        <input type="text" list="carrier-list" value="${section.carrier || ''}" class="filter-select" style="width:100%; border-color: ${!section.carrier ? '#f87171' : '#d1d5db'}" onblur="updateSectionData(${sIdx}, 'carrier', this.value)" placeholder="e.g. FedEx, Aramex">
                     </div>
                     <div style="flex:1;">
                         <label style="display:block; font-size:0.75rem; font-weight:bold; color:#4b5563; margin-bottom:0.25rem;">Service (Optional)</label>
-                        <input type="text" value="${section.service || ''}" class="filter-select" style="width:100%;" onblur="updateSectionData(${sIdx}, 'service', this.value)" placeholder="e.g. IP, Economy">
+                        <input type="text" id="service-input-${sIdx}" list="service-list" value="${section.service || ''}" class="filter-select" style="width:100%;" onfocus="updateServiceList(this)" onblur="updateSectionData(${sIdx}, 'service', this.value)" placeholder="e.g. IP, Economy">
                     </div>
                     <div style="display:flex; align-items:flex-end;">
                         ${section._import_status === 'IMPORTED' 
@@ -1209,6 +1242,27 @@
             if (sIdx !== null) {
                 sectionsToPush = [rawJson.sections[sIdx]];
                 isPartial = true;
+            }
+            
+            const existingServicesInfo = {{ existing_services_info|tojson|safe }};
+            let overwriteWarnings = [];
+            
+            sectionsToPush.forEach(sec => {
+                const c = (sec.carrier || "").trim().toLowerCase();
+                const s = (sec.service || "").trim().toLowerCase();
+                if (c) {
+                    const key = `${c}|${s}`;
+                    if (existingServicesInfo[key]) {
+                        overwriteWarnings.push(`- ${sec.carrier} ${sec.service ? sec.service : '(No Service Name)'} (last updated from ${existingServicesInfo[key].filename} on ${existingServicesInfo[key].date})`);
+                    }
+                }
+            });
+            
+            if (overwriteWarnings.length > 0) {
+                const msg = `WARNING: Active rate cards already exist for this vendor:\n\n${overwriteWarnings.join('\n')}\n\nImporting this will overwrite the active Quoting Engine rates for these services. Are you sure you want to proceed?`;
+                if (!confirm(msg)) {
+                    return; // Abort import
+                }
             }
             
             const payload = {

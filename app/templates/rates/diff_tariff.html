@@ -1,78 +1,614 @@
 {% extends "base.html" %}
-{% block title %}Visual Diff - CourierBridge{% endblock %}
+{% block title %}Document Details & Visual Diff - CourierBridge{% endblock %}
 
 {% block head %}
     <style>
-        .header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #dde4de; border-radius: 8px 8px 0 0; margin-bottom: 1rem; }
-        .header h1 { margin: 0; font-size: 1.25rem; }
-        .header p { margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #4b5563; }
-        .container { padding: 2rem; max-width: 1000px; margin: 0 auto; }
+        /* Layout Styles from Review Workspace */
+        body { margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+        .review-layout { display: flex; height: 100vh; overflow: hidden; background: #fff; }
+        .review-sidebar { width: 272px; min-width: 272px; max-width: 272px; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #e5e7eb; background: #f9fafb; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 1.5rem 1rem 1rem 1rem; border-bottom: 1px solid #e5e7eb; }
+        .sidebar-header h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #111827; }
+        .sidebar-header .meta { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+        .review-nav-list { list-style: none; padding: 0; margin: 0; display: block !important; }
+        .nav-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+        .nav-item:hover { background: #f3f4f6; }
+        .nav-item.active { background: #e0f2fe; border-right: 3px solid #0284c7; }
+        .nav-item-title { font-size: 0.875rem; font-weight: 500; }
+        .nav-section-title { font-size: 0.7rem; font-weight: 800; color: #6b7280; padding: 1rem 1rem 0.5rem 1rem; text-transform: uppercase; background: #f9fafb; position: sticky; top: 0; z-index: 10;}
+        .review-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        .top-bar { padding: 1rem 2rem; border-bottom: 1px solid #e5e7eb; }
+        .content-area { flex: 1; overflow: auto; padding: 1.5rem; background: #fff; position: relative; }
+        .hidden-section { display: none !important; }
+
+        .header { background: #fff; padding: 0.5rem 1rem; border-bottom: 1px solid #dde4de; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #111827; }
+        .header p { margin: 0; font-size: 0.75rem; color: #4b5563; }
         
-        .card { background: #fff; border: 1px solid #dde4de; border-radius: 8px; overflow: hidden; margin-bottom: 2rem; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #dde4de; }
-        th { background: #f9fafb; font-weight: 600; color: #4b5563; }
+        .container { padding: 0.5rem 1rem; max-width: 100%; margin: 0 auto; }
         
-        .status-new { color: #059669; font-weight: bold; }
-        .status-inc { color: #dc2626; font-weight: bold; }
-        .status-dec { color: #059669; font-weight: bold; }
-        .status-unc { color: #9ca3af; }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
         
-        .diff-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 0.5rem; }
-        .tag-inc { background: #fee2e2; color: #991b1b; }
-        .tag-dec { background: #d1fae5; color: #065f46; }
-        .tag-new { background: #d1fae5; color: #065f46; }
+        .metric-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .metric-label { font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .metric-value { font-size: 1.1rem; font-weight: 800; color: #111827; }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            background: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #374151;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .toggle-label input {
+            margin-right: 0.5rem;
+            width: 0.9rem;
+            height: 0.9rem;
+            accent-color: #111827;
+            cursor: pointer;
+        }
+        
+        .service-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+        }
+        
+        .service-header {
+            background: #f9fafb;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: #111827;
+        }
+        
+        .table-scroll {
+            width: 100%;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        table.matrix-table { 
+            border-collapse: collapse; 
+            font-size: 0.75rem; 
+            min-width: max-content;
+        }
+        
+        .matrix-table th { 
+            position: sticky; 
+            top: 0; 
+            background: #f9fafb; 
+            font-weight: 700; 
+            color: #4b5563; 
+            padding: 0.25rem 0.5rem; 
+            text-align: center; 
+            border-bottom: 2px solid #e5e7eb; 
+            border-right: 1px solid #e5e7eb;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        
+        .matrix-table th:first-child {
+            left: 0;
+            z-index: 11;
+            background: #f3f4f6;
+            text-align: right;
+            border-right: 2px solid #e5e7eb;
+        }
+        
+        .matrix-table td { 
+            padding: 0; 
+            text-align: center; 
+            border-bottom: 1px solid #e5e7eb; 
+            border-right: 1px solid #e5e7eb;
+            vertical-align: middle;
+            min-width: 60px;
+            position: relative;
+        }
+        
+        .matrix-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: #f9fafb;
+            font-weight: 700;
+            color: #4b5563;
+            text-align: right;
+            border-right: 2px solid #e5e7eb;
+            z-index: 5;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .cell-increased { background-color: #fee2e2 !important; }
+        .cell-decreased { background-color: #d1fae5 !important; }
+        .cell-new { background-color: #e0e7ff !important; }
+        .cell-unchanged { background-color: #ffffff; }
+        
+        /* Live Editor Inputs */
+        .live-input {
+            width: 100%;
+            height: 100%;
+            min-height: 36px;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-weight: 800;
+            color: #111827;
+            font-size: 0.8rem;
+            outline: none;
+            padding: 0.25rem 0.5rem;
+            box-sizing: border-box;
+            transition: background 0.2s;
+        }
+        
+        .live-input:focus {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: inset 0 0 0 2px #2563eb;
+        }
+        
+        .cell-increased .live-input { color: #991b1b; }
+        .cell-decreased .live-input { color: #065f46; }
+        .cell-new .live-input { color: #3730a3; }
+        
+        .price-old { font-size: 0.65rem; color: #6b7280; margin-top: -4px; margin-bottom: 4px; text-decoration: line-through; pointer-events: none; }
+        
+        /* Utility to hide services via JS */
+        .hidden-service { display: none !important; }
+        
+        /* Flash animation for saved inputs */
+        @keyframes flashGreen {
+            0% { background-color: #34d399; }
+            100% { background-color: transparent; }
+        }
+        .flash-saved { animation: flashGreen 1s ease-out; }
+        
+        .resolver-section {
+            margin-top: 2rem;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .resolver-title { font-weight: 800; font-size: 1rem; margin-bottom: 1rem; color: #111827; }
+        .resolver-textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .btn-save {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .btn-save:hover { background: #374151; }
+        
+        .zone-settings { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; border-top: 1px solid #e5e7eb; background: #fafafa; }
+        .zone-setting-item { display: flex; align-items: flex-start; gap: 1rem; }
+        .zone-label { font-size: 0.75rem; font-weight: 700; color: #4b5563; min-width: 150px; text-transform: uppercase; margin-top: 0.25rem; }
+        .tag-editor { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        .tag { background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem; }
+        .tag-remove { cursor: pointer; color: #4f46e5; font-weight: bold; }
+        .tag-remove:hover { color: #312e81; }
+        .tag-input { border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; outline: none; width: 150px; }
+        .tag-input:focus { border-color: #4f46e5; }
+        
+        .resolver-link { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: #111827; text-decoration: none; transition: background 0.2s; }
+        .resolver-link:hover { background: #f3f4f6; }
     </style>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 {% endblock %}
 
+{% block container_class %}container-fluid{% endblock %}
+
 {% block content %}
-    <div class="header">
-        <h1>Visual Diff: {{ doc.vendor.name }}</h1>
-        {% if old_doc %}
-        <p>Comparing <strong>{{ doc.uploaded_at.strftime('%b %d, %Y') }}</strong> against <strong>{{ old_doc.uploaded_at.strftime('%b %d, %Y') }}</strong></p>
-        {% else %}
-        <p>No previous rate card found. All rates are new.</p>
-        {% endif %}
-    </div>
-    
-    <div class="container">
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Carrier/Service</th>
-                        <th>Zone</th>
-                        <th>Weight</th>
-                        <th>Previous Price</th>
-                        <th>New Price</th>
-                        <th>Change</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in diffs %}
-                    <tr>
-                        <td>{{ d.carrier }} - {{ d.service }}</td>
-                        <td>{{ d.zone }}</td>
-                        <td>{{ d.weight }} kg</td>
-                        <td style="color: #6b7280;">{% if d.status != 'NEW' %}{{ d.old_price }}{% else %}-{% endif %}</td>
-                        <td style="font-weight: 600;">{{ d.new_price }}</td>
-                        <td>
-                            {% if d.status == 'NEW' %}
-                                <span class="status-new">NEW</span>
-                            {% elif d.status == 'INCREASED' %}
-                                <span class="status-inc">↑ Increased</span>
-                                <span class="diff-tag tag-inc">+{{ "%.2f"|format(d.diff) }}</span>
-                            {% elif d.status == 'DECREASED' %}
-                                <span class="status-dec">↓ Decreased</span>
-                                <span class="diff-tag tag-dec">-{{ "%.2f"|format(d.diff) }}</span>
-                            {% else %}
-                                <span class="status-unc">Unchanged</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    {% set total_rates = diffs|length %}
+    {% set count_new = diffs|selectattr("status", "equalto", "NEW")|list|length %}
+    {% set count_inc = diffs|selectattr("status", "equalto", "INCREASED")|list|length %}
+    {% set count_dec = diffs|selectattr("status", "equalto", "DECREASED")|list|length %}
+    {% set count_changed = count_new + count_inc + count_dec %}
+    {% set count_unchanged = total_rates - count_changed %}
+
+    <div class="review-layout">
+        <!-- Sidebar Navigation -->
+        <div class="review-sidebar">
+            <div class="sidebar-header" style="display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1rem 0.5rem 1rem;">
+                <div>
+                    <h1 style="margin:0; font-size:1.1rem; font-weight:800;">Document Details</h1>
+                    <div style="font-size:0.85rem; font-weight:600; color:#4b5563; margin-top: 0.15rem;">{{ doc.vendor.name }}</div>
+                    {% if old_doc %}
+                        <div style="font-size:0.7rem; color:#6b7280; margin-top: 0.25rem; line-height: 1.2;">Comparing <strong>{{ doc.uploaded_at.strftime('%b %d, %Y') }}</strong><br>vs <strong>{{ old_doc.uploaded_at.strftime('%b %d, %Y') }}</strong></div>
+                    {% else %}
+                        <div style="font-size:0.7rem; color:#6b7280; margin-top: 0.25rem; line-height: 1.2;">First rate card for vendor.<br>All {{ total_rates }} rates new.</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Summary Metrics (Compact 2x2) -->
+                <div class="metrics-grid" style="grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-bottom: 0;">
+                    <div class="metric-card" style="flex-direction: column; align-items: flex-start; padding: 0.35rem 0.5rem; gap: 0.15rem;">
+                        <div class="metric-label" style="font-size: 0.6rem; letter-spacing: 0;">PROCESSED</div>
+                        <div class="metric-value" style="font-size: 0.9rem;">{{ total_rates }}</div>
+                    </div>
+                    <div class="metric-card" style="flex-direction: column; align-items: flex-start; padding: 0.35rem 0.5rem; gap: 0.15rem;">
+                        <div class="metric-label" style="font-size: 0.6rem; color:#4f46e5; letter-spacing: 0;">CHANGED</div>
+                        <div class="metric-value" style="font-size: 0.9rem; color:#4f46e5;">{{ count_changed }}</div>
+                    </div>
+                    <div class="metric-card" style="flex-direction: column; align-items: flex-start; padding: 0.35rem 0.5rem; gap: 0.15rem;">
+                        <div class="metric-label" style="font-size: 0.6rem; color:#dc2626; letter-spacing: 0;">INCREASED</div>
+                        <div class="metric-value" style="font-size: 0.9rem; color:#dc2626;">{{ count_inc }}</div>
+                    </div>
+                    <div class="metric-card" style="flex-direction: column; align-items: flex-start; padding: 0.35rem 0.5rem; gap: 0.15rem;">
+                        <div class="metric-label" style="font-size: 0.6rem; color:#059669; letter-spacing: 0;">DECREASED</div>
+                        <div class="metric-value" style="font-size: 0.9rem; color:#059669;">{{ count_dec }}</div>
+                    </div>
+                </div>
+                
+                <div class="controls" style="flex-direction: column; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; margin-bottom: 0;">
+                    <label class="toggle-label" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem;">
+                        <input type="checkbox" id="changesOnlyToggle" {% if old_doc %}checked{% endif %} style="margin: 0; width: 0.75rem; height: 0.75rem;">
+                        Show Changes Only
+                    </label>
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 0.15rem;">
+                        <span id="global-save-status" style="font-size: 0.7rem; font-weight: 600; color: #4b5563; opacity: 0; transition: opacity 0.2s;">Saving...</span>
+                        <span style="font-size: 0.65rem; color: #059669; font-weight: bold;">LIVE EDIT ACTIVE</span>
+                    </div>
+                </div>
+            </div>
+            <ul class="review-nav-list">
+                <div class="nav-section-title">Services</div>
+                {% for svc, m in matrices.items() %}
+                    <li class="nav-item" id="nav-service-{{ loop.index0 }}" onclick="showSection('service', {{ loop.index0 }})">
+                        <span class="nav-item-title">{{ svc }}</span>
+                        {% if m.has_changes %}
+                            <span class="badge badge-warn" style="font-size: 0.65rem;">Changes</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
         </div>
-    </div>
+        
+        <!-- Main Area -->
+        <div class="review-main">
+            <div class="content-area">
+        
+        <!-- Matrices -->
+        {% for svc, m in matrices.items() %}
+            <div class="service-card detail-section hidden-section" id="section-service-{{ loop.index0 }}" data-has-changes="{{ 'true' if m.has_changes else 'false' }}">
+                <div class="service-header">{{ svc }}</div>
+                <div class="table-scroll">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Weight (kg)</th>
+                                {% for z in m.zones %}
+                                <th>{{ z }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for w in m.weights %}
+                            <tr>
+                                <td>{{ w }}</td>
+                                {% for z in m.zones %}
+                                    {% set cell = m.data[w].get(z) %}
+                                    {% if cell %}
+                                        <td class="cell-{{ cell.status|lower }}">
+                                            <input type="number" step="0.01" class="live-input" data-rate-id="{{ cell.rate_id }}" value="{{ '%.2f'|format(cell.new_price) if cell.new_price else cell.new_price }}">
+                                            {% if cell.status != 'UNCHANGED' and cell.status != 'NEW' %}
+                                                <div class="price-old">{{ "%.2f"|format(cell.old_price) if cell.old_price else cell.old_price }}</div>
+                                            {% endif %}
+                                            {% if cell.status == 'NEW' and old_doc %}
+                                                <div class="price-old" style="text-decoration: none;">(new)</div>
+                                            {% endif %}
+                                        </td>
+                                    {% else %}
+                                        <td class="cell-unchanged" style="color: #d1d5db;">-</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Zone & Resolver Settings for this Service -->
+                <div class="zone-settings">
+                    <!-- Global Zone Mappings (Tags) -->
+                    {% set svc_mappings = global_mappings.get(svc) %}
+                    {% if svc_mappings %}
+                        {% for z, zmap in svc_mappings.items() %}
+                            <div class="zone-setting-item">
+                                <div class="zone-label">{{ z }} Mapping</div>
+                                <div class="tag-editor" id="tag-editor-{{ zmap.id }}">
+                                    {% for dest in zmap.destinations %}
+                                        <div class="tag">
+                                            {{ dest }} <span class="tag-remove" onclick="removeTag('{{ zmap.id }}', '{{ dest }}')">×</span>
+                                        </div>
+                                    {% endfor %}
+                                    <input type="text" class="tag-input tag-add-input" data-map-id="{{ zmap.id }}" placeholder="+ Add Destination">
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Postcode Resolver Link / Assign -->
+                    <div class="zone-setting-item" style="margin-top: 0.5rem; align-items: center;">
+                        <div class="zone-label">Postcode Resolver</div>
+                        {% set found_res = namespace(id=None) %}
+                        {% for r_id, r_info in resolvers.items() %}
+                            {% if r_info.section_id == m.section_id %}
+                                {% set found_res.id = r_id %}
+                                <a href="/tariffs/resolvers/{{ r_id }}" class="resolver-link" target="_blank">
+                                    {{ r_info.db.name }}
+                                    {% if r_info.source_doc_name %}
+                                        <span style="color: #6b7280; font-weight: normal; font-size: 0.75rem;">(via {{ r_info.source_doc_name }})</span>
+                                    {% endif %}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                </a>
+                                <button class="btn-save" style="margin-top: 0; margin-left: 0.5rem; background: #ef4444;" onclick="attachResolver('{{ m.section_id }}', '')">Detach</button>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if not found_res.id %}
+                            <div style="display: flex; gap: 0.5rem; align-items: center; width: 350px;">
+                                <select class="resolver-select" id="select-res-{{ m.section_id }}" placeholder="Assign a resolver...">
+                                    <option value="">Assign a resolver...</option>
+                                    {% for r in all_resolvers %}
+                                        <option value="{{ r.id }}">{{ r.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="btn-save" style="margin-top: 0;" onclick="attachResolver('{{ m.section_id }}', document.getElementById('select-res-{{ m.section_id }}').value)">Assign</button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div> <!-- closes content-area -->
+</div> <!-- closes review-main -->
+</div> <!-- closes review-layout -->
+
+    <script>
+        function showSection(type, id) {
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navItem = document.getElementById(`nav-${type}-${id}`);
+            if(navItem) navItem.classList.add('active');
+            
+            // Hide all sections
+            document.querySelectorAll('.detail-section').forEach(el => el.classList.add('hidden-section'));
+            
+            // Show selected section
+            const section = document.getElementById(`section-${type}-${id}`);
+            if(section) section.classList.remove('hidden-section');
+        }
+        
+        // Initialize first section on load
+        document.addEventListener("DOMContentLoaded", () => {
+            const firstNav = document.querySelector('.nav-item');
+            if (firstNav) {
+                firstNav.click();
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggle = document.getElementById("changesOnlyToggle");
+            const cards = document.querySelectorAll(".service-card");
+
+            function filterCards() {
+                const showChangesOnly = toggle.checked;
+
+                cards.forEach(card => {
+                    const hasChanges = card.getAttribute("data-has-changes") === "true";
+                    if (showChangesOnly && !hasChanges) {
+                        card.classList.add("hidden-service");
+                    } else {
+                        card.classList.remove("hidden-service");
+                    }
+                });
+            }
+
+            if (toggle) {
+                const savedState = localStorage.getItem("showChangesOnly");
+                if (savedState !== null) {
+                    toggle.checked = savedState === "true";
+                }
+                toggle.addEventListener("change", (e) => {
+                    localStorage.setItem("showChangesOnly", e.target.checked);
+                    filterCards();
+                });
+                filterCards(); // Run on load
+            }
+
+            // showStatus is now in global scope
+            // Live Editor for Rates
+            const inputs = document.querySelectorAll(".live-input");
+            inputs.forEach(input => {
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.target.blur(); // Triggers the change event
+                    }
+                });
+
+                input.addEventListener("change", async (e) => {
+                    const rateId = e.target.getAttribute("data-rate-id");
+                    const newPrice = parseFloat(e.target.value);
+                    
+                    if (!rateId || isNaN(newPrice)) return;
+                    
+                    showStatus("Saving...", "#4b5563");
+                    
+                    try {
+                        const res = await fetch(`/api/tariffs/rates/${rateId}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ price: newPrice })
+                        });
+                        if (res.ok) {
+                            showStatus("Saved!", "#059669");
+                            e.target.classList.remove("flash-saved");
+                            void e.target.offsetWidth; // trigger reflow
+                            e.target.classList.add("flash-saved");
+                        } else {
+                            showStatus("Error saving", "#dc2626");
+                            alert("Failed to save rate.");
+                        }
+                    } catch (err) {
+                        showStatus("Network error", "#dc2626");
+                        alert("Network error while saving.");
+                    }
+                });
+            });
+        });
+        // TomSelect Init
+        document.querySelectorAll('.resolver-select').forEach(el => {
+            new TomSelect(el, { maxItems: 1, dropdownParent: 'body' });
+        });
+        
+        document.querySelectorAll(".tag-add-input").forEach(input => {
+            input.addEventListener("keydown", async (e) => {
+                if (e.key === "Enter" && e.target.value.trim() !== "") {
+                    const mappingId = e.target.getAttribute("data-map-id");
+                    const newDest = e.target.value.trim();
+                    let currentDests = [];
+                    for (const svc in globalMappingsData) {
+                        for (const z in globalMappingsData[svc]) {
+                            if (globalMappingsData[svc][z].id == mappingId) {
+                                currentDests = globalMappingsData[svc][z].destinations;
+                                if (!currentDests.includes(newDest)) {
+                                    currentDests.push(newDest);
+                                }
+                            }
+                        }
+                    }
+                    e.target.value = "";
+                    if (await updateZoneMapping(mappingId, currentDests)) {
+                        window.location.reload(); // Quick refresh to re-render tags
+                    }
+                }
+            });
+        });
+        
+    }); // End DOMContentLoaded
+
+
+        let statusTimeout;
+        function showStatus(text, color) {
+            const statusText = document.getElementById("global-save-status");
+            if (!statusText) return;
+            statusText.textContent = text;
+            statusText.style.color = color;
+            statusText.style.opacity = "1";
+            clearTimeout(statusTimeout);
+            if (text !== "Saving...") {
+                statusTimeout = setTimeout(() => {
+                    statusText.style.opacity = "0";
+                }, 2000);
+            }
+        }
+
+        // Global Zone Mappings (Tags)
+        const globalMappingsData = {{ global_mappings | tojson | safe }};
+        
+        async function updateZoneMapping(mappingId, newDestinations) {
+            showStatus("Saving...", "#4b5563");
+            try {
+                const res = await fetch(`/api/tariffs/zonemappings/${mappingId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ destinations: newDestinations })
+                });
+                if (res.ok) {
+                    showStatus("Saved!", "#059669");
+                    return true;
+                }
+            } catch(e) {}
+            showStatus("Error saving", "#dc2626");
+            return false;
+        }
+
+        async function removeTag(mappingId, dest) {
+            // Find mapping in our JS data
+            let currentDests = [];
+            for (const svc in globalMappingsData) {
+                for (const z in globalMappingsData[svc]) {
+                    if (globalMappingsData[svc][z].id == mappingId) {
+                        currentDests = globalMappingsData[svc][z].destinations;
+                        currentDests = currentDests.filter(d => d !== dest);
+                        globalMappingsData[svc][z].destinations = currentDests;
+                    }
+                }
+            }
+            if (await updateZoneMapping(mappingId, currentDests)) {
+                window.location.reload(); // Quick refresh to re-render tags
+            }
+        }
+
+
+        // Assign/Detach Resolver
+        async function attachResolver(sectionId, resolverId) {
+            if (resolverId !== '' && !resolverId) { alert("Please select a resolver"); return; }
+            showStatus("Saving...", "#4b5563");
+            try {
+                const res = await fetch(`/api/tariffs/sections/${sectionId}/resolver`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ resolver_id: resolverId })
+                });
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    alert("Error updating resolver");
+                }
+            } catch(e) {
+                alert("Network error");
+            }
+        }
+
+    </script>
 {% endblock %}
