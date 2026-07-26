@@ -177,6 +177,56 @@ def extract_overseas_tracking_section(raw: str) -> str:
         end = len(raw)
     return raw[start:end]
 
+
+@router.get("/skynet")
+def skynet_tracking_page(request: Request, awb: str = ""):
+    return templates.TemplateResponse("tracking/skynet_debug.html", {
+        "request": request,
+        "awb": awb.strip(),
+        "skynet_url": "https://www.skynetww.com/track",
+    })
+
+@router.get("/skynet/lookup")
+def skynet_tracking_lookup(awb: str = ""):
+    awb = awb.strip()
+    if not awb:
+        return JSONResponse({"ok": False, "error": "Missing AWB", "debug": {"stage": "validate"}}, status_code=400)
+
+    request = urllib.request.Request(
+        f"https://www.skynetww.com/api/track-skylink?awbNo={awb}",
+        headers={
+            "accept": "application/json",
+            "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+            "referer": "https://www.skynetww.com/track",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0"
+        },
+        method="GET",
+    )
+    debug = {
+        "url": f"https://www.skynetww.com/api/track-skylink?awbNo={awb}",
+        "method": "GET",
+    }
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read().decode("utf-8", errors="replace")
+            parsed = None
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                pass
+            return JSONResponse({
+                "ok": True,
+                "status": response.status,
+                "debug": debug,
+                "raw": raw,
+                "json": parsed,
+            })
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return JSONResponse({"ok": False, "status": exc.code, "debug": debug, "raw": raw}, status_code=502)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc), "debug": debug}, status_code=502)
+
 @router.get("/overseas")
 def overseas_tracking_page(request: Request, awb: str = ""):
     return templates.TemplateResponse("tracking/overseas_debug.html", {

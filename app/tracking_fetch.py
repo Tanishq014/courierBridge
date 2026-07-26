@@ -1087,6 +1087,49 @@ def fetch_mawwl(awb: str) -> dict[str, Any]:
     return result
 
 
+def fetch_skynet(awb: str) -> dict[str, Any]:
+    url = f"https://www.skynetww.com/api/track-skylink?awbNo={awb}"
+    req = urllib.request.Request(url, headers={
+        "accept": "application/json",
+        "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+        "referer": "https://www.skynetww.com/track",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0"
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw = resp.read().decode("utf-8")
+        data = json.loads(raw)
+        events = []
+        found_lm_awb = ""
+        found_lm_courier = ""
+        
+        if data.get("stateCode") == "SUCCESS" and "data" in data:
+            details = data["data"].get("shipmentDetails", [])
+            if details and isinstance(details, list) and len(details) > 0:
+                found_lm_awb = str(details[0].get("forwarderNo", "") or "").strip()
+                fwd_url = str(details[0].get("forwardingUrl", "") or "").lower()
+                if "couriersplease" in fwd_url:
+                    found_lm_courier = "CouriersPlease"
+            
+            history = data["data"].get("shipmentHistory", [])
+            for item in history:
+                date_str = str(item.get("date", "") or "")
+                time_str = str(item.get("time", "") or "")
+                dt_str = f"{date_str} {time_str}".strip()
+                desc = str(item.get("shipmentDetails", "") or "")
+                status_txt = str(item.get("shipmentStatus", "") or "")
+                full_desc = f"{status_txt} - {desc}" if status_txt and desc else (desc or status_txt)
+                loc = str(item.get("location", "") or "")
+                events.append(event_to_dict(dt_str, full_desc, loc, "skynet"))
+                
+        return normalize_fetch_result(True, events, raw, "skynet", found_lm_awb=found_lm_awb, found_lm_courier=found_lm_courier)
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return normalize_fetch_result(False, [], raw, "skynet", f"HTTP {exc.code}")
+    except Exception as exc:
+        return normalize_fetch_result(False, [], "", "skynet", str(exc))
+
+
 def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type: str = "") -> dict[str, Any]:
     courier_key = normalize_courier_name(courier)
     awb = (tracking_number or "").strip()
@@ -1107,6 +1150,8 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
             return fetch_quickship(awb)
         if courier_key in {"aramex", "aramax"}:
             return fetch_aramex(awb)
+        if courier_key == "skynet":
+            return fetch_skynet(awb)
         if courier_key in {"indiapost", "indiaapost", "indianpost", "postindia"}:
             return normalize_fetch_result(False, [], "", courier_key, "India Post backend tracking is not configured")
         brand_key = seventeen_track_brand_key(courier_key)
