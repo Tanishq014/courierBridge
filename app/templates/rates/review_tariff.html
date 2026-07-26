@@ -333,9 +333,15 @@
                 if (bCount > 0) { badgeClass = 'badge-err'; badgeText = `${bCount} 🚨`; }
                 else if (wCount > 0) { badgeClass = 'badge-warn'; badgeText = `${wCount} ⚠`; }
                 
+                
+                let importTag = '';
+                if (s._import_status === 'IMPORTED') {
+                    importTag = ' <span style="color:#15803d;font-size:0.7rem;">(Imported)</span>';
+                }
+                
                 html += `
-                    <li class="nav-item ${idx === activeSectionIndex ? 'active' : ''}" onclick="showSection(${idx}, this)">
-                        <div class="nav-item-title">${s.carrier} <br><span style="font-size:0.7rem; color:#6b7280; font-weight:normal;">${s.service}</span></div>
+                    <li id="nav-item-${idx}" class="nav-item ${idx === activeSectionIndex ? 'active' : ''}" onclick="showSection(${idx}, this)">
+                        <div class="nav-item-title">${s.carrier} <br><span style="font-size:0.7rem; color:#6b7280; font-weight:normal;">${s.service}</span>${importTag}</div>
                         <span class="badge ${badgeClass}">${badgeText}</span>
                     </li>
                 `;
@@ -448,6 +454,12 @@
                     <div style="flex:1;">
                         <label style="display:block; font-size:0.75rem; font-weight:bold; color:#4b5563; margin-bottom:0.25rem;">Service (Optional)</label>
                         <input type="text" value="${section.service || ''}" class="filter-select" style="width:100%;" onblur="updateSectionData(${sIdx}, 'service', this.value)" placeholder="e.g. IP, Economy">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        ${section._import_status === 'IMPORTED' 
+                            ? `<button id="btn-import-${sIdx}" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; background: #15803d; color: white;" disabled>✓ Imported</button>`
+                            : `<button id="btn-import-${sIdx}" class="btn btn-approve" onclick="approveTariff(${sIdx})" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;">Import Just This Service</button>`
+                        }
                     </div>
                 </div>`;
                 
@@ -1190,15 +1202,25 @@
             });
         }
         
-        async function approveTariff() {
+        async function approveTariff(sIdx = null) {
+            let sectionsToPush = rawJson.sections;
+            let isPartial = false;
+            
+            if (sIdx !== null) {
+                sectionsToPush = [rawJson.sections[sIdx]];
+                isPartial = true;
+            }
+            
             const payload = {
-                sections: rawJson.sections,
+                sections: sectionsToPush,
                 knowledge: rawJson.knowledge || [],
-                audit_log: auditLog
+                audit_log: auditLog,
+                partial: isPartial,
+                partial_indices: isPartial ? [sIdx] : []
             };
             
             try {
-                const response = await fetch('/api/tariffs/{{ doc.id }}/approve', {
+                const response = await fetch(`/api/tariffs/${docId}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1206,8 +1228,32 @@
                 const resData = await response.json();
                 
                 if (resData.success) {
-                    alert('Tariff approved and normalized successfully!');
-                    window.location.href = '/rates';
+                    if (isPartial) {
+                        alert('Service imported successfully!');
+                        const btn = document.getElementById(`btn-import-${sIdx}`);
+                        if (btn) {
+                            btn.innerText = "✓ Imported";
+                            btn.disabled = true;
+                            btn.classList.remove('btn-approve');
+                            btn.style.background = '#15803d';
+                            btn.style.color = 'white';
+                        }
+                        const navItem = document.getElementById(`nav-item-${sIdx}`);
+                        if (navItem) {
+                            const titleEl = navItem.querySelector('.nav-item-title');
+                            if (titleEl && !titleEl.innerHTML.includes('(Imported)')) {
+                                titleEl.innerHTML += ' <span style="color:#15803d;font-size:0.7rem;">(Imported)</span>';
+                            }
+                        }
+                        rawJson.sections[sIdx]._import_status = 'IMPORTED';
+                        if (resData.doc_status === 'APPROVED') {
+                            alert('All services have been imported! Tariff is fully approved.');
+                            window.location.href = '/rates';
+                        }
+                    } else {
+                        alert('Tariff approved and normalized successfully!');
+                        window.location.href = '/rates';
+                    }
                 } else {
                     alert('Error: ' + resData.message);
                 }

@@ -354,13 +354,17 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
     knowledge = data.get("knowledge", [])
     audit_log = data.get("audit_log", [])
     
+    is_partial = data.get("partial", False)
+    partial_indices = data.get("partial_indices", [])
+    
     # Store audit log
     doc.audit_log = audit_log
     
-    # Delete old normalized data if re-approving
-    for existing_sec in doc.sections:
-        db.delete(existing_sec)
-    db.flush()
+    # Delete old normalized data if re-approving (only if not partial)
+    if not is_partial:
+        for existing_sec in doc.sections:
+            db.delete(existing_sec)
+        db.flush()
     
     # Normalization Layer
     from datetime import datetime
@@ -547,10 +551,37 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                 db.add(TariffNote(section_id=sec_record.id, text=g_text, category=g_cat))
                 saved_texts.add(g_text)
             
-    doc.status = "APPROVED"
+    # Handle status transition and persistence of imported state
+    from sqlalchemy.orm.attributes import flag_modified
+    if doc.raw_extraction_json:
+        raw_json = doc.raw_extraction_json
+        
+        if not is_partial:
+            # Mark all as imported
+            for s in raw_json.get("sections", []):
+                s["_import_status"] = "IMPORTED"
+            doc.status = "APPROVED"
+        else:
+            # Mark specific as imported
+            for idx in partial_indices:
+                if 0 <= idx < len(raw_json.get("sections", [])):
+                    raw_json["sections"][idx]["_import_status"] = "IMPORTED"
+                    
+            # Check if all are now imported
+            all_imported = all(s.get("_import_status") == "IMPORTED" for s in raw_json.get("sections", []))
+            if all_imported:
+                doc.status = "APPROVED"
+            else:
+                doc.status = "PARTIALLY_APPROVED"
+                
+        doc.raw_extraction_json = raw_json
+        flag_modified(doc, "raw_extraction_json")
+    else:
+        doc.status = "PARTIALLY_APPROVED" if is_partial else "APPROVED"
+
     db.commit()
     
-    return {"success": True, "message": "Tariff approved and normalized successfully."}
+    return {"success": True, "message": "Tariff processed successfully.", "doc_status": doc.status}
 
 @router.get("/api/tariffs/search")
 async def search_tariffs_api(q: str, db: Session = Depends(get_db)):
