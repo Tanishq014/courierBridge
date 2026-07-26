@@ -401,7 +401,7 @@ async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str) -> Dic
                 
     return {}
 
-async def extract_rates_from_document(file_path: str, filename: str, allowed_sheets: List[str] = None, skip_middle_sheets: List[str] = None, force_all_sheets: List[str] = None) -> Dict[str, Any]:
+async def extract_rates_from_document(file_path: str, filename: str, allowed_sheets: List[str] = None, skip_middle_sheets: List[str] = None, force_all_sheets: List[str] = None, ai_context: str = None) -> Dict[str, Any]:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set.")
 
@@ -429,6 +429,9 @@ async def extract_rates_from_document(file_path: str, filename: str, allowed_she
                     {"text": PROMPT_V1},
                     {"text": f"\n\nDocument Data (JSON where 'data' maps column letters to cell values):\n{json_str}"}
                 ]
+                
+                if ai_context:
+                    parts.append({"text": f"\n\nUSER INSTRUCTIONS / CUSTOM CONTEXT:\n{ai_context}\nPlease strictly follow the user instructions above if they clarify ambiguous data."})
                 
                 unit_res = await call_gemini_api_with_retries(parts, unit_name)
                 
@@ -465,6 +468,9 @@ async def extract_rates_from_document(file_path: str, filename: str, allowed_she
                 "data": b64_data
             }
         })
+        
+        if ai_context:
+            parts.append({"text": f"\n\nUSER INSTRUCTIONS / CUSTOM CONTEXT:\n{ai_context}\nPlease strictly follow the user instructions above if they clarify ambiguous data."})
         
         unit_res = await call_gemini_api_with_retries(parts, "PDF/Image")
         for sec in unit_res.get("sections", []):

@@ -46,8 +46,13 @@
             </div>
             
             <div class="form-group">
-                <label for="file">Rate Document (Excel, PDF, Image)</label>
+                <label for="file">Rate Document (Excel, PDF, Image) - You can also Paste an image here!</label>
                 <input type="file" id="file" name="file" accept=".xlsx,.xls,.pdf,.png,.jpg,.jpeg" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="ai_context">Custom AI Instructions (Optional)</label>
+                <textarea id="ai_context" name="ai_context" rows="3" placeholder="E.g. The first table is for import rates, ignore it. Focus on Export rates..." style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; outline: none; font-family: inherit; resize: vertical;"></textarea>
             </div>
             
             <button type="submit" id="submitBtn">Upload & Process</button>
@@ -141,6 +146,17 @@
             document.getElementById('file').value = '';
             document.getElementById('submitBtn').disabled = false;
         }
+
+        document.addEventListener('paste', function(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const fileInput = document.getElementById('file');
+                    fileInput.files = e.clipboardData.files;
+                    break;
+                }
+            }
+        });
 
         async function startUpload(e) {
             if (e) e.preventDefault();
@@ -245,6 +261,11 @@
             }
             if (forceAllSheets.length > 0) {
                 formData.append('force_all_sheets', JSON.stringify(forceAllSheets));
+            }
+            
+            const aiContext = document.getElementById('ai_context').value.trim();
+            if (aiContext) {
+                formData.append('ai_context', aiContext);
             }
             
             // Duplicate Check

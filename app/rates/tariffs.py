@@ -147,6 +147,7 @@ async def upload_tariff(
     selected_sheets: Optional[str] = Form(None),
     skip_middle_sheets: Optional[str] = Form(None),
     force_all_sheets: Optional[str] = Form(None),
+    ai_context: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -181,7 +182,14 @@ async def upload_tariff(
             force_all = json.loads(force_all_sheets)
             
         # Call Gemini Flash AI Pipeline
-        raw_json = await extract_rates_from_document(file_path, original_filename, allowed_sheets=sheets_list, skip_middle_sheets=skip_middle, force_all_sheets=force_all)
+        raw_json = await extract_rates_from_document(
+            file_path, 
+            original_filename, 
+            allowed_sheets=sheets_list, 
+            skip_middle_sheets=skip_middle, 
+            force_all_sheets=force_all,
+            ai_context=ai_context
+        )
         
         # Phase 3: Hybrid Python Deterministic Parser (for massive zone tables)
         raw_json = process_deterministic_zones(file_path, raw_json)
