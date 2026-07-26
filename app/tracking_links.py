@@ -11,6 +11,8 @@ DEFAULT_TRACKING_TEMPLATES = {
     "maww": "https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}",
     "nzpost": "https://www.nzpost.co.nz/tools/tracking?trackid={awb}",
     "purolator": "https://www.purolator.com/en/shipping/tracker?pin={awb}",
+    "couriersplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
+    "courierplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {}

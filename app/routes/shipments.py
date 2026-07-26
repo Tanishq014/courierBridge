@@ -37,6 +37,7 @@ DEFAULT_COURIERS = [
     "NZ Post",
     "Purolator",
     "Skynet",
+    "Courier Please",
 ]
 
 COUNTRY_ALIASES = {
@@ -832,7 +833,13 @@ def quick_update_shipment(
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     if request.headers.get("accept", "").startswith("application/json") or request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return {"status": "success", "message": "Shipment updated successfully"}
+        row_color_effective = shipment.row_color or ('green' if shipment.overall_status == 'delivered' else 'yellow')
+        return {
+            "status": "success",
+            "message": "Shipment updated successfully",
+            "row_color": shipment.row_color,
+            "row_color_effective": row_color_effective
+        }
 
     return RedirectResponse(url=redirect_url, status_code=303)
 @router.get("/{shipment_id}")

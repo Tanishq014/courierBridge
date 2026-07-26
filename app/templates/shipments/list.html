@@ -822,8 +822,26 @@ Track: ${url}` : label;
             });
         });
 
+        const updateDateSpan = (field) => {
+            if (field.type !== 'date') return;
+            const span = field.previousElementSibling;
+            if (span && span.tagName === 'SPAN') {
+                if (field.value) {
+                    const parts = field.value.split('-');
+                    if (parts.length === 3) {
+                        const d = new Date(parts[0], parts[1]-1, parts[2]);
+                        const formatter = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        span.textContent = formatter.format(d);
+                    }
+                } else {
+                    span.textContent = 'Select date';
+                }
+            }
+        };
+
         fields.forEach(field => field.addEventListener('input', updateRowState));
         fields.forEach(field => field.addEventListener('change', () => {
+            updateDateSpan(field);
             updateRowState();
             if (field.tagName === 'SELECT' || field.type === 'date') autoSaveDropdown(field);
         }));
@@ -836,6 +854,7 @@ Track: ${url}` : label;
                     } else {
                         field.value = field.dataset.initial || '';
                     }
+                    updateDateSpan(field);
                 });
                 updateRowState();
             });
@@ -861,6 +880,25 @@ Track: ${url}` : label;
                     });
                     
                     if (response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        if (data.row_color_effective !== undefined) {
+                            row.classList.remove('row-highlight-green', 'row-highlight-yellow', 'row-highlight-red');
+                            if (data.row_color_effective) {
+                                row.classList.add(`row-highlight-${data.row_color_effective}`);
+                            }
+                            rowColorButtons.forEach(btn => {
+                                const btnColor = btn.classList.contains('row-color-dot-green') ? 'green' : 
+                                                 btn.classList.contains('row-color-dot-yellow') ? 'yellow' : 'red';
+                                if (data.row_color_effective === btnColor) {
+                                    btn.classList.add('is-selected');
+                                    btn.dataset.rowColorValue = (data.row_color === btnColor) ? 'clear' : btnColor;
+                                } else {
+                                    btn.classList.remove('is-selected');
+                                    btn.dataset.rowColorValue = btnColor;
+                                }
+                            });
+                        }
+
                         fields.forEach(field => {
                             if (field.type === 'radio' || field.type === 'checkbox') {
                                 field.dataset.initial = field.checked ? 'true' : 'false';

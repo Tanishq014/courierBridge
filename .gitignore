@@ -33,3 +33,12 @@ aramax.txt
 quickship.json
 diff.txt
 diff_new.txt
+ - Copy.env
+diff_review.patch
+app/static/uploads/
+diff_review_final.patch
+implementation_plan did.md
+implementation_plan.md
+implementation_plan1 .md
+rate_list_analysis.md
+excel_token_estimator.py
