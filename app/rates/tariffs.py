@@ -667,7 +667,8 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
                 "zones": set(),
                 "weights": set(),
                 "data": {},
-                "has_changes": False
+                "has_changes": False,
+                "is_completely_new": True
             }
         
         matrices[svc_key]["zones"].add(d["zone"])
@@ -686,6 +687,9 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
         
         if d["status"] != "UNCHANGED":
             matrices[svc_key]["has_changes"] = True
+            
+        if d["status"] != "NEW":
+            matrices[svc_key]["is_completely_new"] = False
 
     for svc, m in matrices.items():
         m["zones"] = sorted(list(m["zones"]))
@@ -727,6 +731,11 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
                         "id": zm.id,
                         "destinations": zm.mapped_destinations
                     }
+
+    # Fetch resolvers extracted from this document
+    extracted_resolvers = db.query(ReusableZoneResolver).filter(
+        ReusableZoneResolver.source_document_id == doc_id
+    ).all()
         
     return templates.TemplateResponse(
         "rates/diff_tariff.html",
@@ -738,7 +747,8 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
             "matrices": matrices,
             "resolvers": resolvers,
             "all_resolvers": all_resolvers_list,
-            "global_mappings": global_mappings
+            "global_mappings": global_mappings,
+            "extracted_resolvers": extracted_resolvers
         }
     )
 

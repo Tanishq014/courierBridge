@@ -289,7 +289,7 @@
                 
                 <div class="controls" style="flex-direction: column; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; margin-bottom: 0;">
                     <label class="toggle-label" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem;">
-                        <input type="checkbox" id="changesOnlyToggle" {% if old_doc %}checked{% endif %} style="margin: 0; width: 0.75rem; height: 0.75rem;">
+                        <input type="checkbox" id="changesOnlyToggle" autocomplete="off" style="margin: 0; width: 0.75rem; height: 0.75rem;">
                         Show Changes Only
                     </label>
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 0.15rem;">
@@ -297,6 +297,20 @@
                         <span style="font-size: 0.65rem; color: #059669; font-weight: bold;">LIVE EDIT ACTIVE</span>
                     </div>
                 </div>
+
+                {% if extracted_resolvers %}
+                <div class="extracted-resolvers" style="margin-top: 0.75rem; border-top: 1px solid #e5e7eb; padding-top: 0.75rem; margin-bottom: 0;">
+                    <div style="font-size: 0.65rem; font-weight: 700; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Resolvers Found</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        {% for r in extracted_resolvers %}
+                            <a href="/tariffs/resolvers/{{ r.id }}" target="_blank" style="font-size: 0.7rem; color: #4f46e5; text-decoration: none; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0.35rem 0.5rem; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb';">
+                                <svg style="width: 10px; height: 10px; display: inline-block; margin-right: 4px; vertical-align: middle; margin-bottom: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                {{ r.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
             <ul class="review-nav-list">
                 <div class="nav-section-title">Services</div>
@@ -341,7 +355,7 @@
                                             {% if cell.status != 'UNCHANGED' and cell.status != 'NEW' %}
                                                 <div class="price-old">{{ "%.2f"|format(cell.old_price) if cell.old_price else cell.old_price }}</div>
                                             {% endif %}
-                                            {% if cell.status == 'NEW' and old_doc %}
+                                            {% if cell.status == 'NEW' and old_doc and not m.is_completely_new %}
                                                 <div class="price-old" style="text-decoration: none;">(new)</div>
                                             {% endif %}
                                         </td>
@@ -454,15 +468,21 @@
             }
 
             if (toggle) {
+                const hasOldDoc = {{ 'true' if old_doc else 'false' }};
                 const savedState = localStorage.getItem("showChangesOnly");
+                
                 if (savedState !== null) {
                     toggle.checked = savedState === "true";
+                } else {
+                    toggle.checked = hasOldDoc;
                 }
+                
+                filterCards(); // Run on load
+
                 toggle.addEventListener("change", (e) => {
                     localStorage.setItem("showChangesOnly", e.target.checked);
                     filterCards();
                 });
-                filterCards(); // Run on load
             }
 
             // showStatus is now in global scope

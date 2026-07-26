@@ -344,20 +344,23 @@ def get_tariff_diff(db: Session, new_doc_id: str):
     if not new_doc:
         return None
         
-    # Find previous document for same vendor that is approved, before this one
-    old_doc = db.query(TariffDocument).filter(
+    # Find all previous approved documents for same vendor, before this one, ordered by oldest first
+    old_docs = db.query(TariffDocument).filter(
         TariffDocument.vendor_id == new_doc.vendor_id,
         TariffDocument.status.in_(['APPROVED', 'PARTIALLY_APPROVED']),
         TariffDocument.uploaded_at < new_doc.uploaded_at
-    ).order_by(TariffDocument.uploaded_at.desc()).first()
+    ).order_by(TariffDocument.uploaded_at.asc()).all()
     
     # Map old rates: (carrier, service, zone, weight) -> price
+    # By processing oldest to newest, newer documents overwrite older rates for the same service
     old_rates = {}
-    if old_doc:
-        for s in old_doc.sections:
+    for doc in old_docs:
+        for s in doc.sections:
             for r in s.rate_rows:
                 key = (s.carrier, s.service, r.zone, r.weight)
                 old_rates[key] = float(r.price) if r.price is not None else 0
+                
+    old_doc_for_ui = old_docs[-1] if old_docs else None
             
     # Map new rates
     diffs = []
@@ -393,26 +396,26 @@ def get_tariff_diff(db: Session, new_doc_id: str):
                 "diff": diff
             })
             
-    return {"old_doc": old_doc, "new_doc": new_doc, "diffs": diffs}
+    return {"old_doc": old_doc_for_ui, "new_doc": new_doc, "diffs": diffs}
 
 def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str):
     from app.models import TariffDocument
     
-    # Find previous document for same vendor that is approved
-    old_doc = db.query(TariffDocument).filter(
+    # Find all previous approved documents for same vendor, ordered by oldest first
+    old_docs = db.query(TariffDocument).filter(
         TariffDocument.vendor_id == vendor_id,
         TariffDocument.status.in_(['APPROVED', 'PARTIALLY_APPROVED'])
-    ).order_by(TariffDocument.uploaded_at.desc()).first()
+    ).order_by(TariffDocument.uploaded_at.asc()).all()
     
-    if not old_doc:
-        return {"old_doc_id": None, "diffs": []}
-        
     # Map old rates: (carrier, service, zone, weight) -> price
     old_rates = {}
-    for s in old_doc.sections:
-        for r in s.rate_rows:
-            key = (s.carrier, s.service, r.zone, float(r.weight) if r.weight is not None else 0)
-            old_rates[key] = float(r.price) if r.price is not None else 0
+    for doc in old_docs:
+        for s in doc.sections:
+            for r in s.rate_rows:
+                key = (s.carrier, s.service, r.zone, float(r.weight) if r.weight is not None else 0)
+                old_rates[key] = float(r.price) if r.price is not None else 0
+                
+    old_doc_id_for_ui = old_docs[-1].id if old_docs else None
             
     # Map new rates from raw JSON
     diffs = []
@@ -505,7 +508,7 @@ def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str)
             })
             
     return {
-        "old_doc_id": old_doc.id if old_doc else None, 
+        "old_doc_id": old_doc_id_for_ui, 
         "diffs": diffs, 
         "knowledge_diffs": knowledge_diffs
     }
