@@ -44,6 +44,15 @@
         <div>
             <h1>{{ resolver.name }}</h1>
             <p>Carrier: <strong>{{ resolver.carrier }}</strong> &nbsp;|&nbsp; Service: <strong>{{ resolver.service }}</strong></p>
+            <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.8rem; color: #4b5563; font-weight: 600;">Fallback Country:</span>
+                <select id="resolver-country" style="border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; width: 200px;">
+                    <option value="">-- No Fallback Country --</option>
+                    {% for c in all_countries %}
+                        <option value="{{ c }}" {% if resolver.assigned_country == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <button class="btn btn-save" id="btn-save-all">Save All Changes</button>
     </div>
@@ -173,10 +182,14 @@
             btn.disabled = true;
             
             try {
+                const countryInput = document.getElementById("resolver-country");
                 const res = await fetch(`/api/tariffs/resolvers/{{ resolver.id }}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ mapping_data: rawData })
+                    body: JSON.stringify({ 
+                        mapping_data: rawData,
+                        assigned_country: countryInput ? countryInput.value : ""
+                    })
                 });
                 
                 if (res.ok) {

@@ -74,6 +74,7 @@ def get_best_rates(
     # 1b. Evaluate ReusableZoneResolvers
     resolvers = db.query(ReusableZoneResolver).all()
     resolver_conditions = []
+    fallback_warnings = {}
     for r in resolvers:
         matched_zone = None
         for mapping in (r.mapping_data or []):
@@ -110,7 +111,23 @@ def get_best_rates(
                     matched_zone = zone
                     break
                 
-        if matched_zone:
+        if matched_zone is None and r.assigned_country:
+            norm_assigned = normalize_country(r.assigned_country)
+            if norm_assigned == resolved_name or r.assigned_country.lower().strip() == search_term:
+                all_zones = set(str(m.get("zone", "")).strip() for m in (r.mapping_data or []) if m.get("zone") is not None and str(m.get("zone")).strip() != "")
+                if all_zones:
+                    fallback_warnings[r.id] = f"Postcode not found or provided. Showing all possible zone rates for {r.assigned_country}."
+                    zone_conds = [
+                        TariffRateRow.zone.ilike(z) | TariffRateRow.zone.ilike(f"% {z}") | TariffRateRow.zone.ilike(f"%0{z}")
+                        for z in all_zones
+                    ]
+                    resolver_conditions.append(and_(
+                        TariffSection.zone_resolver_id == r.id,
+                        or_(*zone_conds)
+                    ))
+                    continue
+                
+        if matched_zone is not None and str(matched_zone).strip() != "":
             # If matched_zone is "3", we want to match "ZONE 3", "3", "Z3", etc.
             # We match if the digits of the TariffRateRow zone end with or match the digits of the matched_zone
             # The most foolproof way in generic SQL without regex is ilike
@@ -118,7 +135,7 @@ def get_best_rates(
             resolver_conditions.append(and_(
                 TariffSection.zone_resolver_id == r.id,
                 or_(
-                    TariffRateRow.zone.ilike(matched_zone),
+                    TariffRateRow.zone.ilike(str(matched_zone)),
                     TariffRateRow.zone.ilike(f"% {matched_zone}"),
                     TariffRateRow.zone.ilike(f"%0{matched_zone}")
                 )
@@ -138,7 +155,8 @@ def get_best_rates(
         TariffRateRow.price.label("price"),
         TariffRateRow.price_type.label("price_type"),
         TariffDocument.uploaded_at.label("uploaded_at"),
-        TariffDocument.original_filename.label("original_filename")
+        TariffDocument.original_filename.label("original_filename"),
+        TariffSection.zone_resolver_id.label("zone_resolver_id")
     ).join(TariffSection, TariffRateRow.section_id == TariffSection.id) \
      .join(TariffDocument, TariffSection.document_id == TariffDocument.id) \
      .join(Vendor, TariffDocument.vendor_id == Vendor.id) \
@@ -168,13 +186,15 @@ def get_best_rates(
     # Find the latest uploaded_at date for each service to prevent duplicates
     latest_dates = {}
     for row in result:
-        service_key = f"{row.vendor_name}|{row.carrier}|{row.service}"
+        zone_str = row.zone.lower().strip() if row.zone else ""
+        service_key = f"{row.vendor_name}|{row.carrier}|{row.service}|{zone_str}"
         if service_key not in latest_dates or row.uploaded_at > latest_dates[service_key]:
             latest_dates[service_key] = row.uploaded_at
             
     services = defaultdict(list)
     for row in result:
-        service_key = f"{row.vendor_name}|{row.carrier}|{row.service}"
+        zone_str = row.zone.lower().strip() if row.zone else ""
+        service_key = f"{row.vendor_name}|{row.carrier}|{row.service}|{zone_str}"
         if row.uploaded_at == latest_dates[service_key]:
             transit_val = transit_days_lookup.get((row.carrier, row.service, row.zone))
             services[service_key].append({
@@ -188,7 +208,8 @@ def get_best_rates(
                 "price": float(row.price),
                 "price_type": row.price_type,
                 "transit_days": transit_val,
-                "source_filename": row.original_filename
+                "source_filename": row.original_filename,
+                "fallback_warning": fallback_warnings.get(row.zone_resolver_id) if row.zone_resolver_id else None
             })
         
     quotes = []
@@ -282,15 +303,18 @@ def get_best_rates(
             "db_weight": float(q["weight"]),
             "zone": q["zone"],
             "base_price": float(q["price"]),
-            "price_type": q["price_type"],
+            "price_type": q.get("price_type", "FLAT"),
             "total_price": float(q["calculated_total_price"]),
+            "price": q["calculated_total_price"],
             "calculation_logic": q["calculation_logic"],
+            "transit_days": q["transit_days"],
+            "source_filename": q["source_filename"],
             "notes": matched_notes,
-            "transit_days": q.get("transit_days"),
+            "fallback_warning": q.get("fallback_warning"),
             "valid_from": str(q.get("valid_from")) if q.get("valid_from") else None,
             "valid_to": str(q.get("valid_to")) if q.get("valid_to") else None,
             "extracted_at": str(q.get("uploaded_at")) if q.get("uploaded_at") else None,
-            "source_file": q.get("original_filename")
+            "source_file": q.get("source_filename")
         })
         
     return final_quotes
@@ -357,7 +381,7 @@ def get_tariff_diff(db: Session, new_doc_id: str):
     for doc in old_docs:
         for s in doc.sections:
             for r in s.rate_rows:
-                key = (s.carrier, s.service, r.zone, r.weight)
+                key = (s.carrier, s.service, r.zone, float(r.weight) if r.weight is not None else 0)
                 old_rates[key] = float(r.price) if r.price is not None else 0
                 
     old_doc_for_ui = old_docs[-1] if old_docs else None
@@ -366,7 +390,7 @@ def get_tariff_diff(db: Session, new_doc_id: str):
     diffs = []
     for s in new_doc.sections:
         for r in s.rate_rows:
-            key = (s.carrier, s.service, r.zone, r.weight)
+            key = (s.carrier, s.service, r.zone, float(r.weight) if r.weight is not None else 0)
             new_price = float(r.price) if r.price is not None else 0
             old_price = old_rates.get(key)
             

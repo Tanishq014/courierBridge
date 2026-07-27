@@ -276,6 +276,7 @@ class ReusableZoneResolver(Base):
     carrier = Column(String, index=True, nullable=True)
     service = Column(String, index=True, nullable=True)
     source_document_id = Column(String(36), ForeignKey("tariff_documents.id"), nullable=True)
+    assigned_country = Column(String, nullable=True)
     mapping_data = Column(JSON, nullable=False) # Array of normalized {key_type, key, zone}
     
     created_at = Column(DateTime, default=now_ist)

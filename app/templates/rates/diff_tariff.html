@@ -391,22 +391,28 @@
                     <!-- Postcode Resolver Link / Assign -->
                     <div class="zone-setting-item" style="margin-top: 0.5rem; align-items: center;">
                         <div class="zone-label">Postcode Resolver</div>
-                        {% set found_res = namespace(id=None) %}
-                        {% for r_id, r_info in resolvers.items() %}
-                            {% if r_info.section_id == m.section_id %}
-                                {% set found_res.id = r_id %}
-                                <a href="/tariffs/resolvers/{{ r_id }}" class="resolver-link" target="_blank">
-                                    {{ r_info.db.name }}
-                                    {% if r_info.source_doc_name %}
-                                        <span style="color: #6b7280; font-weight: normal; font-size: 0.75rem;">(via {{ r_info.source_doc_name }})</span>
-                                    {% endif %}
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                </a>
-                                <button class="btn-save" style="margin-top: 0; margin-left: 0.5rem; background: #ef4444;" onclick="attachResolver('{{ m.section_id }}', '')">Detach</button>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if not found_res.id %}
+                        {% set found_res = resolvers.get(m.section_id) %}
+                        {% if found_res %}
+                            <a href="/tariffs/resolvers/{{ found_res.resolver_id }}" class="resolver-link" target="_blank">
+                                {{ found_res.db.name }}
+                                {% if found_res.source_doc_name %}
+                                    <span style="color: #6b7280; font-weight: normal; font-size: 0.75rem;">(via {{ found_res.source_doc_name }})</span>
+                                {% endif %}
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                            <button class="btn-save" style="margin-top: 0; margin-left: 0.5rem; background: #ef4444;" onclick="attachResolver('{{ m.section_id }}', null, false)">Detach</button>
+                            
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1.5rem;">
+                                <span style="font-size: 0.7rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Fallback Country:</span>
+                                <select class="filter-select" style="width: 180px; border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; background: #fff;" 
+                                        onchange="updateResolverCountry('{{ found_res.resolver_id }}', this.value)">
+                                    <option value="">-- No Fallback Country --</option>
+                                    {% for c in all_countries %}
+                                        <option value="{{ c }}" {% if found_res.db.assigned_country == c %}selected{% endif %}>{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% else %}
                             <div style="display: flex; gap: 0.5rem; align-items: center; width: 350px;">
                                 <select class="resolver-select" id="select-res-{{ m.section_id }}" placeholder="Assign a resolver...">
                                     <option value="">Assign a resolver...</option>
@@ -414,7 +420,7 @@
                                         <option value="{{ r.id }}">{{ r.name }}</option>
                                     {% endfor %}
                                 </select>
-                                <button class="btn-save" style="margin-top: 0;" onclick="attachResolver('{{ m.section_id }}', document.getElementById('select-res-{{ m.section_id }}').value)">Assign</button>
+                                <button class="btn-save" style="margin-top: 0;" onclick="attachResolver('{{ m.section_id }}', null, true)">Assign</button>
                             </div>
                         {% endif %}
                     </div>
@@ -524,7 +530,6 @@
                     }
                 });
             });
-        });
         // TomSelect Init
         document.querySelectorAll('.resolver-select').forEach(el => {
             new TomSelect(el, { maxItems: 1, dropdownParent: 'body' });
@@ -571,6 +576,25 @@
                 }, 2000);
             }
         }
+        
+        async function updateResolverCountry(resolverId, country) {
+            showStatus("Saving...", "#4b5563");
+            try {
+                const res = await fetch(`/api/tariffs/resolvers/${resolverId}/country`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ assigned_country: country })
+                });
+                if (res.ok) {
+                    showStatus("Saved!", "#059669");
+                    setTimeout(() => { document.getElementById("global-save-status").style.opacity = "0"; }, 2000);
+                } else {
+                    showStatus("Error", "#ef4444");
+                }
+            } catch(e) {
+                showStatus("Network Error", "#dc2626");
+            }
+        }
 
         // Global Zone Mappings (Tags)
         const globalMappingsData = {{ global_mappings | tojson | safe }};
@@ -611,8 +635,22 @@
 
 
         // Assign/Detach Resolver
-        async function attachResolver(sectionId, resolverId) {
-            if (resolverId !== '' && !resolverId) { alert("Please select a resolver"); return; }
+        async function attachResolver(sectionId, resolverId, isAssign) {
+            if (isAssign) {
+                const selectEl = document.getElementById('select-res-' + sectionId);
+                if (!selectEl) {
+                    alert("Dropdown not found!");
+                    return;
+                }
+                resolverId = selectEl.value;
+                if (!resolverId) {
+                    alert("Please select a resolver from the dropdown.");
+                    return;
+                }
+            } else {
+                resolverId = "";
+            }
+            
             showStatus("Saving...", "#4b5563");
             try {
                 const res = await fetch(`/api/tariffs/sections/${sectionId}/resolver`, {
@@ -623,10 +661,10 @@
                 if (res.ok) {
                     window.location.reload();
                 } else {
-                    alert("Error updating resolver");
+                    alert("Error updating resolver. Backend returned: " + res.status);
                 }
             } catch(e) {
-                alert("Network error");
+                alert("Network error: " + e.message);
             }
         }
 

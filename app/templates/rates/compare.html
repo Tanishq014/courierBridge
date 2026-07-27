@@ -1027,6 +1027,13 @@
 
                 const finalPrice = quote.totalPrice + (quote.gst || 0);
                 const perKgRate = quote.chargeableWeight > 0 ? (finalPrice / quote.chargeableWeight) : 0;
+                
+                let fallbackWarningHtml = '';
+                if (quote.metadata && quote.metadata.fallback_warning) {
+                    fallbackWarningHtml = `<div style="margin-top: 8px; padding: 6px 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #ef4444; color: #b91c1c; font-size: 11px; font-weight: 500; border-radius: 4px; line-height: 1.4;">
+                        <span style="font-weight: 700;">⚠️ Fallback:</span> ${quote.metadata.fallback_warning}
+                    </div>`;
+                }
 
                 html += `
                 <div class="quote-card">
@@ -1052,8 +1059,9 @@
                     </div>
                     
                     <div class="service-name" style="margin-top: 0px; padding-bottom: 2px; border-bottom: 1px solid #f3f4f6; color: #4b5563; font-size: 13px;">${quote.service}</div>
+                    ${fallbackWarningHtml}
 
-                    <div class="quote-col-stats" style="margin-top: 2px;">
+                    <div class="quote-col-stats" style="margin-top: 4px;">
                         <div class="stat-group">
                             <span class="stat-val">${transitText}</span>
                             <span class="stat-lbl">Transit</span>

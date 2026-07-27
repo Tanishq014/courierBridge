@@ -254,7 +254,8 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
             "totalRecords": len(data),
             "sample": data[:15],
             "zoneCounts": zone_counts,
-            "keyType": data[0].get("key_type", "unknown") if data else "unknown"
+            "keyType": data[0].get("key_type", "unknown") if data else "unknown",
+            "assignedCountry": r.assigned_country
         })
         
     validation_results = validate_tariff_json(doc.raw_extraction_json or {})
@@ -445,10 +446,11 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                     carrier=s.get("carrier"),
                     service=s.get("service"),
                     mapping_data=mapping_data,
-                    source_document_id=doc.id
+                    source_document_id=doc.id,
+                    assigned_country=s.get("fallback_country").strip() if s.get("fallback_country") and str(s.get("fallback_country")).strip() else None
                 )
                 db.add(resolver)
-                db.flush()
+                db.commit()
                 doc_resolvers.append(resolver.id)
                 s["_extracted_resolver_id"] = resolver.id
 
@@ -475,6 +477,13 @@ async def approve_tariff(doc_id: str, request: Request, db: Session = Depends(ge
                     final_resolver_id = sections[draft_idx].get("_extracted_resolver_id")
             except Exception:
                 pass
+        elif final_resolver_id:
+            # If the user explicitly provided a fallback country for this linked resolver during review, update it.
+            if s.get("fallback_country") and str(s.get("fallback_country")).strip():
+                existing_res = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == final_resolver_id).first()
+                if existing_res:
+                    existing_res.assigned_country = str(s.get("fallback_country")).strip()
+                    db.commit()
                 
         if not final_resolver_id:
             if "_extracted_resolver_id" in s:
@@ -697,9 +706,9 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
         
     # Fetch resolvers linked to this document
     from app.models import ReusableZoneResolver, ZoneMapping, TariffDocument
-    resolvers = {}
+    resolvers = {} # Keyed by section_id now
     for s in diff_data["new_doc"].sections:
-        if s.zone_resolver_id and s.zone_resolver_id not in resolvers:
+        if s.zone_resolver_id:
             r_db = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == s.zone_resolver_id).first()
             if r_db:
                 source_doc_name = None
@@ -707,7 +716,7 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
                     src_doc = db.query(TariffDocument).filter(TariffDocument.id == r_db.source_document_id).first()
                     if src_doc:
                         source_doc_name = src_doc.vendor.name if src_doc.vendor else "Another Document"
-                resolvers[s.zone_resolver_id] = {"db": r_db, "section_id": s.id, "source_doc_name": source_doc_name, "source_doc_id": r_db.source_document_id}
+                resolvers[s.id] = {"db": r_db, "resolver_id": r_db.id, "source_doc_name": source_doc_name, "source_doc_id": r_db.source_document_id}
                 
     # Fetch all resolvers for dropdown
     all_resolvers = db.query(ReusableZoneResolver.id, ReusableZoneResolver.name).all()
@@ -748,7 +757,8 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
             "resolvers": resolvers,
             "all_resolvers": all_resolvers_list,
             "global_mappings": global_mappings,
-            "extracted_resolvers": extracted_resolvers
+            "extracted_resolvers": extracted_resolvers,
+            "all_countries": [c.name for c in __import__("pycountry").countries]
         }
     )
 
@@ -767,6 +777,7 @@ async def update_tariff_rate(rate_id: str, req: RateUpdateRequest, db: Session =
 
 class ResolverUpdateRequest(BaseModel):
     mapping_data: list
+    assigned_country: Optional[str] = None
 
 @router.put("/api/tariffs/resolvers/{resolver_id}")
 async def update_resolver(resolver_id: str, req: ResolverUpdateRequest, db: Session = Depends(get_db)):
@@ -775,6 +786,21 @@ async def update_resolver(resolver_id: str, req: ResolverUpdateRequest, db: Sess
     if not resolver:
         raise HTTPException(status_code=404, detail="Resolver not found")
     resolver.mapping_data = req.mapping_data
+    if req.assigned_country is not None:
+        resolver.assigned_country = req.assigned_country.strip() if req.assigned_country.strip() else None
+    db.commit()
+    return {"success": True}
+
+class ResolverCountryRequest(BaseModel):
+    assigned_country: str
+
+@router.post("/api/tariffs/resolvers/{resolver_id}/country")
+async def update_resolver_country(resolver_id: str, req: ResolverCountryRequest, db: Session = Depends(get_db)):
+    from app.models import ReusableZoneResolver
+    resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == resolver_id).first()
+    if not resolver:
+        raise HTTPException(status_code=404, detail="Resolver not found")
+    resolver.assigned_country = req.assigned_country.strip() if req.assigned_country and req.assigned_country.strip() else None
     db.commit()
     return {"success": True}
 
@@ -784,7 +810,11 @@ async def resolver_edit_page(resolver_id: str, request: Request, db: Session = D
     resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == resolver_id).first()
     if not resolver:
         raise HTTPException(status_code=404, detail="Resolver not found")
-    return templates.TemplateResponse("rates/resolver_edit.html", {"request": request, "resolver": resolver})
+    return templates.TemplateResponse("rates/resolver_edit.html", {
+        "request": request, 
+        "resolver": resolver,
+        "all_countries": [c.name for c in __import__("pycountry").countries]
+    })
 
 class ZoneMappingUpdateRequest(BaseModel):
     destinations: list
@@ -799,18 +829,32 @@ async def update_zonemapping(mapping_id: int, req: ZoneMappingUpdateRequest, db:
     return {"success": True}
 
 class AttachResolverRequest(BaseModel):
-    resolver_id: str
+    resolver_id: Optional[str] = None
 
 @router.post("/api/tariffs/sections/{section_id}/resolver")
 async def attach_resolver(section_id: str, req: AttachResolverRequest, db: Session = Depends(get_db)):
     from app.models import TariffSection, ReusableZoneResolver
+    
+    # Get the target section
     section = db.query(TariffSection).filter(TariffSection.id == section_id).first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
+        
     if req.resolver_id:
         resolver = db.query(ReusableZoneResolver).filter(ReusableZoneResolver.id == req.resolver_id).first()
         if not resolver:
              raise HTTPException(status_code=404, detail="Resolver not found")
-    section.zone_resolver_id = req.resolver_id or None
+             
+    # Find all sections in the same document with the same carrier/service
+    matching_sections = db.query(TariffSection).filter(
+        TariffSection.document_id == section.document_id,
+        TariffSection.carrier == section.carrier,
+        TariffSection.service == section.service
+    ).all()
+    
+    # Update all of them so the UI matrix (which merges them) stays consistent
+    for s in matching_sections:
+        s.zone_resolver_id = req.resolver_id or None
+        
     db.commit()
     return {"success": True}

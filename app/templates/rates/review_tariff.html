@@ -569,11 +569,18 @@
                     }
                     
                     if (hasExtractedResolver) {
-                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">✅ Successfully extracted Zone Resolver with ${totalRecords} records. This will be automatically saved as a reusable asset.</p>`;
+                        const fallbackText = section.fallback_country ? ` [Fallback: <b>${section.fallback_country}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">✅ Successfully extracted Zone Resolver from <b>this sheet</b> with ${totalRecords} records${fallbackText}. This will be automatically saved as a reusable asset.</p>`;
                     } else if (linkedDraftIdx >= 0) {
-                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to draft resolver with ${totalRecords} records.</p>`;
+                        const linkedSec = rawJson.sections[linkedDraftIdx];
+                        const linkedSheetName = linkedSec.source && linkedSec.source.source_name ? linkedSec.source.source_name : `Section ${linkedDraftIdx}`;
+                        const fallbackText = section.fallback_country ? ` [Fallback: <b>${section.fallback_country}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to resolver extracted from another sheet (<b>${linkedSheetName}</b>) with ${totalRecords} records${fallbackText}.</p>`;
                     } else if (linkedSavedResolver) {
-                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to saved resolver with ${totalRecords} records.</p>`;
+                        // For saved resolvers, the country is loaded from the DB, but can be overridden by section.fallback_country
+                        const assignedC = section.fallback_country || linkedSavedResolver.assignedCountry;
+                        const fallbackText = assignedC ? ` [Fallback: <b>${assignedC}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to an older saved resolver (<b>${linkedSavedResolver.name}</b>) with ${totalRecords} records${fallbackText}.</p>`;
                     }
                     html += previewHtml;
                 }
@@ -598,6 +605,19 @@
                 });
                 
                 html += `</select>`;
+                
+                // Fallback Country Input
+                if (hasExtractedResolver || section.zone_resolver_id) {
+                    html += `
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.75rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Fallback Country:</span>
+                        <select class="filter-select" style="flex: 1; border: 1px solid #86efac; padding: 0.25rem 0.5rem; background: #fff;" 
+                                onchange="updateSectionData(${sIdx}, 'fallback_country', this.value)">
+                            <option value="">-- No Fallback Country --</option>
+                            ${allCountries.map(c => `<option value="${c}" ${section.fallback_country === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    </div>`;
+                }
                 html += `</div>`;
                 
                 // Zone Mapping UI

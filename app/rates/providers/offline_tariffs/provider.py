@@ -77,7 +77,8 @@ class OfflineTariffsProvider(RateProvider):
                             "carrier": rq["carrier"],
                             "logic": rq.get("calculation_logic", ""),
                             "notes": rq.get("notes", []),
-                            "source_filename": rq.get("source_filename", "")
+                            "source_filename": rq.get("source_filename", ""),
+                            "fallback_warning": rq.get("fallback_warning")
                         }
                     )
                 )
