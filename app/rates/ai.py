@@ -64,7 +64,7 @@ You will receive a compressed view of the sheet. Massive postcode mappings (thou
 
 Step 5: Output JSON
 - CRITICAL: Extract EVERY SINGLE RATE ROW from the table exactly as it appears. DO NOT skip any rows. DO NOT summarize or truncate patterns (e.g. if you see weights 6, 7, 8, 9, you MUST extract every single one). Skipping rows will cause catastrophic quoting errors.
-- WEIGHT BRACKETS: If a weight cell contains a range like "30.1-50" or "100.1-300", extract it EXACTLY as that string. Do NOT expand it. Our backend handles expansion.
+- WEIGHT BRACKETS: If a weight cell contains a range like "30.1-50" or "100.1-300", extract it EXACTLY as that string. Do NOT expand it and do NOT skip it. If a weight cell contains an open-ended bracket (e.g., "ABOVE 31 KG", "Over 20kg", "20 KG +"), you MUST standardize and return it in the exact format "X+" (e.g., "31+").
 - Determine pricing models (FLAT vs PER_KG). Because pricing models can change per zone and per weight bracket (e.g. 1-10kg is FLAT, 11+ is PER_KG), extract a `zone_segments` array for each section. Determine this from explicit evidence in the document (headers, table titles, notes such as "Per Kg", "Rate/Kg", "Additional Kg", or a heading like "Multiplier rate per 1 KG from X KG"). If there is no clear evidence, return "UNKNOWN" rather than guessing.
 - Return the EXACT schema below.
 
@@ -93,7 +93,7 @@ JSON SCHEMA:
       ],
       "rates": [
         {
-          "weight": "Numeric weight OR string bracket (e.g. '21-30')",
+          "weight": "Numeric weight OR string bracket (e.g. '21-30', '31+')",
           "zone": "Zone identifier",
           "price": "Numeric price (e.g. 15.50)"
         }
@@ -357,8 +357,8 @@ async def call_gemini_api_with_retries(parts: List[Dict], unit_name: str, model:
                                             r["weight_max"] = float(nums[1])   # weight_max
                                             normalized_rates.append(r)
                                         # else drop
-                                    elif isinstance(w, str) and "+" in w_clean:
-                                        # Open-ended: "30+", "30.1+"
+                                    elif isinstance(w, str) and ("+" in w_clean or "ABOVE" in w_clean.upper() or "OVER" in w_clean.upper() or ">" in w_clean):
+                                        # Open-ended: "30+", "30.1+", "ABOVE 31 KG"
                                         nums = _re.findall(r'\d+(?:\.\d+)?', w_clean)
                                         if nums:
                                             r["weight"] = float(nums[0])
