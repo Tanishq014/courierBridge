@@ -134,7 +134,7 @@
             <div class="top-bar">
                 <div class="top-meta">
                     <div class="meta-card"><strong>Extraction Time</strong> <span>{{ "%.1f"|format(raw_json.get('metadata', {}).get('extraction_time_sec', 2.4)) }} sec</span></div>
-                    <div class="meta-card"><strong>AI Model</strong> <span>Gemini 2.5 Flash</span></div>
+                    <div class="meta-card"><strong>AI Model</strong> <span>{{ raw_json.metadata.ai_model if raw_json.metadata and raw_json.metadata.ai_model else 'Gemini 3.5 Flash' }}</span></div>
                     <div class="meta-card"><strong>Compared Against</strong> <span id="meta-compare">Latest Approved</span></div>
                     <div class="meta-card"><strong>AI Critic</strong> <span id="critic-metric-badge" style="background:#15803d; color:white; padding: 2px 6px; border-radius:12px; font-size:0.7rem; font-weight:bold;">0 Corrections</span></div>
                     <div class="meta-card" style="text-align:right;">

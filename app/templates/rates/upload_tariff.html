@@ -404,21 +404,28 @@
         // LocalStorage persistence for dropdowns
         document.addEventListener('DOMContentLoaded', () => {
             const vendorSelect = document.getElementById('vendor_id');
-            const modelSelect = document.getElementById('ai_model');
+            const actorSelect = document.getElementById('actor_model');
+            const criticSelect = document.getElementById('critic_model');
             
             const savedVendor = localStorage.getItem('last_vendor_id');
-            if (savedVendor) {
+            if (savedVendor && vendorSelect) {
                 const optionExists = Array.from(vendorSelect.options).some(opt => opt.value === savedVendor);
                 if (optionExists) vendorSelect.value = savedVendor;
             }
             
-            const savedModel = localStorage.getItem('last_ai_model');
-            if (savedModel) {
-                modelSelect.value = savedModel;
+            const savedActor = localStorage.getItem('last_actor_model');
+            if (savedActor && actorSelect) {
+                actorSelect.value = savedActor;
             }
             
-            vendorSelect.addEventListener('change', (e) => localStorage.setItem('last_vendor_id', e.target.value));
-            modelSelect.addEventListener('change', (e) => localStorage.setItem('last_ai_model', e.target.value));
+            const savedCritic = localStorage.getItem('last_critic_model');
+            if (savedCritic && criticSelect) {
+                criticSelect.value = savedCritic;
+            }
+            
+            if (vendorSelect) vendorSelect.addEventListener('change', (e) => localStorage.setItem('last_vendor_id', e.target.value));
+            if (actorSelect) actorSelect.addEventListener('change', (e) => localStorage.setItem('last_actor_model', e.target.value));
+            if (criticSelect) criticSelect.addEventListener('change', (e) => localStorage.setItem('last_critic_model', e.target.value));
         });
     </script>
 {% endblock %}

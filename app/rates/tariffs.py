@@ -300,7 +300,7 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
                     if i + length <= len(words):
                         phrase = ' '.join(words[i:i+length])
                         # Ignore 2/3-letter codes for generic words like "IN", "TO", "BY", "AND", etc.
-                        if len(phrase) <= 3 and phrase.lower() in ["in", "to", "or", "an", "is", "at", "be", "it", "do", "as", "he", "we", "me", "by", "my", "no", "so", "am", "us", "of", "on", "if", "up", "go", "ok", "hi", "and", "are", "can", "for", "the", "any", "new", "all", "not", "out", "our", "per", "via"]:
+                        if len(phrase) <= 3 and phrase.lower() in ["in", "to", "or", "an", "is", "at", "be", "it", "do", "as", "he", "we", "me", "by", "my", "no", "so", "am", "us", "of", "on", "if", "up", "go", "ok", "hi", "and", "are", "can", "for", "the", "any", "new", "all", "not", "out", "our", "per", "via", "rs", "kg", "kgs", "lb", "lbs", "oz", "inr", "usd", "eur", "gbp", "aud", "cad", "sgd", "aed"]:
                             continue
                         try:
                             c = pycountry.countries.lookup(phrase)

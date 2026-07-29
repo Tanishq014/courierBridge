@@ -633,6 +633,7 @@ async def extract_rates_from_document(file_path: str, filename: str, allowed_she
     master_json["metadata"]["extraction_time_sec"] = time.time() - start_time
     master_json["metadata"]["source_text"] = all_source_text
     master_json["metadata"]["extracted_at"] = datetime.datetime.now().isoformat()
+    master_json["metadata"]["ai_model"] = f"{actor_model} / {critic_model}"
         
     # Post-process to guarantee zone_segments exist for UI
     for section in master_json.get("sections", []):
