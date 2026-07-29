@@ -11,6 +11,8 @@ DEFAULT_TRACKING_TEMPLATES = {
     "maww": "https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}",
     "nzpost": "https://www.nzpost.co.nz/tools/tracking?trackid={awb}",
     "purolator": "https://www.purolator.com/en/shipping/tracker?pin={awb}",
+    "couriersplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
+    "courierplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {}
@@ -41,7 +43,7 @@ def build_tracking_url(
     })
 
     normalized_courier = normalize_courier_name(courier_name)
-    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas"}:
+    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas", "skynet"}:
         return ""
 
     template = normalized_templates.get(normalized_courier)
@@ -62,4 +64,6 @@ def build_tracking_site_url(courier_name: str | None, tracking_number: str | Non
         return f"/tracking/atlantic?awb={quote_plus(tracking_number)}"
     if normalized == "overseas":
         return f"/tracking/overseas?awb={quote_plus(tracking_number)}"
+    if normalized == "skynet":
+        return f"/tracking/skynet?awb={quote_plus(tracking_number)}"
     return COPY_AND_OPEN_TRACKING_SITES.get(normalized, "")
