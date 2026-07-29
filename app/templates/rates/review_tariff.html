@@ -77,6 +77,10 @@
         .diff-dec { background: #d1fae5; color: #065f46; }
         .cell-edited { background: #e0f2fe; }
         
+        .critic-added { background: #dcfce7; box-shadow: inset 0 0 0 1px #86efac; }
+        .critic-modified { background: #fef9c3; box-shadow: inset 0 0 0 1px #fde047; }
+        .critic-removed { background: #fee2e2; box-shadow: inset 0 0 0 1px #fca5a5; text-decoration: line-through; opacity: 0.7; }
+        
         /* Warnings Inline */
         .cell-warn { background: #fef3c7; }
         .cell-err { background: #fee2e2; }
@@ -132,6 +136,7 @@
                     <div class="meta-card"><strong>Extraction Time</strong> <span>{{ "%.1f"|format(raw_json.get('metadata', {}).get('extraction_time_sec', 2.4)) }} sec</span></div>
                     <div class="meta-card"><strong>AI Model</strong> <span>Gemini 2.5 Flash</span></div>
                     <div class="meta-card"><strong>Compared Against</strong> <span id="meta-compare">Latest Approved</span></div>
+                    <div class="meta-card"><strong>AI Critic</strong> <span id="critic-metric-badge" style="background:#15803d; color:white; padding: 2px 6px; border-radius:12px; font-size:0.7rem; font-weight:bold;">0 Corrections</span></div>
                     <div class="meta-card" style="text-align:right;">
                         <button class="btn btn-cancel" style="padding: 0.25rem 0.5rem; font-size:0.75rem;" onclick="alert('PDF Viewer Drawer would open here')">View Original</button>
                     </div>
@@ -407,6 +412,28 @@
             const container = document.getElementById('matrix-container');
             let html = '';
             
+            // Compute Critic Corrections
+            let criticCorrections = 0;
+            rawJson.sections.forEach(section => {
+                if (section._draft && section._draft.rates) {
+                    const finalRates = section.rates || [];
+                    const draftRates = section._draft.rates || [];
+                    finalRates.forEach(fr => {
+                        const dr = draftRates.find(d => d.zone === fr.zone && d.weight === fr.weight && d.weight_max === fr.weight_max);
+                        if (!dr || dr.price !== fr.price) criticCorrections++;
+                    });
+                    draftRates.forEach(dr => {
+                        const fr = finalRates.find(f => f.zone === dr.zone && f.weight === dr.weight && f.weight_max === dr.weight_max);
+                        if (!fr) criticCorrections++;
+                    });
+                }
+            });
+            const badgeEl = document.getElementById('critic-metric-badge');
+            if (badgeEl) {
+                badgeEl.textContent = `${criticCorrections} Correction${criticCorrections !== 1 ? 's' : ''}`;
+                badgeEl.style.background = criticCorrections === 0 ? '#6b7280' : '#15803d';
+            }
+            
             // PRE-PROCESSING: Collect all document-scoped and sheet-scoped notes
             let documentNotes = [];
             let sheetNotesMap = {}; // "sheet_name" -> [notes...]
@@ -429,11 +456,12 @@
             rawJson.sections.forEach((section, sIdx) => {
                 const secVal = validation.sections.find(s => s.index === sIdx) || { rate_errors: {}, errors: [] };
                 
-                // Collect unique weights and zones
+                // Collect unique weights and zones from BOTH final and draft
                 let weightsSet = new Set(); // key = "min_max" string
                 let zonesSet = new Set();
                 let weightKeyMap = {}; // "min_max" -> {weight_min, weight_max, label}
-                (section.rates || []).forEach(r => {
+                
+                const processRateForSets = (r) => {
                     if (r.weight !== null && r.weight !== undefined) {
                         const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
                         const key = `${r.weight}_${wMax}`;
@@ -451,7 +479,12 @@
                         }
                     }
                     if (r.zone) zonesSet.add(r.zone);
-                });
+                };
+                
+                (section.rates || []).forEach(processRateForSets);
+                if (section._draft && section._draft.rates) {
+                    section._draft.rates.forEach(processRateForSets);
+                }
                 
                 // Sort weight keys numerically by weight_min then weight_max
                 let weights = Array.from(weightsSet).sort((a, b) => {
@@ -474,6 +507,18 @@
                         matrix[key][r.zone] = rIdx;
                     }
                 });
+                
+                let draftMatrix = {}; // wKey -> zone -> rate
+                if (section._draft && section._draft.rates) {
+                    section._draft.rates.forEach((r) => {
+                        if (r.weight !== null && r.weight !== undefined) {
+                            const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                            const key = `${r.weight}_${wMax}`;
+                            if (!draftMatrix[key]) draftMatrix[key] = {};
+                            draftMatrix[key][r.zone] = r;
+                        }
+                    });
+                }
                 
                 // Build Table
                 html += `<div id="section-view-${sIdx}" class="section-view">`;
@@ -789,6 +834,7 @@
                             html += `<option value="PER_KG" ${seg.price_type==='PER_KG'?'selected':''}>PER_KG</option>`;
                             html += `<option value="UNKNOWN" ${seg.price_type==='UNKNOWN'?'selected':''}>UNKNOWN</option>`;
                             html += `</select>`;
+                            html += `<button class="btn btn-cancel" style="padding:0.1rem 0.3rem; font-size:0.6rem; border:none; background:transparent; cursor:pointer;" onclick="splitSegment(${sIdx}, ${zIdx}, ${segIdx})" title="Split this segment">✂️</button>`;
                             html += `</div>`;
                         });
                         html += `</div>`;
@@ -796,6 +842,11 @@
                     });
                     html += `</div>`;
                 }
+                html += `</div>`;
+                
+                // Add Manual Rate UI
+                html += `<div style="margin-bottom:1rem;">`;
+                html += `<button class="btn" style="padding:0.4rem 0.75rem; font-size:0.75rem; border:1px solid #d1d5db; background:white; cursor:pointer;" onclick="addManualRate(${sIdx})">➕ Add Manual Rate Row</button>`;
                 html += `</div>`;
                 
                 // AI Notes for this section
@@ -882,6 +933,8 @@
                     
                     zones.forEach(z => {
                         const rIdx = matrix[wKey] && matrix[wKey][z] !== undefined ? matrix[wKey][z] : undefined;
+                        const draftRate = draftMatrix[wKey] && draftMatrix[wKey][z] !== undefined ? draftMatrix[wKey][z] : undefined;
+                        
                         if (rIdx !== undefined) {
                             const rate = section.rates[rIdx];
                             const errs = (secVal.rate_errors || {})[rIdx] || [];
@@ -889,22 +942,29 @@
                             let cellClass = '';
                             let tooltip = '';
                             let isIssue = false;
+                            
+                            // Diff Tag & Classes
+                            let diffHtml = '';
+                            let isChanged = false;
+                            if (!draftRate && section._draft) {
+                                cellClass += ' critic-added';
+                                diffHtml = `<span class="diff-tag diff-dec">New</span>`;
+                                isChanged = true;
+                            } else if (draftRate && rate.price !== draftRate.price) {
+                                cellClass += ' critic-modified';
+                                diffHtml = `<span class="diff-tag diff-inc" title="Was ${draftRate.price}">Was ${draftRate.price}</span>`;
+                                isChanged = true;
+                            }
+                            
                             if (errs.length > 0) {
                                 isIssue = true;
                                 const isBlocker = errs.some(e => e.type === 'BLOCKER');
-                                cellClass = isBlocker ? 'cell-err has-issue' : 'cell-warn has-issue';
+                                cellClass += isBlocker ? ' cell-err has-issue' : ' cell-warn has-issue';
                                 tooltip = `<div class="warning-tooltip">${errs.map(e => e.message).join('<br>')}</div>`;
                             }
                             
-                            // Diff Tag
-                            const d = diffData.diffs.find(df => df.s_idx === sIdx && df.r_idx === rIdx);
-                            let diffHtml = '';
-                            let isChanged = false;
-                            if (d && d.status === 'INCREASED') { diffHtml = `<span class="diff-tag diff-inc">(+${d.diff.toFixed(2)})</span>`; isChanged = true;}
-                            if (d && d.status === 'DECREASED') { diffHtml = `<span class="diff-tag diff-dec">(-${d.diff.toFixed(2)})</span>`; isChanged = true;}
-                            
                             html += `
-                                <td class="${cellClass}" data-zone="${z}" data-changed="${isChanged}" data-issue="${isIssue}">
+                                <td class="${cellClass.trim()}" data-zone="${z}" data-changed="${isChanged}" data-issue="${isIssue}">
                                     <div class="cell-content" tabindex="0" 
                                          onclick="focusCell(this)" 
                                          ondblclick="editCell(${sIdx}, ${rIdx}, this)"
@@ -917,6 +977,15 @@
                                            onblur="saveCell(${sIdx}, ${rIdx}, this)"
                                            onkeydown="if(event.key==='Enter') this.blur(); if(event.key==='Escape') cancelEdit(this);">
                                     ${tooltip}
+                                </td>
+                            `;
+                        } else if (draftRate) {
+                            html += `
+                                <td class="critic-removed" data-zone="${z}" title="Hallucination removed by AI Critic">
+                                    <div class="cell-content" style="cursor:not-allowed;">
+                                        <span class="val-span">${draftRate.price !== null ? draftRate.price : '-'}</span>
+                                        <span class="diff-tag diff-inc">Del</span>
+                                    </div>
                                 </td>
                             `;
                         } else {
@@ -1073,6 +1142,39 @@
             updateProgress();
         }
         
+        function splitSegment(sIdx, zIdx, segIdx) {
+            const splitWStr = prompt("Enter the exact weight to split at (e.g. 6 or 6.0):");
+            if (!splitWStr) return;
+            const splitW = parseFloat(splitWStr);
+            if (isNaN(splitW)) return;
+            
+            const zs = rawJson.sections[sIdx].zone_segments[zIdx];
+            const seg = zs.segments[segIdx];
+            
+            if (splitW <= seg.start_weight) {
+                alert("Split weight must be greater than start weight (" + seg.start_weight + ").");
+                return;
+            }
+            if (seg.end_weight !== null && seg.end_weight !== undefined && splitW >= seg.end_weight) {
+                alert("Split weight must be less than end weight (" + seg.end_weight + ").");
+                return;
+            }
+            
+            const newSeg = {
+                start_weight: splitW,
+                end_weight: seg.end_weight,
+                price_type: seg.price_type,
+                confidence: 1.0,
+                reason: 'Manually split'
+            };
+            
+            seg.end_weight = splitW;
+            zs.segments.splice(segIdx + 1, 0, newSeg);
+            
+            buildMatrices();
+            showSection(activeSectionIndex);
+        }
+        
         function bulkSetPriceType(sIdx, newType) {
             const zsData = rawJson.sections[sIdx].zone_segments || [];
             zsData.forEach((zs, zIdx) => {
@@ -1198,6 +1300,30 @@
             }
         }
         
+        function addManualRate(sIdx) {
+            const z = prompt("Enter Zone (e.g. '1', 'A'):", "");
+            if (!z) return;
+            const w = prompt("Enter Weight (e.g. '1.5'):", "");
+            if (!w || isNaN(parseFloat(w))) return;
+            const p = prompt("Enter Price (e.g. '25.50'):", "");
+            if (!p || isNaN(parseFloat(p))) return;
+            
+            if (!rawJson.sections[sIdx].rates) {
+                rawJson.sections[sIdx].rates = [];
+            }
+            
+            rawJson.sections[sIdx].rates.push({
+                zone: z.trim(),
+                weight: parseFloat(w),
+                price: parseFloat(p),
+                import_status: 'MANUALLY_ADDED'
+            });
+            
+            buildMatrices();
+            showSection(sIdx);
+            renderNavigation();
+        }
+        
         let currentIssueIdx = -1;
         function nextIssue() {
             // Re-fetch all issues in active section
@@ -1260,7 +1386,31 @@
             let isPartial = false;
             
             if (sIdx !== null) {
-                sectionsToPush = [rawJson.sections[sIdx]];
+                // Deep copy so we don't modify rawJson accidentally
+                const secCopy = JSON.parse(JSON.stringify(rawJson.sections[sIdx]));
+                
+                // Inject document-level notes from ALL sections into this specific section
+                // so we don't lose global T&Cs when importing a single service
+                const globalNotes = [];
+                rawJson.sections.forEach(s => {
+                    (s.notes || []).forEach(n => {
+                        if (n.scope === 'document') {
+                            globalNotes.push(n);
+                        }
+                    });
+                });
+                
+                if (globalNotes.length > 0) {
+                    if (!secCopy.notes) secCopy.notes = [];
+                    globalNotes.forEach(gn => {
+                        const exists = secCopy.notes.some(en => en.text === gn.text && en.scope === 'document');
+                        if (!exists) {
+                            secCopy.notes.push(gn);
+                        }
+                    });
+                }
+                
+                sectionsToPush = [secCopy];
                 isPartial = true;
             }
             

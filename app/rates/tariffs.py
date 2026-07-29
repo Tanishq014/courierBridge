@@ -89,7 +89,10 @@ async def analyze_file(file: UploadFile = File(...)):
             try:
                 import openpyxl
                 wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
-                sheets = [sheet.title for sheet in wb.worksheets if sheet.sheet_state == 'visible']
+                try:
+                    sheets = [sheet.title for sheet in wb.worksheets if sheet.sheet_state == 'visible']
+                finally:
+                    wb.close()
             except Exception as e:
                 pass
                 
@@ -159,7 +162,8 @@ async def upload_tariff(
     skip_middle_sheets: Optional[str] = Form(None),
     force_all_sheets: Optional[str] = Form(None),
     ai_context: Optional[str] = Form(None),
-    ai_model: Optional[str] = Form(None),
+    actor_model: Optional[str] = Form(None),
+    critic_model: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -201,7 +205,8 @@ async def upload_tariff(
             skip_middle_sheets=skip_middle, 
             force_all_sheets=force_all,
             ai_context=ai_context,
-            ai_model=ai_model
+            actor_model=actor_model,
+            critic_model=critic_model
         )
         
         # Phase 3: Hybrid Python Deterministic Parser (for massive zone tables)
@@ -210,6 +215,13 @@ async def upload_tariff(
         # Save raw extraction
         doc.raw_extraction_json = raw_json
         db.commit()
+        
+        # Auto-delete the file to keep the server completely clean
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Warning: Failed to delete temp file {file_path}: {e}")
         
         return {"success": True, "document_id": doc.id, "message": "File processed successfully."}
         
@@ -270,6 +282,7 @@ async def review_page(doc_id: str, request: Request, db: Session = Depends(get_d
     
     def parse_countries_from_text(text: str) -> list:
         if not text: return []
+        text = str(text)
         clean_str = re.sub(r'\(.*?\)', '', text).strip().upper()
         from app.rates.constants import COUNTRY_ALIASES
         for k, v in COUNTRY_ALIASES.items():
@@ -716,11 +729,27 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
                     src_doc = db.query(TariffDocument).filter(TariffDocument.id == r_db.source_document_id).first()
                     if src_doc:
                         source_doc_name = src_doc.vendor.name if src_doc.vendor else "Another Document"
-                resolvers[s.id] = {"db": r_db, "resolver_id": r_db.id, "source_doc_name": source_doc_name, "source_doc_id": r_db.source_document_id}
+                
+                summary_counts = {}
+                for m in (r_db.mapping_data or []):
+                    z = str(m.get("zone", "Unknown"))
+                    summary_counts[z] = summary_counts.get(z, 0) + 1
+                summary_str = " | ".join(f"{k} ➔ {v} records" for k, v in summary_counts.items())
+                if not summary_str: summary_str = "No records"
+                
+                resolvers[s.id] = {"db": r_db, "resolver_id": r_db.id, "source_doc_name": source_doc_name, "source_doc_id": r_db.source_document_id, "summary": summary_str}
                 
     # Fetch all resolvers for dropdown
-    all_resolvers = db.query(ReusableZoneResolver.id, ReusableZoneResolver.name).all()
-    all_resolvers_list = [{"id": r.id, "name": r.name} for r in all_resolvers]
+    all_resolvers_db = db.query(ReusableZoneResolver).all()
+    all_resolvers_list = []
+    for r in all_resolvers_db:
+        summary_counts = {}
+        for m in (r.mapping_data or []):
+            z = str(m.get("zone", "Unknown"))
+            summary_counts[z] = summary_counts.get(z, 0) + 1
+        summary_str = " | ".join(f"{k} ➔ {v} records" for k, v in summary_counts.items())
+        if not summary_str: summary_str = "No records"
+        all_resolvers_list.append({"id": r.id, "name": r.name, "summary": summary_str})
 
     # Fetch global ZoneMappings for the matrices
     global_mappings = {}

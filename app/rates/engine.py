@@ -458,8 +458,11 @@ def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str)
             if weight is None or price is None or not zone:
                 continue
                 
-            weight = float(weight)
-            new_price = float(price)
+            try:
+                weight = float(weight)
+                new_price = float(price)
+            except (ValueError, TypeError):
+                continue
             
             key = (carrier, service, zone, weight)
             old_price = old_rates.get(key)

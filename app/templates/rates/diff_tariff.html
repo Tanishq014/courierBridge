@@ -156,6 +156,7 @@
         .cell-decreased { background-color: #d1fae5 !important; }
         .cell-new { background-color: #e0e7ff !important; }
         .cell-unchanged { background-color: #ffffff; }
+        .critic-removed { background-color: #f3f4f6 !important; text-decoration: line-through; color: #9ca3af; }
         
         /* Live Editor Inputs */
         .live-input {
@@ -389,40 +390,54 @@
                     {% endif %}
                     
                     <!-- Postcode Resolver Link / Assign -->
-                    <div class="zone-setting-item" style="margin-top: 0.5rem; align-items: center;">
-                        <div class="zone-label">Postcode Resolver</div>
-                        {% set found_res = resolvers.get(m.section_id) %}
-                        {% if found_res %}
-                            <a href="/tariffs/resolvers/{{ found_res.resolver_id }}" class="resolver-link" target="_blank">
-                                {{ found_res.db.name }}
-                                {% if found_res.source_doc_name %}
-                                    <span style="color: #6b7280; font-weight: normal; font-size: 0.75rem;">(via {{ found_res.source_doc_name }})</span>
-                                {% endif %}
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                            </a>
-                            <button class="btn-save" style="margin-top: 0; margin-left: 0.5rem; background: #ef4444;" onclick="attachResolver('{{ m.section_id }}', null, false)">Detach</button>
-                            
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1.5rem;">
-                                <span style="font-size: 0.7rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Fallback Country:</span>
-                                <select class="filter-select" style="width: 180px; border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; background: #fff;" 
-                                        onchange="updateResolverCountry('{{ found_res.resolver_id }}', this.value)">
-                                    <option value="">-- No Fallback Country --</option>
-                                    {% for c in all_countries %}
-                                        <option value="{{ c }}" {% if found_res.db.assigned_country == c %}selected{% endif %}>{{ c }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        {% else %}
-                            <div style="display: flex; gap: 0.5rem; align-items: center; width: 350px;">
-                                <select class="resolver-select" id="select-res-{{ m.section_id }}" placeholder="Assign a resolver...">
-                                    <option value="">Assign a resolver...</option>
-                                    {% for r in all_resolvers %}
-                                        <option value="{{ r.id }}">{{ r.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button class="btn-save" style="margin-top: 0;" onclick="attachResolver('{{ m.section_id }}', null, true)">Assign</button>
-                            </div>
-                        {% endif %}
+                    <div class="zone-setting-item" style="margin-top: 0.5rem; align-items: flex-start; flex-direction: column;">
+                        <div style="display: flex; align-items: center; width: 100%;">
+                            <div class="zone-label" style="width: 140px; flex-shrink: 0;">Postcode Resolver</div>
+                            {% set found_res = resolvers.get(m.section_id) %}
+                            {% if found_res %}
+                                <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+                                    <div style="display: flex; align-items: center;">
+                                        <a href="/tariffs/resolvers/{{ found_res.resolver_id }}" class="resolver-link" target="_blank" style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">
+                                            {{ found_res.db.name }}
+                                            {% if found_res.source_doc_name %}
+                                                <span style="color: #6b7280; font-weight: normal; font-size: 0.75rem;">(via {{ found_res.source_doc_name }})</span>
+                                            {% endif %}
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                        </a>
+                                        <button class="btn-save" style="margin-top: 0; margin-left: 0.5rem; background: #ef4444; flex-shrink: 0;" onclick="attachResolver('{{ m.section_id }}', null, false)">Detach</button>
+                                        
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1.5rem; flex-shrink: 0;">
+                                            <span style="font-size: 0.7rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Fallback Country:</span>
+                                            <select class="filter-select" style="width: 180px; border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; background: #fff;" 
+                                                    onchange="updateResolverCountry('{{ found_res.resolver_id }}', this.value)">
+                                                <option value="">-- No Fallback Country --</option>
+                                                {% for c in all_countries %}
+                                                    <option value="{{ c }}" {% if found_res.db.assigned_country == c %}selected{% endif %}>{{ c }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #059669; margin-top: 0.35rem; font-weight: 500; white-space: normal; word-wrap: break-word; max-width: 100%; line-height: 1.4;">
+                                        ↳ {{ found_res.summary }}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+                                    <div style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <select class="resolver-select" id="select-res-{{ m.section_id }}" style="width: 100%;" onchange="updateSummary(this, '{{ m.section_id }}')">
+                                                <option value="" data-summary="">Assign a resolver...</option>
+                                                {% for r in all_resolvers %}
+                                                    <option value="{{ r.id }}" data-summary="{{ r.summary }}">{{ r.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <button class="btn-save" style="margin-top: 0; flex-shrink: 0;" onclick="attachResolver('{{ m.section_id }}', null, true)">Assign</button>
+                                    </div>
+                                    <div id="res-sum-{{ m.section_id }}" style="font-size: 0.75rem; color: #059669; margin-top: 0.35rem; font-weight: 500; white-space: normal; word-wrap: break-word; max-width: 100%; line-height: 1.4;"></div>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -532,7 +547,11 @@
             });
         // TomSelect Init
         document.querySelectorAll('.resolver-select').forEach(el => {
-            new TomSelect(el, { maxItems: 1, dropdownParent: 'body' });
+            new TomSelect(el, { 
+                maxItems: 1, 
+                dropdownParent: 'body',
+                sortField: { field: "text", direction: "asc" }
+            });
         });
         
         document.querySelectorAll(".tag-add-input").forEach(input => {
@@ -665,6 +684,16 @@
                 }
             } catch(e) {
                 alert("Network error: " + e.message);
+            }
+        }
+        
+        function updateSummary(selectEl, sectionId) {
+            // TomSelect sometimes passes a string or event. So we check if we have the native element or the TomSelect instance.
+            // When using TomSelect, the original select is still updated, but the `this` context on onchange might be different.
+            const val = selectEl.value;
+            const option = Array.from(selectEl.options).find(o => o.value === val);
+            if (option) {
+                document.getElementById('res-sum-' + sectionId).innerText = option.getAttribute('data-summary') || '';
             }
         }
 

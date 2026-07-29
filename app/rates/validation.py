@@ -114,9 +114,12 @@ def validate_tariff_json(raw_json: Dict[str, Any]) -> Dict[str, Any]:
                         validation_results["warnings"] += 1
                         total_price = price # Fallback to flat calculation just for monotonicity check
                     else:
-                        if pt_conf < 0.8:
-                            r_errors.append({"type": "WARNING", "code": "LOW_PRICE_TYPE_CONF", "message": f"AI Confidence for {price_type} is low ({pt_conf}). Please verify."})
-                            validation_results["warnings"] += 1
+                        try:
+                            if float(pt_conf) < 0.8:
+                                r_errors.append({"type": "WARNING", "code": "LOW_PRICE_TYPE_CONF", "message": f"AI Confidence for {price_type} is low ({pt_conf}). Please verify."})
+                                validation_results["warnings"] += 1
+                        except (ValueError, TypeError):
+                            pass
                         total_price = price * weight if price_type == "PER_KG" else price
                         
                     zone_prices[zone].append({
