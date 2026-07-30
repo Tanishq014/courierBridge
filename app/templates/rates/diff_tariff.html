@@ -369,6 +369,27 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Pricing Models -->
+                {% if m.pricing_models %}
+                <div style="margin-top:1rem; margin-bottom:1rem; padding:1rem; background:#fefce8; border:1px solid #fef08a; border-radius:6px;">
+                    <h4 style="margin:0 0 0.5rem 0; font-size:0.875rem; color:#854d0e;">Pricing Models</h4>
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        {% for z, segments in m.pricing_models.items() %}
+                            <div style="display:flex; gap:1rem; align-items:center; font-size:0.875rem;">
+                                <strong style="width:120px; color:#854d0e;">{{ z }}</strong>
+                                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                    {% for seg in segments %}
+                                        <div style="background:#d1fae5; color:#065f46; border:1px solid #34d399; padding:0.25rem 0.5rem; border-radius:4px;">
+                                            {{ seg.start }} - {{ seg.end if seg.end != seg.start else '+' }} kg : <strong>{{ seg.type|replace('_', ' ') }}</strong>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Zone & Resolver Settings for this Service -->
                 <div class="zone-settings">
                     <!-- Global Zone Mappings (Tags) -->

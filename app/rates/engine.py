@@ -132,12 +132,17 @@ def get_best_rates(
             # We match if the digits of the TariffRateRow zone end with or match the digits of the matched_zone
             # The most foolproof way in generic SQL without regex is ilike
             # For exact number matching, since we don't have REGEXP in base sqlite, we use multiple ilike
+            base_zone = str(matched_zone).lower().replace(" city", "").replace("-city", "").strip()
             resolver_conditions.append(and_(
                 TariffSection.zone_resolver_id == r.id,
                 or_(
                     TariffRateRow.zone.ilike(str(matched_zone)),
                     TariffRateRow.zone.ilike(f"% {matched_zone}"),
-                    TariffRateRow.zone.ilike(f"%0{matched_zone}")
+                    TariffRateRow.zone.ilike(f"%0{matched_zone}"),
+                    TariffRateRow.zone.ilike(f"{matched_zone} %"),
+                    TariffRateRow.zone.ilike(base_zone),
+                    TariffRateRow.zone.ilike(f"{base_zone} city"),
+                    TariffRateRow.zone.ilike(f"{base_zone}-city")
                 )
             ))
 
@@ -414,8 +419,10 @@ def get_tariff_diff(db: Session, new_doc_id: str):
                 "service": s.service,
                 "zone": r.zone,
                 "weight": float(r.weight) if r.weight is not None else 0,
+                "weight_max": float(r.weight_max) if getattr(r, 'weight_max', None) is not None else None,
                 "old_price": old_price,
                 "new_price": new_price,
+                "price_type": getattr(r, 'price_type', 'FLAT'),
                 "status": status,
                 "diff": diff
             })
@@ -436,7 +443,10 @@ def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str)
     for doc in old_docs:
         for s in doc.sections:
             for r in s.rate_rows:
-                key = (s.carrier, s.service, r.zone, float(r.weight) if r.weight is not None else 0)
+                c_key = s.carrier.strip().upper() if s.carrier else "UNKNOWN"
+                srv_key = s.service.strip().upper() if s.service else "UNKNOWN"
+                z_key = r.zone.strip().upper() if r.zone else "UNKNOWN"
+                key = (c_key, srv_key, z_key, float(r.weight) if r.weight is not None else 0)
                 old_rates[key] = float(r.price) if r.price is not None else 0
                 
     old_doc_id_for_ui = old_docs[-1].id if old_docs else None
@@ -464,7 +474,10 @@ def get_pre_approval_diff(db: Session, raw_json: Dict[str, Any], vendor_id: str)
             except (ValueError, TypeError):
                 continue
             
-            key = (carrier, service, zone, weight)
+            c_key = carrier.strip().upper() if carrier else "UNKNOWN"
+            srv_key = service.strip().upper() if service else "UNKNOWN"
+            z_key = zone.strip().upper() if zone else "UNKNOWN"
+            key = (c_key, srv_key, z_key, weight)
             old_price = old_rates.get(key)
             
             if old_price is None:

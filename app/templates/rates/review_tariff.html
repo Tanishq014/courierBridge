@@ -478,7 +478,10 @@
                             weightKeyMap[key] = { weight_min: r.weight, weight_max: wMax, label };
                         }
                     }
-                    if (r.zone) zonesSet.add(r.zone);
+                    if (r.zone) {
+                        r.zone = String(r.zone).trim().toUpperCase();
+                        zonesSet.add(r.zone);
+                    }
                 };
                 
                 (section.rates || []).forEach(processRateForSets);

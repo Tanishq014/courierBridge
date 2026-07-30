@@ -717,6 +717,35 @@ async def diff_page(doc_id: str, request: Request, db: Session = Depends(get_db)
         m["zones"] = sorted(list(m["zones"]))
         m["weights"] = sorted(list(m["weights"]))
         
+        pricing_models = {}
+        for z in m["zones"]:
+            segments = []
+            current_type = None
+            current_start = None
+            last_w = None
+            
+            for w in m["weights"]:
+                cell = m["data"][w].get(z)
+                if cell:
+                    ptype = cell.get("price_type", "FLAT")
+                    w_max = cell.get("weight_max")
+                    display_w = w_max if w_max is not None else w
+                    
+                    if ptype != current_type:
+                        if current_type is not None:
+                            segments.append({"start": current_start, "end": last_w, "type": current_type})
+                        current_type = ptype
+                        current_start = w
+                    last_w = display_w
+            
+            if current_type is not None:
+                segments.append({"start": current_start, "end": last_w, "type": current_type})
+            
+            if segments:
+                pricing_models[z] = segments
+                
+        m["pricing_models"] = pricing_models
+        
     # Fetch resolvers linked to this document
     from app.models import ReusableZoneResolver, ZoneMapping, TariffDocument
     resolvers = {} # Keyed by section_id now
