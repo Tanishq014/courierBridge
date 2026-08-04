@@ -637,6 +637,7 @@ def create_shipment(
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
 
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
@@ -768,6 +769,7 @@ def create_shipment(
     # Tracking numbers
     main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
     db.commit()
     register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
@@ -784,6 +786,7 @@ def quick_update_shipment(
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
     internal_notes: str = Form(""),
     custom_duty: str | None = Form(None),
     row_color: str | None = Form(None),
@@ -830,6 +833,7 @@ def quick_update_shipment(
 
     main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
     db.commit()
     register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
@@ -908,6 +912,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
 
     main_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "main_awb"), None)
     lm_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "lm_awb"), None)
+    bilty_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "bilty_no"), None)
 
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
@@ -918,6 +923,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "shipment": shipment,
         "main_awb": main_awb,
         "lm_awb": lm_awb,
+        "bilty_awb": bilty_awb,
         "receiver_address": receiver_address,
         "item_raw_text": item_raw_text,
         "rate_details": rate_details,
@@ -986,6 +992,7 @@ def update_shipment(
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
 
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
@@ -1115,6 +1122,7 @@ def update_shipment(
 
     main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
     lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
 
     db.commit()
     register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)

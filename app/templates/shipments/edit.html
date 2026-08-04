@@ -166,6 +166,12 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" value="{{ lm_awb.tracking_number if lm_awb else '' }}">
             </div>
             <div class="form-group">
+                <label>Bilty Number / LR</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="bilty_number" value="{{ bilty_awb.tracking_number if bilty_awb else '' }}" placeholder="e.g. LR12345">
+            </div>
+        </div>
+        <div class="grid-4">
+            <div class="form-group">
                 <label>Current Status</label>
                 <select name="overall_status">
                     <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
@@ -186,13 +192,11 @@
                     <option value="unknown" {% if shipment.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
                 </select>
             </div>
-        </div>
-        <div class="grid-4">
             <div class="form-group">
                 <label>Promised Days</label>
                 <input type="number" name="promised_days_number" value="{{ shipment.promised_days_number or '' }}" placeholder="Days">
             </div>
-            <div class="form-group" style="grid-column: span 3;">
+            <div class="form-group" style="grid-column: span 2;">
                 <label>Status Notes</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" value="{{ shipment.status_raw_text or '' }}" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
