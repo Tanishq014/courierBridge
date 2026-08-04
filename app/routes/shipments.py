@@ -10,11 +10,13 @@ from app.tracking_links import build_tracking_site_url, build_tracking_url, norm
 from decimal import Decimal
 from datetime import datetime, timedelta
 import json
+import pycountry
 
 router = APIRouter(prefix="/shipments")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["tracking_url"] = build_tracking_url
 templates.env.globals["tracking_site_url"] = build_tracking_site_url
+templates.env.globals["country_options"] = sorted([c.name for c in pycountry.countries])
 
 RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
 LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"

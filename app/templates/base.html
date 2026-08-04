@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -163,6 +165,20 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.searchable-country').forEach((el) => {
+                new TomSelect(el, {
+                    create: true,
+                    maxOptions: 100,
+                    sortField: {
+                        field: "text",
+                        direction: "asc"
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
             const pendingDraftKey = sessionStorage.getItem('pending_submit_draft_key');
             const pendingDraftId = sessionStorage.getItem('pending_submit_draft_id');
             const pendingPath = sessionStorage.getItem('pending_submit_path');
@@ -246,7 +262,12 @@
                                         if (el.type === 'checkbox' || el.type === 'radio') {
                                             el.checked = value;
                                         } else {
-                                            el.value = value;
+                                            if (el.tomselect) {
+                                                el.tomselect.addOption({value: value, text: value});
+                                                el.tomselect.setValue(value);
+                                            } else {
+                                                el.value = value;
+                                            }
                                         }
                                     }
                                 }
