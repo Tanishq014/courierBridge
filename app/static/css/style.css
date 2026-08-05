@@ -2053,9 +2053,11 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     white-space: normal;
 }
 
-.hover-preview-cell:hover .cell-hover-card,
-.hover-preview-cell:focus-within .cell-hover-card {
-    display: block;
+@media (hover: hover) and (pointer: fine) {
+    .hover-preview-cell:hover .cell-hover-card,
+    .hover-preview-cell:focus-within .cell-hover-card {
+        display: block;
+    }
 }
 
 .route-hover-card {
