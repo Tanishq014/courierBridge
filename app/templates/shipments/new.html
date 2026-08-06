@@ -2,6 +2,49 @@
 
 {% block title %}New Shipment | CourierBridge{% endblock %}
 
+{% block head %}
+{% if clone_data_json %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const data = {{ clone_data_json | safe }};
+    const form = document.getElementById('new-shipment-form');
+    for (const [name, value] of Object.entries(data)) {
+        const el = form.elements[name];
+        if (el && el.type !== 'hidden' && el.type !== 'submit') {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = value === true;
+            } else {
+                if (el.tomselect) {
+                    el.tomselect.addOption({value: value, text: value});
+                    el.tomselect.setValue(value);
+                } else {
+                    el.value = value;
+                }
+            }
+        } else if (el && el.type === 'hidden') {
+            el.value = value;
+        }
+    }
+    // Force volumetric and rate scripts to recalculate by triggering change on key inputs
+    const dispatchChange = (name) => {
+        if (form.elements[name]) form.elements[name].dispatchEvent(new Event('input', { bubbles: true }));
+        if (form.elements[name]) form.elements[name].dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    ['volumetric_length', 'volumetric_width', 'volumetric_height', 'dead_weight', 'customer_charged_weight', 'vendor_charged_weight'].forEach(dispatchChange);
+    
+    // Save draft after short delay
+    setTimeout(() => {
+        const anyInput = form.querySelector('input:not([type="hidden"])');
+        if(anyInput) anyInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }, 600);
+    
+    // Clean up the URL so refreshing doesn't wipe changes and re-clone
+    window.history.replaceState({}, document.title, window.location.pathname);
+});
+</script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <header class="page-header compact-page-header">
     <div class="page-heading">

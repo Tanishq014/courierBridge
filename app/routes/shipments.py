@@ -570,15 +570,42 @@ def list_shipments(
     })
 
 @router.get("/new")
-def new_shipment_form(request: Request, db: Session = Depends(get_db)):
+def new_shipment_form(request: Request, clone_from: int | None = None, db: Session = Depends(get_db)):
     today = now_ist().strftime("%Y-%m-%d")
+    clone_data_json = ""
+    if clone_from:
+        import json
+        shipment_to_clone = db.query(Shipment).filter(Shipment.id == clone_from).first()
+        if shipment_to_clone:
+            main_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "main_awb"), None)
+            lm_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "lm_awb"), None)
+            bilty_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "bilty_no"), None)
+            receiver_address = parse_receiver_address(shipment_to_clone.raw_excel_notes)
+            item_raw_text = parse_item_raw_text(shipment_to_clone.raw_excel_notes)
+            
+            data = {
+                "customer_name": shipment_to_clone.customer_name or "",
+                "customer_phone": shipment_to_clone.customer_phone or "",
+                "receiver_name": shipment_to_clone.receiver_name or "",
+                "receiver_address_line_1": receiver_address.get("line_1", ""),
+                "receiver_address_line_2": receiver_address.get("line_2", ""),
+                "receiver_address_line_3": receiver_address.get("line_3", ""),
+                "destination_city": shipment_to_clone.destination_city or "",
+                "receiver_state": receiver_address.get("state", ""),
+                "receiver_zip": receiver_address.get("zip", ""),
+                "destination_country": shipment_to_clone.destination_country or "",
+                "contact_or_reference_raw": shipment_to_clone.contact_or_reference_raw or "",
+            }
+            clone_data_json = json.dumps(data)
+
     return templates.TemplateResponse("shipments/new.html", {
         "request": request,
         "today": today,
         "item_raw_text": "",
         "courier_options": get_courier_options(db),
         "service_options": get_service_options(db),
-        "country_options": get_country_options(db)
+        "country_options": get_country_options(db),
+        "clone_data_json": clone_data_json
     })
 
 @router.post("/new")
