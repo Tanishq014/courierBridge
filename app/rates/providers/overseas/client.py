@@ -17,12 +17,13 @@ class OverseasClient:
                 cookie_header = await overseas_auth_service.get_session_cookie()
                 response = await self._fetch(client, url, payload, cookie_header)
                 
-                # Detect expired session: A 302 Redirect to the login page
+                # Detect expired session: 401 Unauthorized or 302 Redirect to login
+                is_unauthorized = response.status_code == 401
                 is_redirect = response.status_code in (301, 302)
                 location = response.headers.get("location", "").lower()
                 
-                if is_redirect and "login" in location:
-                    logger.warning("Overseas cookie expired (redirect detected). Forcing refresh...")
+                if is_unauthorized or (is_redirect and "login" in location):
+                    logger.warning("Overseas cookie expired (401/redirect detected). Forcing refresh...")
                     cookie_header = await overseas_auth_service.force_refresh()
                     response = await self._fetch(client, url, payload, cookie_header)
                 
