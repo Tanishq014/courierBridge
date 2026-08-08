@@ -594,6 +594,24 @@
             theme: "classic"
         });
 
+        // Auto-open state dropdown when tabbing from postal code
+        $('input[name="postalCode"]').on('keydown', function(e) {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                const stateSelect = $('#destinationStateSelect');
+                const stateInput = $('#destinationState');
+                
+                if (stateSelect.is(':visible') && stateSelect.hasClass('select2-hidden-accessible')) {
+                    stateSelect.select2('open');
+                } else if (stateInput.is(':visible')) {
+                    stateInput.focus();
+                } else {
+                    // Fallback to next input (City) if neither is visible for some reason
+                    $('input[name="destinationCity"]').focus();
+                }
+            }
+        });
+
         // Cascading State Dropdown Logic
         $('#destinationCountry').on('change', async function() {
             const countryCode = $(this).val();
