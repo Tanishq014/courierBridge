@@ -588,6 +588,17 @@
             }
         });
 
+        // Tab from last H input directly to submit button
+        $('#packagesContainer').on('keydown', 'input[name="pkg_h[]"]', function(e) {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                const isLastRow = $(this).closest('.package-row').is(':last-child');
+                if (isLastRow) {
+                    e.preventDefault();
+                    $('#submitBtn').focus();
+                }
+            }
+        });
+
         $('.searchable-select').select2({
             placeholder: "Search for a country...",
             allowClear: true,
