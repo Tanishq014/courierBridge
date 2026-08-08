@@ -20,25 +20,20 @@ class OverseasProvider(RateProvider):
         return "Overseas Logistics"
 
     async def get_quotes(self, request: ShipmentRequest) -> List[ShipmentQuote]:
-        try:
-            # 1. Map to provider request
-            payload = self.mapper.to_provider_request(request)
-            
-            # 2. Fetch HTML from provider
-            html_response = await self.client.get_rates(payload)
-            
-            # 3. Parse HTML into canonical quotes
-            quotes = self.parser.parse_rates(html_response)
-            
-            # Fill in request-specific info
-            for quote in quotes:
-                # The payload has total chargeable weight calculated
-                quote.chargeableWeight = payload["ChgWeight"]
-                quote.volumetricWeight = sum(p["VolumetricWt"] for p in payload["PiecesDetailsTable"])
-                quote.deadWeight = sum(p["ActualWt"] for p in payload["PiecesDetailsTable"])
-            
-            return quotes
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Overseas provider failed: {e}")
-            return []
+        # 1. Map to provider request
+        payload = self.mapper.to_provider_request(request)
+        
+        # 2. Fetch HTML from provider
+        html_response = await self.client.get_rates(payload)
+        
+        # 3. Parse HTML into canonical quotes
+        quotes = self.parser.parse_rates(html_response)
+        
+        # Fill in request-specific info
+        for quote in quotes:
+            # The payload has total chargeable weight calculated
+            quote.chargeableWeight = payload["ChgWeight"]
+            quote.volumetricWeight = sum(p["VolumetricWt"] for p in payload["PiecesDetailsTable"])
+            quote.deadWeight = sum(p["ActualWt"] for p in payload["PiecesDetailsTable"])
+        
+        return quotes
