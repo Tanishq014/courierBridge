@@ -199,19 +199,20 @@
 
 .quote-badge {
     position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(16, 185, 129, 0.85);
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #10b981;
     color: white;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-bottom-left-radius: 8px;
-    border-top-right-radius: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 10px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    z-index: 10;
 }
-.quote-badge.fastest { background: #3b82f6; }
 
 .quote-col-main {
     display: flex;
@@ -933,16 +934,7 @@
 
         // Sort by inclusive price to find cheapest
         const sortedByPrice = [...quotes].sort((a, b) => (a.totalPrice + (a.gst || 0)) - (b.totalPrice + (b.gst || 0)));
-        const cheapestId = sortedByPrice.length > 0 ? sortedByPrice[0].providerCode + sortedByPrice[0].serviceCode : null;
-
-        const getDays = (est) => {
-            if (!est) return Infinity;
-            const match = est.match(/\d+/);
-            return match ? parseInt(match[0]) : Infinity;
-        };
-        
-        const sortedByTime = [...quotes].filter(q => q.transitEstimate).sort((a, b) => getDays(a.transitEstimate) - getDays(b.transitEstimate));
-        const fastestId = sortedByTime.length > 0 ? sortedByTime[0].providerCode + sortedByTime[0].serviceCode : null;
+        const cheapestIds = sortedByPrice.slice(0, 3).map(q => q.providerCode + q.serviceCode);
 
         let html = '';
         
@@ -951,9 +943,9 @@
         const providerNames = {
             'quickship': 'QuickShip',
             'overseas': 'Overseas Logistics',
-            'maww': 'MAWW Logistics',
             'skynet': 'SkyNet Logistics',
-            'atlantic': 'Atlantic Logistics'
+            'atlantic': 'Atlantic Logistics',
+            'maww': 'MAWW Logistics'
         };
         
         quotes.forEach(q => {
@@ -979,8 +971,18 @@
             providerQuotes.forEach(quote => {
                 const uid = quote.providerCode + quote.serviceCode;
                 let cornerBadge = '';
-                if (uid === cheapestId) cornerBadge = '<div class="quote-badge">CHEAPEST</div>';
-                else if (uid === fastestId) cornerBadge = '<div class="quote-badge fastest">FASTEST</div>';
+                if (cheapestIds.includes(uid)) {
+                    const rank = cheapestIds.indexOf(uid);
+                    let rankText = "CHEAPEST";
+                    if (rank === 1) rankText = "2ND CHEAPEST";
+                    if (rank === 2) rankText = "3RD CHEAPEST";
+                    
+                    let bg = '#10b981'; // Green for cheapest
+                    if (rank === 1) bg = '#3b82f6'; // Blue for 2nd
+                    if (rank === 2) bg = '#8b5cf6'; // Purple for 3rd
+                    
+                    cornerBadge = `<div class="quote-badge" style="background: ${bg};">${rankText}</div>`;
+                }
                 
                 let transitText = quote.transitEstimate ? `${quote.transitEstimate} Days` : 'Varies';
                 

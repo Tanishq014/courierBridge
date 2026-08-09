@@ -5,9 +5,7 @@
 {% block content %}
 <header class="page-header compact-page-header">
     <div class="page-heading">
-        <div class="eyebrow">Shipment #{{ shipment.id }}</div>
         <h1>Edit shipment</h1>
-        <p class="page-description">Update booking, financial, and tracking details for {{ shipment.customer_name }}.</p>
     </div>
     <div class="page-actions" style="display: flex; gap: 0.5rem; align-items: center;">
         <a href="/shipments/new?clone_from={{ shipment.id }}" class="btn btn-secondary" title="Create a new shipment copying all data from this one">Clone</a>
@@ -22,6 +20,9 @@
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
             <div style="display: flex; gap: 1rem; align-items: center; margin-left: auto;">
+                <div style="font-size: 0.9rem; font-weight: 700; color: #111827; background: #f3f4f6; padding: 0.35rem 0.75rem; border-radius: 0.375rem; display: flex; align-items: center; border: 1px solid #e5e7eb;">
+                    Shipment #{{ shipment.id }}
+                </div>
                 <div class="form-group inline-date" style="margin: 0;">
                     <label>Booking Date <span class="required">*</span></label>
                     <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
@@ -32,7 +33,7 @@
                 </div>
             </div>
         </div>
-        <div class="grid-4">
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Sender Name <span class="required">*</span></label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" value="{{ shipment.customer_name or '' }}" placeholder="e.g. John Doe" required>
@@ -49,8 +50,7 @@
                 <label>Address Line 1</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_1" value="{{ receiver_address.line_1 }}" placeholder="House / building">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Address Line 2</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_2" value="{{ receiver_address.line_2 }}" placeholder="Street / area">
@@ -67,8 +67,7 @@
                 <label>Receiver State</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" value="{{ receiver_address.state }}" placeholder="e.g. Ontario">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Receiver ZIP</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" value="{{ receiver_address.zip }}" placeholder="e.g. M5V 2T6">

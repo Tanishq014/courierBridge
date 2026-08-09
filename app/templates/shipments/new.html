@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
         </div>
-        <div class="grid-4">
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Sender Name <span class="required">*</span></label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" placeholder="e.g. John Doe" required>
@@ -86,8 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label>Address Line 1</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_1" placeholder="House / building">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Address Line 2</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_2" placeholder="Street / area">
@@ -104,8 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label>Receiver State</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Receiver ZIP</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
