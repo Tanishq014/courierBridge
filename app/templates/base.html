@@ -179,41 +179,44 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const pendingDraftKey = sessionStorage.getItem('pending_submit_draft_key');
-            const pendingDraftId = sessionStorage.getItem('pending_submit_draft_id');
-            const pendingPath = sessionStorage.getItem('pending_submit_path');
+            const pendingDraftKey = localStorage.getItem('pending_submit_draft_key');
+            const pendingDraftId = localStorage.getItem('pending_submit_draft_id');
+            const pendingPath = localStorage.getItem('pending_submit_path');
 
             if (pendingDraftKey && pendingDraftId && pendingPath) {
                 // If we navigated away from the form page (and not to login), the submit was successful!
                 if (window.location.pathname !== pendingPath && !window.location.pathname.includes('/login')) {
-                    const saved = sessionStorage.getItem(pendingDraftKey);
+                    const saved = localStorage.getItem(pendingDraftKey);
                     if (saved) {
                         try {
                             let drafts = JSON.parse(saved);
                             drafts = drafts.filter(d => d.id !== pendingDraftId);
                             if (drafts.length > 0) {
-                                sessionStorage.setItem(pendingDraftKey, JSON.stringify(drafts));
+                                localStorage.setItem(pendingDraftKey, JSON.stringify(drafts));
                             } else {
-                                sessionStorage.removeItem(pendingDraftKey);
+                                localStorage.removeItem(pendingDraftKey);
                             }
                         } catch (e) {}
                     }
                 }
                 
                 // Always clear the pending markers after checking, so manual navigation later doesn't delete drafts
-                sessionStorage.removeItem('pending_submit_draft_key');
-                sessionStorage.removeItem('pending_submit_draft_id');
-                sessionStorage.removeItem('pending_submit_path');
+                localStorage.removeItem('pending_submit_draft_key');
+                localStorage.removeItem('pending_submit_draft_id');
+                localStorage.removeItem('pending_submit_path');
             }
 
             const forms = document.querySelectorAll('form.shipment-form');
             forms.forEach(form => {
-                const path = window.location.pathname;
+                let path = window.location.pathname;
+                if (path.startsWith('/shipments/new')) {
+                    path = '/shipments/new';
+                }
                 const storageKey = 'autosave_' + path;
                 
                 let currentDraftId = 'draft_' + Date.now();
 
-                const saved = sessionStorage.getItem(storageKey);
+                const saved = localStorage.getItem(storageKey);
                 if (saved) {
                     try {
                         let drafts = JSON.parse(saved);
@@ -260,11 +263,20 @@
                                     const el = form.elements[name];
                                     if (el && el.type !== 'hidden' && el.type !== 'submit') {
                                         if (el.type === 'checkbox' || el.type === 'radio') {
-                                            el.checked = value;
+                                            el.checked = value === true;
                                         } else {
+                                            let stringVal = String(value).toLowerCase();
                                             if (el.tomselect) {
-                                                el.tomselect.addOption({value: value, text: value});
-                                                el.tomselect.setValue(value);
+                                                if (value) {
+                                                    const existingOpts = Object.values(el.tomselect.options);
+                                                    const match = existingOpts.find(opt => opt.value.toLowerCase() === stringVal);
+                                                    const finalVal = match ? match.value : value;
+                                                    if (!match) el.tomselect.addOption({value: finalVal, text: finalVal});
+                                                    el.tomselect.setValue(finalVal);
+                                                }
+                                            } else if (el.tagName === 'SELECT') {
+                                                const match = Array.from(el.options).find(opt => opt.value.toLowerCase() === stringVal);
+                                                if (match) el.value = match.value;
                                             } else {
                                                 el.value = value;
                                             }
@@ -282,24 +294,24 @@
                             });
                             
                             banner.querySelector('.discard-draft-btn').addEventListener('click', () => {
-                                let currentDrafts = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+                                let currentDrafts = JSON.parse(localStorage.getItem(storageKey) || '[]');
                                 currentDrafts = currentDrafts.filter(d => d.id !== draft.id);
                                 if (currentDrafts.length > 0) {
-                                    sessionStorage.setItem(storageKey, JSON.stringify(currentDrafts));
+                                    localStorage.setItem(storageKey, JSON.stringify(currentDrafts));
                                 } else {
-                                    sessionStorage.removeItem(storageKey);
+                                    localStorage.removeItem(storageKey);
                                 }
                                 banner.remove();
                             });
                         });
                         
                         if (drafts.length > 0) {
-                            sessionStorage.setItem(storageKey, JSON.stringify(drafts));
+                            localStorage.setItem(storageKey, JSON.stringify(drafts));
                         } else {
-                            sessionStorage.removeItem(storageKey);
+                            localStorage.removeItem(storageKey);
                         }
                     } catch (e) {
-                        sessionStorage.removeItem(storageKey);
+                        localStorage.removeItem(storageKey);
                     }
                 }
                 
@@ -324,7 +336,7 @@
                         }
                         
                         let drafts = [];
-                        try { drafts = JSON.parse(sessionStorage.getItem(storageKey) || '[]'); } catch(e){}
+                        try { drafts = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e){}
                         
                         if (hasData) {
                             const existingIndex = drafts.findIndex(d => d.id === currentDraftId);
@@ -334,14 +346,14 @@
                             } else {
                                 drafts.push({ id: currentDraftId, time: Date.now(), data });
                             }
-                            sessionStorage.setItem(storageKey, JSON.stringify(drafts));
+                            localStorage.setItem(storageKey, JSON.stringify(drafts));
                         } else {
                             // If they cleared the form manually, remove this draft
                             drafts = drafts.filter(d => d.id !== currentDraftId);
                             if (drafts.length > 0) {
-                                sessionStorage.setItem(storageKey, JSON.stringify(drafts));
+                                localStorage.setItem(storageKey, JSON.stringify(drafts));
                             } else {
-                                sessionStorage.removeItem(storageKey);
+                                localStorage.removeItem(storageKey);
                             }
                         }
                     }, 500);
@@ -351,9 +363,9 @@
                 form.addEventListener('change', saveForm);
 
                 form.addEventListener('submit', () => {
-                    sessionStorage.setItem('pending_submit_draft_key', storageKey);
-                    sessionStorage.setItem('pending_submit_draft_id', currentDraftId);
-                    sessionStorage.setItem('pending_submit_path', path);
+                    localStorage.setItem('pending_submit_draft_key', storageKey);
+                    localStorage.setItem('pending_submit_draft_id', currentDraftId);
+                    localStorage.setItem('pending_submit_path', path);
                 });
             });
         });

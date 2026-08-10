@@ -11,6 +11,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 import json
 import pycountry
+from app.ai_import_service import parse_raw_text_for_import
 
 router = APIRouter(prefix="/shipments")
 templates = Jinja2Templates(directory="app/templates")
@@ -596,16 +597,38 @@ def new_shipment_form(request: Request, clone_from: int | None = None, db: Sessi
                 "destination_country": shipment_to_clone.destination_country or "",
                 "contact_or_reference_raw": shipment_to_clone.contact_or_reference_raw or "",
             }
-            clone_data_json = json.dumps(data)
+            clone_data_json = json.dumps(data).replace("</", "<\\/")
 
     return templates.TemplateResponse("shipments/new.html", {
         "request": request,
         "today": today,
-        "item_raw_text": "",
         "courier_options": get_courier_options(db),
         "service_options": get_service_options(db),
         "country_options": get_country_options(db),
         "clone_data_json": clone_data_json
+    })
+
+@router.post("/new/ai-import")
+async def ai_import_shipment(request: Request, raw_text: str = Form(...), db: Session = Depends(get_db)):
+    today = now_ist().strftime("%Y-%m-%d")
+    
+    courier_options = get_courier_options(db)
+    parsed_data = parse_raw_text_for_import(raw_text, courier_options)
+    
+    if "error" in parsed_data:
+        clone_data_json = ""
+    else:
+        clone_data_json = json.dumps(parsed_data).replace("</", "<\\/")
+        
+    return templates.TemplateResponse("shipments/new.html", {
+        "request": request,
+        "today": today,
+        "item_raw_text": parsed_data.get("item_raw_text", "") if not parsed_data.get("error") else "",
+        "courier_options": get_courier_options(db),
+        "service_options": get_service_options(db),
+        "country_options": get_country_options(db),
+        "clone_data_json": clone_data_json,
+        "toast_message": "AI Import Successful!" if not parsed_data.get("error") else f"AI Error: {parsed_data.get('error')}"
     })
 
 @router.post("/new")

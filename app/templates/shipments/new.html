@@ -3,6 +3,13 @@
 {% block title %}New Shipment | CourierBridge{% endblock %}
 
 {% block head %}
+{% if toast_message %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    showToast({{ toast_message | tojson | safe }}, "{{ 'error' if 'Error' in toast_message else 'success' }}");
+});
+</script>
+{% endif %}
 {% if clone_data_json %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,20 +18,31 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const [name, value] of Object.entries(data)) {
         const el = form.elements[name];
         if (el && el.type !== 'hidden' && el.type !== 'submit') {
+            const safeValue = value === null ? '' : value;
             if (el.type === 'checkbox' || el.type === 'radio') {
-                el.checked = value === true;
+                el.checked = safeValue === true;
             } else {
+                let stringVal = String(safeValue).toLowerCase();
                 if (el.tomselect) {
-                    el.tomselect.addOption({value: value, text: value});
-                    el.tomselect.setValue(value);
+                    if (safeValue) {
+                        const existingOpts = Object.values(el.tomselect.options);
+                        const match = existingOpts.find(opt => opt.value.toLowerCase() === stringVal);
+                        const finalVal = match ? match.value : safeValue;
+                        if (!match) el.tomselect.addOption({value: finalVal, text: finalVal});
+                        el.tomselect.setValue(finalVal);
+                    }
+                } else if (el.tagName === 'SELECT') {
+                    const match = Array.from(el.options).find(opt => opt.value.toLowerCase() === stringVal);
+                    if (match) el.value = match.value;
                 } else {
-                    el.value = value;
+                    el.value = safeValue;
                 }
             }
         } else if (el && el.type === 'hidden') {
-            el.value = value;
+            el.value = value === null ? '' : value;
         }
     }
+    
     // Force volumetric and rate scripts to recalculate by triggering change on key inputs
     const dispatchChange = (name) => {
         if (form.elements[name]) form.elements[name].dispatchEvent(new Event('input', { bubbles: true }));
@@ -38,11 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if(anyInput) anyInput.dispatchEvent(new Event('input', { bubbles: true }));
     }, 600);
     
-    // Clean up the URL so refreshing doesn't wipe changes and re-clone
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // Clean up the URL so refreshing doesn't wipe changes and re-clone (and fixes 405 on AI Import refresh)
+    window.history.replaceState({}, document.title, "/shipments/new");
 });
 </script>
 {% endif %}
+
 {% endblock %}
 
 {% block content %}
@@ -60,7 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
     </div>
-    <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
+    <div class="page-actions">
+        <a href="#" id="ai-bookmarklet" class="btn btn-primary" title="Drag this button to your Chrome bookmarks bar to quickly import shipments from vendor sites!" style="background: linear-gradient(135deg, #6366f1, #a855f7); border: none; font-weight: 600;">✨ Drag to Bookmarks (AI)</a>
+        <a href="/shipments" class="btn btn-secondary">Cancel</a>
+        <script>
+            const aiUrl = window.location.origin + '/shipments/new/ai-import';
+            const jsCode = `javascript:(function(){var t=document.body.innerText+'\\n\\nInput Values:\\n';var els=document.querySelectorAll('input,select,textarea');for(var j=0;j<els.length;j++){var el=els[j];var n=el.name||el.id||'Field';if(el.value&&el.type!=='hidden')t+=n+': '+el.value+'\\n';}var f=document.createElement('form');f.method='POST';f.action='${aiUrl}';f.target='_blank';var i=document.createElement('textarea');i.name='raw_text';i.value=t;f.appendChild(i);document.body.appendChild(f);f.submit();})();`;
+            document.getElementById('ai-bookmarklet').href = jsCode;
+        </script>
+    </div>
 </header>
 
 <div class="card form-card">
