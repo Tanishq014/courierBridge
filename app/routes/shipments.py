@@ -40,6 +40,7 @@ DEFAULT_COURIERS = [
     "NZ Post",
     "Purolator",
     "Skynet",
+    "Shipglobal",
     "Courier Please",
 ]
 

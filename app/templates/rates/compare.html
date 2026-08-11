@@ -468,7 +468,7 @@
                 
                 <div class="form-group">
                     <label>City</label>
-                    <input type="text" name="destinationCity" required>
+                    <input type="text" name="destinationCity">
                 </div>
 
                 <div class="form-group">
@@ -504,6 +504,9 @@
                         </label>
                         <label style="display: flex; align-items: center; font-weight: normal; font-size: 12px; cursor: pointer; margin: 0;">
                             <input type="checkbox" name="selectedProviders" value="overseas" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> Overseas
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal; font-size: 12px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" name="selectedProviders" value="shipglobal" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> Shipglobal
                         </label>
                         <label style="display: flex; align-items: center; font-weight: normal; font-size: 12px; cursor: pointer; margin: 0;">
                             <input type="checkbox" name="selectedProviders" value="maww" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> MAWW
@@ -878,6 +881,7 @@
             let providerNameMapped = p.provider;
             if (p.provider === 'quickship') providerNameMapped = 'QuickShip';
             if (p.provider === 'overseas') providerNameMapped = 'Overseas Logistics';
+            if (p.provider === 'shipglobal' || p.provider === 'Shipglobal') providerNameMapped = 'Shipglobal';
             if (p.provider === 'maww' || p.provider === 'MAWW Logistics') providerNameMapped = 'MAWW Logistics';
             if (p.provider === 'atlantic' || p.provider === 'Atlantic Logistics') providerNameMapped = 'Atlantic Logistics';
             if (p.provider === 'skynet' || p.provider === 'SkyNet') providerNameMapped = 'SkyNet Logistics';
@@ -885,6 +889,7 @@
             let providerCode = p.provider;
             if (providerNameMapped === 'QuickShip') providerCode = 'quickship';
             if (providerNameMapped === 'Overseas Logistics') providerCode = 'overseas';
+            if (providerNameMapped === 'Shipglobal') providerCode = 'shipglobal';
             if (providerNameMapped === 'MAWW Logistics') providerCode = 'maww';
             if (providerNameMapped === 'Atlantic Logistics') providerCode = 'atlantic';
             if (providerNameMapped === 'SkyNet Logistics') providerCode = 'skynet';
@@ -943,6 +948,7 @@
         const providerNames = {
             'quickship': 'QuickShip',
             'overseas': 'Overseas Logistics',
+            'shipglobal': 'Shipglobal',
             'skynet': 'SkyNet Logistics',
             'atlantic': 'Atlantic Logistics',
             'maww': 'MAWW Logistics'

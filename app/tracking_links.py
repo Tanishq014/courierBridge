@@ -13,6 +13,7 @@ DEFAULT_TRACKING_TEMPLATES = {
     "purolator": "https://www.purolator.com/en/shipping/tracker?pin={awb}",
     "couriersplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
     "courierplease": "https://www.couriersplease.com.au/tools-track?no={awb}",
+    "shipglobal": "https://shipglobal.in/tracking/?awb={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {}

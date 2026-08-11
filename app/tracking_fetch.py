@@ -1130,6 +1130,47 @@ def fetch_skynet(awb: str) -> dict[str, Any]:
         return normalize_fetch_result(False, [], "", "skynet", str(exc))
 
 
+def fetch_shipglobal(awb: str) -> dict[str, Any]:
+    url = f"https://tracking.shipglobal.in/api/tracking?trackingId={urllib.parse.quote(awb)}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+            "Origin": "https://shipglobal.in",
+            "Referer": "https://shipglobal.in/",
+        }
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            raw = response.read().decode("utf-8", errors="replace")
+            payload = json.loads(raw)
+            data = payload.get("data") or {}
+            
+            awb_info = data.get("awbInfo") or {}
+            found_lm_awb = awb_info.get("partnerLastMileAwb") or ""
+            found_lm_courier = awb_info.get("partnerLastMileDisplay") or ""
+            
+            tracking_info = data.get("trackingInfo") or []
+            events = []
+            for item in tracking_info:
+                dt_str = str(item.get("awbHistoryDatetime", ""))
+                loc = str(item.get("awbHistoryLocation", ""))
+                comment = str(item.get("awbHistoryComment", ""))
+                events.append(event_to_dict(dt_str, comment, loc, "shipglobal"))
+            
+            # Sort events by date if possible, but API already seems to give it in a certain order.
+            # Event ordering is handled gracefully by UI, but it's safe to just append.
+            
+            return normalize_fetch_result(True, events, raw, "shipglobal", found_lm_awb=found_lm_awb, found_lm_courier=found_lm_courier)
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return normalize_fetch_result(False, [], raw, "shipglobal", f"HTTP {exc.code}")
+    except Exception as exc:
+        return normalize_fetch_result(False, [], "", "shipglobal", str(exc))
+
+
+
 def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type: str = "") -> dict[str, Any]:
     courier_key = normalize_courier_name(courier)
     awb = (tracking_number or "").strip()
@@ -1152,6 +1193,8 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
             return fetch_aramex(awb)
         if courier_key == "skynet":
             return fetch_skynet(awb)
+        if courier_key == "shipglobal":
+            return fetch_shipglobal(awb)
         if courier_key in {"indiapost", "indiaapost", "indianpost", "postindia"}:
             return normalize_fetch_result(False, [], "", courier_key, "India Post backend tracking is not configured")
         brand_key = seventeen_track_brand_key(courier_key)
