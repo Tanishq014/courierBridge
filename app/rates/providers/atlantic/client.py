@@ -24,8 +24,8 @@ class AtlanticClient:
                 is_redirect = response.status_code in (301, 302)
                 location = response.headers.get("location", "").lower()
                 
-                # If they intercept our JSON request and try to redirect to HTML
-                if is_redirect or (response.status_code == 200 and "text/html" in response.headers.get("Content-Type", "").lower()):
+                # If they intercept our JSON request and try to redirect to HTML, or return an empty body
+                if is_redirect or (response.status_code == 200 and "text/html" in response.headers.get("Content-Type", "").lower()) or (response.status_code == 200 and not response.text.strip()):
                     logger.warning("Atlantic cookie expired. Forcing refresh...")
                     cookie_header = await atlantic_auth_service.force_refresh(old_cookie=cookie_header)
                     response = await self._fetch(client, url, payload_dict, cookie_header)
