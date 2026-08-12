@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 class MawwClient:
     async def get_quotes(self, request: ShipmentRequest) -> List[ShipmentQuote]:
         payload_dict = MawwMapper.to_provider_request(request)
+        if payload_dict is None:
+            return []
+            
         payload_dict["redirect_url"] = "https://online.mawwl.in/rate_cal/live_customer_rate"
         
         cookie_header = await maww_auth_service.get_session_cookie()

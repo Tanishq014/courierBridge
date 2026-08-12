@@ -3,10 +3,10 @@ from typing import List, Optional
 from datetime import datetime
 
 class Package(BaseModel):
-    length: float = Field(..., description="Length of the package in cm")
-    width: float = Field(..., description="Width of the package in cm")
-    height: float = Field(..., description="Height of the package in cm")
-    weight: float = Field(..., description="Weight of the package in kg")
+    length: float = Field(..., gt=0, description="Length of the package in cm")
+    width: float = Field(..., gt=0, description="Width of the package in cm")
+    height: float = Field(..., gt=0, description="Height of the package in cm")
+    weight: float = Field(..., gt=0, description="Weight of the package in kg")
 
 class ShipmentRequest(BaseModel):
     destinationCountry: str = Field(..., description="ISO 3166-1 alpha-2 country code")

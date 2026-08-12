@@ -12,7 +12,7 @@ class MawwMapper:
         dest_country = maww_location_repository.get_country_data(request.destinationCountry)
         
         if not dest_country:
-            raise ValueError(f"Unsupported destination country for MAWW: {request.destinationCountry}")
+            return None
             
         dest_id = str(dest_country.id)
         

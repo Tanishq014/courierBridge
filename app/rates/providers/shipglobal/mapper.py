@@ -40,8 +40,8 @@ class ShipglobalMapper:
         Maps Shipglobal's response to CourierBridge canonical ShipmentQuote models.
         """
         quotes = []
-        data = provider_response.get("data", {})
-        rates = data.get("rate", [])
+        data = provider_response.get("data") or {}
+        rates = data.get("rate") or []
         
         chargeable_weight = float(data.get("bill_weight", 0)) / 1000.0 if data.get("bill_weight") else 0.0 # It might be in grams, wait. 
         # In the user's example: package_weight=10 (in request), API returns "bill_weight": 10000 (which is 10kg in grams).
@@ -49,7 +49,7 @@ class ShipglobalMapper:
         
         for r in rates:
             # Example: "rate": 4906, "LOGISTIC_FEE": 4906, "SUBTOTAL_FEE": 5906
-            total_price = float(r.get("SUBTOTAL_FEE", r.get("rate", 0)))
+            total_price = float(r.get("SUBTOTAL_FEE") or r.get("rate", 0))
             
             # The bill_weight_kg is explicitly provided in the rate object
             cw_kg = float(r.get("bill_weight_kg", chargeable_weight))
@@ -63,9 +63,9 @@ class ShipglobalMapper:
             if r.get("LOGISTIC_FEE"):
                 charges.append(Charge(name="Logistic Fee", amount=float(r["LOGISTIC_FEE"]), total=float(r["LOGISTIC_FEE"])))
             
-            other_fees = r.get("OTHER_FEE_DETAIL", {})
-            for info in other_fees.get("INFO", []):
-                charges.append(Charge(name=info.get("name", info.get("key", "Surcharge")), amount=float(info.get("value", 0)), total=float(info.get("value", 0))))
+            other_fees = r.get("OTHER_FEE_DETAIL") or {}
+            for info in other_fees.get("INFO") or []:
+                charges.append(Charge(name=info.get("name") or info.get("key", "Surcharge"), amount=float(info.get("value", 0)), total=float(info.get("value", 0))))
             
             quote = ShipmentQuote(
                 provider="Shipglobal",

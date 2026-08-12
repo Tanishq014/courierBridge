@@ -459,7 +459,7 @@
                     <label>State / Province Code</label>
                     <div class="state-input-wrapper">
                         <!-- Text input for phase 1, can be swapped for select dynamically -->
-                        <input type="text" id="destinationState" name="destinationState" placeholder="e.g. CA, NY, ON" required>
+                        <input type="text" id="destinationState" name="destinationState" placeholder="e.g. CA, NY, ON">
                         <select id="destinationStateSelect" name="destinationStateSelect" style="display:none; width: 100%;" disabled>
                             <option value="">Select state...</option>
                         </select>
@@ -518,7 +518,7 @@
                             <input type="checkbox" name="selectedProviders" value="skynet" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> SkyNet
                         </label>
                         <label style="display: flex; align-items: center; font-weight: normal; font-size: 12px; cursor: pointer; margin: 0;">
-                            <input type="checkbox" name="selectedProviders" value="offline_tariffs" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> Direct DB
+                            <input type="checkbox" name="selectedProviders" value="offline_tariffs" checked style="margin-right: 4px; margin-top: 0; margin-bottom: 0; width: auto;"> Direct Contracts
                         </label>
                     </div>
                 </div>
@@ -893,8 +893,16 @@
             if (providerNameMapped === 'MAWW Logistics') providerCode = 'maww';
             if (providerNameMapped === 'Atlantic Logistics') providerCode = 'atlantic';
             if (providerNameMapped === 'SkyNet Logistics') providerCode = 'skynet';
+            if (providerNameMapped === 'Direct Contracts') providerCode = 'offline_tariffs';
             
-            const providerQuotesCount = quotes ? quotes.filter(q => q.providerCode === providerCode).length : 0;
+            let providerQuotesCount = 0;
+            if (quotes) {
+                if (p.provider === 'Direct Contracts') {
+                    providerQuotesCount = quotes.filter(q => q.badges && q.badges.includes('Offline Contract')).length;
+                } else {
+                    providerQuotesCount = quotes.filter(q => q.providerCode === providerCode).length;
+                }
+            }
             
             let isSuccess = p.status === 'SUCCESS';
             let icon = isSuccess ? '<span style="color:#10b981;">✓</span>' : '<span style="color:#ef4444;">✗</span>';
@@ -1001,7 +1009,19 @@
                 
                 let inlineBadges = '';
                 if (quote.zone) inlineBadges += `<span class="badge-sm badge-zone">Zone ${quote.zone}</span>`;
-                if (quote.badges && quote.badges.includes('extended_area')) inlineBadges += `<span class="badge-sm badge-ext">Extended Area</span>`;
+                if (quote.badges) {
+                    quote.badges.forEach(b => {
+                        if (b === 'extended_area') {
+                            inlineBadges += `<span class="badge-sm badge-ext">Extended Area</span>`;
+                        } else if (b === 'Offline Contract') {
+                            inlineBadges += `<span class="badge-sm" style="background:#e0e7ff; color:#3730a3;">Offline</span>`;
+                        } else {
+                            // Format snake_case to Title Case (e.g., per_kg -> Per Kg)
+                            const formatted = b.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                            inlineBadges += `<span class="badge-sm" style="background:#f3f4f6; color:#4b5563;">${formatted}</span>`;
+                        }
+                    });
+                }
                 
                 let breakdownHtml = '';
                 if (quote.charges && quote.charges.length > 0) {
