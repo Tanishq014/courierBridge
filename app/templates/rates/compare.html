@@ -609,6 +609,11 @@
             theme: "classic"
         });
 
+        // Reset scroll position to top when typing in any Select2 search box
+        $(document).on('keyup', '.select2-search__field', function() {
+            $('.select2-results__options').scrollTop(0);
+        });
+
         // Auto-open state dropdown when tabbing from postal code
         $('input[name="postalCode"]').on('keydown', function(e) {
             if (e.key === 'Tab' && !e.shiftKey) {
