@@ -428,7 +428,7 @@ def list_shipments(
         ))
         
 
-    shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
+    shipments = query.order_by(Shipment.booking_date.desc(), Shipment.id.desc()).distinct().all()
 
     terminal_statuses = {"delivered", "rto", "return_damage"}
     today = now_ist().date()
