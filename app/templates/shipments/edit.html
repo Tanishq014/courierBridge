@@ -175,6 +175,7 @@
                 <label>Current Status</label>
                 <select name="overall_status">
                     <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                    <option value="connected" {% if shipment.overall_status == 'connected' %}selected{% endif %}>Connected</option>
                     <option value="sent_to_courier" {% if shipment.overall_status == 'sent_to_courier' %}selected{% endif %}>Sent to Courier</option>
                     <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
                     <option value="bagging" {% if shipment.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>

@@ -73,6 +73,7 @@ function toggleAIMode() {
             <select id="shipment-status" name="status">
                 <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
+                <option value="connected" {% if status == 'connected' %}selected{% endif %}>Connected</option>
                 <option value="sent_to_courier" {% if status == 'sent_to_courier' %}selected{% endif %}>Sent to Courier</option>
                 <option value="received" {% if status == 'received' %}selected{% endif %}>Received by Courier</option>
                 <option value="bagging" {% if status == 'bagging' %}selected{% endif %}>Bagging</option>
@@ -308,6 +309,7 @@ function toggleAIMode() {
                             <input type="hidden" name="row_color" value="">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                                <option value="connected" {% if s.overall_status == 'connected' %}selected{% endif %}>Connected</option>
                                 <option value="sent_to_courier" {% if s.overall_status == 'sent_to_courier' %}selected{% endif %}>Sent to Courier</option>
                                 <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
                                 <option value="bagging" {% if s.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
