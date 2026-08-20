@@ -124,6 +124,10 @@ def ensure_lightweight_migrations():
                 if "custom_duty" not in columns:
                     default_val = "0" if engine.dialect.name == "sqlite" else "false"
                     connection.execute(text(f"ALTER TABLE shipments ADD COLUMN custom_duty BOOLEAN DEFAULT {default_val}"))
+                if "receive_date" not in columns:
+                    connection.execute(text("ALTER TABLE shipments ADD COLUMN receive_date TIMESTAMP"))
+                if "connection_date" not in columns:
+                    connection.execute(text("ALTER TABLE shipments ADD COLUMN connection_date TIMESTAMP"))
     except Exception as exc:
         raise RuntimeError("Database lightweight migration failed") from exc
 

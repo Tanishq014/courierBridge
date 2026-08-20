@@ -683,7 +683,9 @@ def create_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    receive_date: str = Form(""),
     second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
@@ -716,6 +718,20 @@ def create_shipment(
     if second_booking_date and second_booking_date.strip():
         try:
             parsed_second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    parsed_receive_date = None
+    if receive_date and receive_date.strip():
+        try:
+            parsed_receive_date = datetime.strptime(receive_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    parsed_connection_date = None
+    if connection_date and connection_date.strip():
+        try:
+            parsed_connection_date = datetime.strptime(connection_date.strip(), "%Y-%m-%d")
         except ValueError:
             pass
 
@@ -762,7 +778,9 @@ def create_shipment(
 
     shipment = Shipment(
         booking_date=parsed_booking_date,
+        receive_date=parsed_receive_date,
         second_booking_date=parsed_second_booking_date,
+        connection_date=parsed_connection_date,
         customer_name=customer_name,
         receiver_name=receiver_name,
         destination_country=normalize_country(destination_country),
@@ -842,7 +860,9 @@ def quick_update_shipment(
     custom_duty: str | None = Form(None),
     row_color: str | None = Form(None),
     booking_date: str = Form(""),
+    receive_date: str = Form(""),
     second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     next_url: str = Form("/shipments")
 ):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
@@ -863,17 +883,41 @@ def quick_update_shipment(
     if custom_duty is not None:
         shipment.custom_duty = (custom_duty.lower() == "true")
 
-    if booking_date and booking_date.strip():
-        try:
-            shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
-        except ValueError:
-            pass
+    if booking_date is not None:
+        if booking_date.strip() == "":
+            shipment.booking_date = None
+        else:
+            try:
+                shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
 
-    if second_booking_date and second_booking_date.strip():
-        try:
-            shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
-        except ValueError:
-            pass
+    if second_booking_date is not None:
+        if second_booking_date.strip() == "":
+            shipment.second_booking_date = None
+        else:
+            try:
+                shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if receive_date is not None:
+        if receive_date.strip() == "":
+            shipment.receive_date = None
+        else:
+            try:
+                shipment.receive_date = datetime.strptime(receive_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if connection_date is not None:
+        if connection_date.strip() == "":
+            shipment.connection_date = None
+        else:
+            try:
+                shipment.connection_date = datetime.strptime(connection_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
 
     if row_color is not None and row_color.strip() != "":
         selected_color = row_color.strip().lower()
@@ -1038,7 +1082,9 @@ def update_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    receive_date: str = Form(""),
     second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),

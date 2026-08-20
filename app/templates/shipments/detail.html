@@ -64,6 +64,9 @@
             <div class="detail-item"><span class="detail-label">Receiver phone</span><span class="detail-value">{{ shipment.contact_or_reference_raw or 'Not provided' }}</span></div>
             <div class="detail-item wide"><span class="detail-label">Receiver address</span><span class="detail-value">{{ receiver_address_text or 'Not provided' }}</span></div>
             <div class="detail-item"><span class="detail-label">Destination</span><span class="detail-value">{{ shipment.destination_city or '-' }}, {{ shipment.destination_country }}</span></div>
+<div class="detail-item"><span class="detail-label">Send date</span><span class="detail-value">{% if shipment.second_booking_date %}{{ shipment.second_booking_date.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</span></div>
+<div class="detail-item"><span class="detail-label">Receive date</span><span class="detail-value">{% if shipment.receive_date %}{{ shipment.receive_date.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</span></div>
+<div class="detail-item"><span class="detail-label">Connection date</span><span class="detail-value">{% if shipment.connection_date %}{{ shipment.connection_date.strftime('%d %b %Y') }}{% else %}Not set{% endif %}</span></div>
             <div class="detail-item"><span class="detail-label">Promised timeline</span><span class="detail-value">{{ shipment.promised_days_text or shipment.promised_days_number or 'Not set' }}</span></div>
             <div class="detail-item wide"><span class="detail-label">Raw items</span><span class="detail-value">{{ item_raw_text or 'Not provided' }}</span></div>
             <div class="detail-item wide"><span class="detail-label">Status notes</span><span class="detail-value">{{ shipment.status_raw_text or shipment.last_status_text or 'No status notes added' }}</span></div>

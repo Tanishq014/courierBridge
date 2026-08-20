@@ -34,7 +34,10 @@ class QuickShipProvider(RateProvider):
             if master_data.get("state"):
                 req_copy.destinationState = master_data["state"]
 
-        provider_req = self.mapper.to_provider_request(req_copy)
-        provider_resp = await self.client.get_quotes(provider_req)
-        quotes = self.mapper.to_domain_quotes(provider_resp)
-        return quotes
+        try:
+            provider_req = self.mapper.to_provider_request(req_copy)
+            provider_resp = await self.client.get_quotes(provider_req)
+            quotes = self.mapper.to_domain_quotes(provider_resp)
+            return quotes
+        except Exception as e:
+            return []
