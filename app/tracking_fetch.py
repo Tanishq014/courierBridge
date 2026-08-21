@@ -1193,7 +1193,7 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
             return fetch_aramex(awb)
         if courier_key == "skynet":
             return fetch_skynet(awb)
-        if courier_key == "shipglobal":
+        if courier_key in {"shipglobal", "shipglobalin", "shipglobaldirect"}:
             return fetch_shipglobal(awb)
         if courier_key in {"indiapost", "indiaapost", "indianpost", "postindia"}:
             return normalize_fetch_result(False, [], "", courier_key, "India Post backend tracking is not configured")
