@@ -721,20 +721,8 @@ Track: ${url}` : label;
     }
 
     const rows = document.querySelectorAll('.shipment-row');
-    const trackingTemplates = {
-        quickship: 'https://track.quickshipnow.com/?awb={awb}',
-        fedex: 'https://www.fedex.com/fedextrack/?trknbr={awb}',
-        ups: 'https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails',
-        aramax: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
-        aramex: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
-        dhl: 'https://www.dhl.com/in-en/home/tracking.html?tracking-id={awb}&submit=1',
-        dpd: 'https://t.17track.net/en#nums={awb}',
-        maww: 'https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}',
-        nzpost: 'https://www.nzpost.co.nz/tools/tracking?trackid={awb}',
-        purolator: 'https://www.purolator.com/en/shipping/tracker?pin={awb}',
-    };
-    const copyAndOpenSites = {
-    };
+    const trackingTemplates = {{ tracking_templates | tojson | safe }};
+    const copyAndOpenSites = {{ copy_and_open_sites | tojson | safe }};
 
     const valueOf = field => {
         if (field.type === 'radio' || field.type === 'checkbox') return field.checked ? 'true' : 'false';

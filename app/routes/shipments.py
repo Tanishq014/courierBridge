@@ -6,7 +6,7 @@ from sqlalchemy import or_
 from app.database import get_db
 from app.models import Shipment, ShipmentAIStatus, TrackingEvent, TrackingNumber, TrackingCheck, now_ist
 from app.tracking_fetch import is_actionable_tracking_fetch_error, register_tracking_if_supported
-from app.tracking_links import build_tracking_site_url, build_tracking_url, normalize_courier_name
+from app.tracking_links import build_tracking_site_url, build_tracking_url, normalize_courier_name, DEFAULT_TRACKING_TEMPLATES, COPY_AND_OPEN_TRACKING_SITES
 from decimal import Decimal
 from datetime import datetime, timedelta
 import json
@@ -18,6 +18,8 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["tracking_url"] = build_tracking_url
 templates.env.globals["tracking_site_url"] = build_tracking_site_url
 templates.env.globals["country_options"] = sorted([c.name for c in pycountry.countries])
+templates.env.globals["tracking_templates"] = DEFAULT_TRACKING_TEMPLATES
+templates.env.globals["copy_and_open_sites"] = COPY_AND_OPEN_TRACKING_SITES
 
 RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
 LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"

@@ -169,10 +169,10 @@
                 new TomSelect(el, {
                     create: true,
                     maxOptions: 100,
-                    sortField: {
-                        field: "text",
-                        direction: "asc"
-                    }
+                    sortField: [
+                        {field: "$score"},
+                        {field: "text", direction: "asc"}
+                    ]
                 });
             });
         });
