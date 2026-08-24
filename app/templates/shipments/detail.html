@@ -226,6 +226,7 @@
             <div class="financial-item"><span class="detail-label">Balance</span><strong class="{% if shipment.balance_amount > 0 %}text-danger{% else %}text-success{% endif %}">Rs {{ '%.2f'|format(shipment.balance_amount or 0) }}</strong></div>
             <div class="financial-item"><span class="detail-label">Self cost</span><strong>Rs {{ '%.2f'|format(shipment.self_cost or 0) }}</strong></div>
             <div class="financial-item"><span class="detail-label">Other expense</span><strong>Rs {{ '%.2f'|format(shipment.other_expense or 0) }}</strong></div>
+<div class="financial-item"><span class="detail-label">Paid amount</span><strong>Rs {{ '%.2f'|format(shipment.paid_amount or 0) }}</strong></div>
             <div class="financial-item"><span class="detail-label">Profit</span><strong class="{% if shipment.service_value and shipment.service_value > 0 %}text-success{% elif shipment.service_value and shipment.service_value < 0 %}text-danger{% endif %}">Rs {{ '%.2f'|format(shipment.service_value or 0) }}</strong></div>
         </div>
     </section>

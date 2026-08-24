@@ -240,6 +240,10 @@
                 <label>Other Expense</label>
                 <input type="number" step="0.01" name="other_expense" value="{{ shipment.other_expense or 0 }}" id="other_expense">
             </div>
+            <div class="form-group">
+                <label>Paid Amount</label>
+                <input type="number" step="0.01" name="paid_amount" value="{{ shipment.paid_amount or 0 }}" id="paid_amount" placeholder="Amt. paid to vendor">
+            </div>
             <div class="form-group" style="font-weight: bold;">
                 Profit: <span id="profit_display">{{ shipment.service_value or 0 }}</span>
             </div>

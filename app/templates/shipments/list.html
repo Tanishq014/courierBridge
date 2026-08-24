@@ -371,8 +371,9 @@ function toggleAIMode() {
                             <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
                                 <div class="hover-title">Financial Details</div>
                                 <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
-                                <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
+                                <div class="hover-line">Cust. Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
                                 <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
+                                <div class="hover-line">Ven. Paid: ₹{{ '%.2f'|format(s.paid_amount or 0) }}</div>
                                 <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
                                 <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0;">
                                 <div class="hover-line">Cust. Rate: {{ s.customer_rate_text or '—' }}</div>

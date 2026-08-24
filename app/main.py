@@ -131,6 +131,8 @@ def ensure_lightweight_migrations():
                 if "is_delayed" not in columns:
                     default_val = "0" if engine.dialect.name == "sqlite" else "false"
                     connection.execute(text(f"ALTER TABLE shipments ADD COLUMN is_delayed BOOLEAN DEFAULT {default_val}"))
+                if "paid_amount" not in columns:
+                    connection.execute(text("ALTER TABLE shipments ADD COLUMN paid_amount NUMERIC(12, 2) DEFAULT 0.0"))
                 
                 # Data migration for legacy statuses (safe to run repeatedly)
                 status_mapping = {

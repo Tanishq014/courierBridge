@@ -57,6 +57,7 @@ class Shipment(Base):
     received_amount = Column(Numeric(12, 2), default=0.0) # previously amount_paid
     self_cost = Column(Numeric(12, 2), default=0.0)
     other_expense = Column(Numeric(12, 2), default=0.0)
+    paid_amount = Column(Numeric(12, 2), default=0.0) # amount paid to vendor
     total_cost = Column(Numeric(12, 2), default=0.0) # self_cost + other_expense
     service_value = Column(Numeric(12, 2), default=0.0) # profit: received_amount - self_cost - other_expense
     balance_amount = Column(Numeric(12, 2), default=0.0) # billed_amount - received_amount

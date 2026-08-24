@@ -678,6 +678,7 @@ def create_shipment(
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
+    paid_amount: str = Form("0.0"),
 
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
@@ -808,6 +809,7 @@ def create_shipment(
         received_amount=parsed_received,
         self_cost=parsed_self_cost,
         other_expense=parsed_other_exp,
+        paid_amount=parsed_paid_amount,
         total_cost=total_cost,
         service_value=service_value,
         balance_amount=balance_amount,
@@ -1081,6 +1083,7 @@ def update_shipment(
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
+    paid_amount: str = Form("0.0"),
 
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
@@ -1189,6 +1192,7 @@ def update_shipment(
     shipment.received_amount = parsed_received
     shipment.self_cost = parsed_self_cost
     shipment.other_expense = parsed_other_exp
+    shipment.paid_amount = parsed_paid_amount
     shipment.total_cost = total_cost
     shipment.service_value = service_value
     shipment.balance_amount = balance_amount
