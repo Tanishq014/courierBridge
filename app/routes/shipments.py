@@ -860,6 +860,7 @@ def quick_update_shipment(
     bilty_number: str = Form(""),
     internal_notes: str = Form(""),
     custom_duty: str | None = Form(None),
+    is_delayed: str | None = Form(None),
     row_color: str | None = Form(None),
     booking_date: str = Form(""),
     receive_date: str = Form(""),
@@ -884,6 +885,9 @@ def quick_update_shipment(
 
     if custom_duty is not None:
         shipment.custom_duty = (custom_duty.lower() == "true")
+
+    if is_delayed is not None:
+        shipment.is_delayed = (is_delayed.lower() == "true")
 
     if booking_date is not None:
         if booking_date.strip() == "":

@@ -17,6 +17,7 @@ class Shipment(Base):
     receive_date = Column(DateTime, nullable=True)
     second_booking_date = Column(DateTime, nullable=True)
     connection_date = Column(DateTime, nullable=True)
+    is_delayed = Column(Boolean, default=False)
     
     # 1. Names and Destination (Messy fields)
     customer_name = Column(String, index=True)
@@ -105,6 +106,9 @@ class Shipment(Base):
         bad_words = ["custom", "delay", "hold", "exception", "rto", "return", "damage"]
         status_lower = (self.status_raw_text or "").lower()
         if any(bw in status_lower for bw in bad_words):
+            return True
+            
+        if self.is_delayed:
             return True
             
         if self.is_stuck:
