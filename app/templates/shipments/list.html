@@ -703,6 +703,11 @@ Track: ${url}` : label;
             sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
             filterForm.requestSubmit();
         };
+        
+        filterForm.addEventListener('submit', () => {
+            if (searchInput && searchValue) searchValue.value = searchInput.value;
+            sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
+        });
         const restoreFilterFocus = (input) => {
             input.focus();
             input.setSelectionRange(input.value.length, input.value.length);
@@ -865,12 +870,20 @@ Track: ${url}` : label;
             }
         };
 
-        fields.forEach(field => field.addEventListener('input', updateRowState));
-        fields.forEach(field => field.addEventListener('change', () => {
-            updateDateSpan(field);
-            updateRowState();
-            if (field.tagName === 'SELECT' || field.type === 'date') autoSaveDropdown(field);
-        }));
+        fields.forEach(field => {
+            field.addEventListener('input', updateRowState);
+            field.addEventListener('change', () => {
+                updateDateSpan(field);
+                updateRowState();
+                if (field.tagName === 'SELECT' || field.type === 'date') autoSaveDropdown(field);
+            });
+            field.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (rowForm) rowForm.requestSubmit();
+                }
+            });
+        });
 
         if (discard) {
             discard.addEventListener('click', () => {
