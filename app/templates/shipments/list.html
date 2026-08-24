@@ -400,14 +400,18 @@ function toggleAIMode() {
                     </td>
                     <td>
                         <div class="button-row row-actions" data-row-actions>
-                            <div class="row-default-actions">
-                                <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a>
-                                <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                            <div class="row-default-actions" style="flex-direction: column; align-items: stretch;">
+                                <div style="display: flex; gap: 4px;">
+                                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary" style="flex: 1;">Open</a>
+                                    <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary" style="flex: 1;">Edit</a>
+                                </div>
                             </div>
-                            <div class="row-dirty-actions" hidden>
-                                <span class="row-changed-label">Changed</span>
-                                <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save">Save</button>
-                                <button type="button" class="btn btn-sm btn-secondary row-discard">Discard</button>
+                            <div class="row-dirty-actions" hidden style="flex-direction: column; align-items: stretch;">
+                                <div style="display: flex; gap: 4px;">
+                                    <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save" style="flex: 1;">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary row-discard" style="flex: 1;">Cancel</button>
+                                </div>
+                                <span class="row-changed-label" style="font-size: 10px; font-weight: 600; margin-top: 2px; text-align: center; color: var(--warning);">Changed</span>
                             </div>
                         </div>
                     </td>
@@ -954,7 +958,9 @@ Track: ${url}` : label;
                             savedMsg.style.color = 'var(--success)';
                             savedMsg.style.fontWeight = '600';
                             savedMsg.style.fontSize = '12px';
-                            savedMsg.style.marginLeft = '8px';
+                            savedMsg.style.marginTop = '4px';
+                            savedMsg.style.textAlign = 'center';
+                            savedMsg.style.display = 'block';
                             defaultActions.appendChild(savedMsg);
                             setTimeout(() => savedMsg.remove(), 2000);
                         }
