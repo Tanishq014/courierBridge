@@ -16,7 +16,7 @@ def home():
 
 @router.get("/dashboard")
 def dashboard(request: Request, db: Session = Depends(get_db)):
-    terminal_statuses = {"delivered", "rto", "return_damage"}
+    terminal_statuses = {"delivered", "rto", "undelivered"}
     active_shipments = db.query(Shipment).filter(Shipment.overall_status.notin_(list(terminal_statuses))).all()
     all_shipments = db.query(Shipment).order_by(Shipment.booking_date.desc()).all()
 
@@ -60,7 +60,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     missing_tracking_shipments = [s for s in active_shipments if missing_tracking(s)]
     missing_lm_shipments = [s for s in active_shipments if missing_lm(s)]
     payment_pending_shipments = [s for s in all_shipments if s.balance_amount and float(s.balance_amount) > 0]
-    custom_duty_shipments = [s for s in active_shipments if s.custom_duty or s.overall_status in ["customs", "custom_clearance"]]
+    custom_duty_shipments = [s for s in active_shipments if s.custom_duty or s.overall_status in ["custom_process"]]
     stale_shipments = [s for s in active_shipments if s.is_stuck]
     overdue_shipments = [s for s in active_shipments if overdue(s)]
     followup_shipments = [s for s in active_shipments if due_followup(s)]

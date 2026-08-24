@@ -131,6 +131,29 @@ def ensure_lightweight_migrations():
                 if "is_delayed" not in columns:
                     default_val = "0" if engine.dialect.name == "sqlite" else "false"
                     connection.execute(text(f"ALTER TABLE shipments ADD COLUMN is_delayed BOOLEAN DEFAULT {default_val}"))
+                
+                # Data migration for legacy statuses (safe to run repeatedly)
+                status_mapping = {
+                    'in_transit': 'transit_in_india',
+                    'at_lm_partner': 'to_lm',
+                    'customs': 'custom_process',
+                    'custom_clearance': 'custom_process',
+                    'received': 'send_to_delhi',
+                    'sent_to_courier': 'send_to_delhi',
+                    'bagging': 'processed',
+                    'packed': 'processed',
+                    'bagged': 'processed',
+                    'in_scan': 'in_scan',
+                    'hand_over_to_airline': 'connected',
+                    'at_destination': 'arrived',
+                    'exception': 'hold',
+                    'return_damage': 'rto',
+                }
+                for old_s, new_s in status_mapping.items():
+                    connection.execute(text(f"UPDATE shipments SET overall_status = '{new_s}' WHERE overall_status = '{old_s}'"))
+                if "tracking_events" in table_names:
+                    for old_s, new_s in status_mapping.items():
+                        connection.execute(text(f"UPDATE tracking_events SET normalized_status = '{new_s}' WHERE normalized_status = '{old_s}'"))
     except Exception as exc:
         raise RuntimeError("Database lightweight migration failed") from exc
 

@@ -12,15 +12,14 @@
         </p>
     </div>
     <div class="page-actions">
-        <span class="badge
-            {% if shipment.overall_status == 'delivered' %}badge-success
-            {% elif shipment.overall_status in ['exception', 'rto', 'return_damage', 'undelivered'] %}badge-danger
-            {% elif shipment.overall_status in ['customs', 'custom_clearance'] %}badge-warning
-            {% elif shipment.overall_status in ['connected', 'sent_to_courier', 'in_transit', 'out_for_delivery', 'at_lm_partner', 'bagged', 'bagging', 'in_scan', 'hand_over_to_airline', 'at_destination'] %}badge-info
-            {% else %}badge-neutral{% endif %}">
-            {% if shipment.overall_status == 'received' %}
-              Received by Courier
-            {% elif shipment.overall_status == 'at_lm_partner' %}
+        <span class="badge            {% if shipment.overall_status == 'delivered' %}badge-success
+            {% elif shipment.overall_status in ['undelivered', 'hold', 'rto'] %}badge-danger
+            {% elif shipment.overall_status in ['custom_process'] %}badge-warning
+            {% elif shipment.overall_status in ['send_to_delhi', 'in_scan', 'processed', 'connected', 'transit_in_india', 'transit_to_dest', 'arrived', 'to_lm', 'out_for_delivery'] %}badge-info
+            {% else %}badge-secondary{% endif %}">
+            {% if shipment.overall_status == 'send_to_delhi' %}
+              Send to Delhi
+            {% elif shipment.overall_status == 'to_lm' %}
               To LM Partner
             {% else %}
               {{ shipment.overall_status | capitalize | replace('_', ' ') }}
@@ -276,7 +275,7 @@
                 <div class="timeline-rail"><span class="timeline-dot"></span></div>
                 <div class="timeline-content">
                     <div class="timeline-title">{{ ev.status_text }}</div>
-                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} - {% if ev.normalized_status == 'received' %}Received by Courier{% elif ev.normalized_status == 'connected' %}Connected{% elif ev.normalized_status == 'at_lm_partner' %}To LM Partner{% else %}{{ ev.normalized_status | replace('_', ' ') | title }}{% endif %}{% if ev.source %} - {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
+                    <div class="timeline-meta">{{ ev.location or 'Location unavailable' }} - {% if ev.normalized_status == 'send_to_delhi' %}Send to Delhi{% elif ev.normalized_status == 'connected' %}Connected{% elif ev.normalized_status == 'to_lm' %}To LM{% else %}{{ ev.normalized_status | replace('_', ' ') | title }}{% endif %}{% if ev.source %} - {{ ev.source | replace('_', ' ') | title }}{% endif %}</div>
                     {% if ev.notes %}<div class="timeline-notes">{{ ev.notes }}</div>{% endif %}
                     <form method="POST" action="/tracking/event/{{ ev.id }}/delete" class="timeline-delete-form" onsubmit="return confirm('Delete this timeline update?');">
                         <button type="submit" class="btn btn-sm btn-secondary">Delete</button>

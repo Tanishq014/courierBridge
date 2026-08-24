@@ -38,7 +38,7 @@ def customer_history_response(request: Request, db: Session, phone: str = "", na
 
     display_name = shipments[0].customer_name or name or "Unnamed customer"
     display_phone = phone or shipments[0].customer_phone or ""
-    active = sum(1 for s in shipments if s.overall_status not in ['delivered', 'rto', 'return_damage'])
+    active = sum(1 for s in shipments if s.overall_status not in ['delivered', 'rto', 'undelivered'])
     delivered = sum(1 for s in shipments if s.overall_status == 'delivered')
     total_charge = sum(s.billed_amount or 0 for s in shipments)
     total_paid = sum(s.received_amount or 0 for s in shipments)

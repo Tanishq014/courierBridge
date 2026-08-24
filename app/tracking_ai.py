@@ -42,18 +42,26 @@ def normalize_status(value: str) -> str:
 
     # Map AI's older/variant statuses to our canonical UI statuses
     mapping = {
-        "packed": "bagging",
-        "bagged": "bagging",
-        "in_scan": "received",
-        "customs": "custom_clearance",
+        "packed": "processed",
+        "bagged": "processed",
+        "customs": "custom_process",
+        "custom_clearance": "custom_process",
+        "received": "send_to_delhi",
+        "sent_to_courier": "send_to_delhi",
+        "bagging": "processed",
+        "hand_over_to_airline": "connected",
+        "in_transit": "transit_in_india",
+        "at_destination": "arrived",
+        "at_lm_partner": "to_lm",
+        "exception": "hold",
+        "return_damage": "rto",
     }
     value = mapping.get(value, value)
 
     allowed = {
-        "booked", "connected", "sent_to_courier", "received", "bagging", "in_transit",
-        "hand_over_to_airline", "at_destination", "custom_clearance", 
-        "at_lm_partner", "out_for_delivery", "delivered", "undelivered",
-        "rto", "return_damage", "exception", "unknown",
+        "booked", "send_to_delhi", "in_scan", "processed", "connected", "transit_in_india",
+        "transit_to_dest", "arrived", "custom_process", "to_lm", "out_for_delivery",
+        "delivered", "undelivered", "hold", "rto",
     }
     return value if value in allowed else ""
 
@@ -90,7 +98,7 @@ def rule_based_result(shipment: dict[str, Any]) -> dict[str, Any]:
     elif any(word in latest_lower for word in ["custom", "duty", "clearance"]):
         label = "Customs/duty issue"
         severity = "red"
-        suggested_status = "custom_clearance"
+        suggested_status = "custom_process"
         summary = "Customs or duty wording was found."
         reason = f"Latest event says: {latest_text}"
     elif any(word in latest_lower for word in ["attempt", "unavailable", "not available", "undelivered"]):
@@ -102,22 +110,22 @@ def rule_based_result(shipment: dict[str, Any]) -> dict[str, Any]:
     elif any(word in latest_lower for word in ["rto", "return", "damage", "lost"]):
         label = "Carrier issue"
         severity = "red"
-        suggested_status = "exception"
+        suggested_status = "hold"
         summary = "Return/damage/lost wording was found."
         reason = f"Latest event says: {latest_text}"
     elif any(word in latest_lower for word in ["pick up", "picked up", "pickup", "collected"]):
         label = "Picked up"
         severity = "green"
-        suggested_status = "received"
+        suggested_status = "send_to_delhi"
         summary = "Carrier indicates shipment was picked up."
         reason = f"Latest event says: {latest_text}"
-    elif latest_age is not None and latest_age >= 3 and current_status not in {"delivered", "rto", "return_damage"}:
+    elif latest_age is not None and latest_age >= 3 and current_status not in {"delivered", "rto"}:
         label = "No movement"
         severity = "yellow"
         suggested_status = current_status
         summary = f"No fresh movement for {latest_age} days."
         reason = f"Latest event is {latest_age} days old: {latest_text or 'no text'}"
-    elif promised_days and age_days is not None and age_days >= max(int(promised_days) - 1, 0) and current_status not in {"delivered", "rto", "return_damage"}:
+    elif promised_days and age_days is not None and age_days >= max(int(promised_days) - 1, 0) and current_status not in {"delivered", "rto"}:
         label = "Possible delay"
         severity = "yellow"
         suggested_status = current_status
@@ -182,9 +190,9 @@ Important rules:
 - Do not invent tracking numbers or dates.
 - Use operational judgement, not just the latest headline status.
 - Consider promised_days, age_days, stale movement, customs/duty, delivery attempts, receiver unavailable, RTO/return/damage/lost, destination scans, and whether delivery seems close or delayed.
-- If a shipment is picked up or collected by the courier, the suggested_status MUST be 'received' rather than 'in_transit' or 'booked'.
+- If a shipment is picked up or collected by the courier, the suggested_status MUST be 'send_to_delhi' rather than 'transit_in_india' or 'booked'.
 - In your `summary` and `reason`, explicitly reference the individual couriers and AWBs (e.g. "Main AWB (FedEx) arrived, LM AWB (Purolator) out for delivery").
-- Use suggested_status only from: booked, connected, sent_to_courier, received, bagging, hand_over_to_airline, in_transit, at_destination, custom_clearance, at_lm_partner, out_for_delivery, delivered, undelivered, rto, return_damage, exception, unknown.
+- Use suggested_status only from: booked, send_to_delhi, in_scan, processed, connected, transit_in_india, transit_to_dest, arrived, custom_process, to_lm, out_for_delivery, delivered, undelivered, hold, rto.
 - Keep suggested_status_note short enough to fit in a ledger row. If the status is 'delivered', the note MUST contain the delivery date/time strictly formatted as DD.MM.YY (e.g. "Delivered on 29.06.26") instead of just the location.
 - "found_lm_awb": Do not invent a tracking number here. Only populate this if you explicitly detect a NEW Last-Mile tracking number in the tracking events that is DIFFERENT from the main AWB.
 - Trust fresh tracking events over old app metadata. If the app metadata says it is "Delivered" but the tracking events show recent activity indicating it is still "In transit" or "Processing", assume the app status was set by mistake and override it based on the fresh events.
@@ -239,7 +247,7 @@ def clean_ai_result(item: dict[str, Any], fallback: dict[str, Any], shipment: di
 
         # Treat RTO and Return/Damage as identical to prevent unnecessary UI update prompts
         current = shipment.get("current_app_status")
-        if current in {"rto", "return_damage"} and result.get("suggested_status") in {"rto", "return_damage"}:
+        if current in {"rto"} and result.get("suggested_status") in {"rto"}:
             result["suggested_status"] = current
             # If the user already knows it's returning, downgrade severity to prevent the "Action Needed" nag
             if result.get("severity") in {"red", "yellow"}:

@@ -73,22 +73,20 @@ function toggleAIMode() {
             <select id="shipment-status" name="status">
                 <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
+                <option value="send_to_delhi" {% if status == 'send_to_delhi' %}selected{% endif %}>Send to Delhi</option>
+                <option value="in_scan" {% if status == 'in_scan' %}selected{% endif %}>In scan</option>
+                <option value="processed" {% if status == 'processed' %}selected{% endif %}>Processed</option>
                 <option value="connected" {% if status == 'connected' %}selected{% endif %}>Connected</option>
-                <option value="sent_to_courier" {% if status == 'sent_to_courier' %}selected{% endif %}>Sent to Courier</option>
-                <option value="received" {% if status == 'received' %}selected{% endif %}>Received by Courier</option>
-                <option value="bagging" {% if status == 'bagging' %}selected{% endif %}>Bagging</option>
-                <option value="hand_over_to_airline" {% if status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
-                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
-                <option value="at_destination" {% if status == 'at_destination' %}selected{% endif %}>At destination</option>
-                <option value="custom_clearance" {% if status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
-                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                <option value="transit_in_india" {% if status == 'transit_in_india' %}selected{% endif %}>Transit in india</option>
+                <option value="transit_to_dest" {% if status == 'transit_to_dest' %}selected{% endif %}>Transit to dest</option>
+                <option value="arrived" {% if status == 'arrived' %}selected{% endif %}>Arrived</option>
+                <option value="custom_process" {% if status == 'custom_process' %}selected{% endif %}>Custom Process</option>
+                <option value="to_lm" {% if status == 'to_lm' %}selected{% endif %}>To LM</option>
+                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out For Delivery</option>
                 <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
                 <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
-                <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
-                <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return / damage</option>
-                <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
-                <option value="unknown" {% if status == 'unknown' %}selected{% endif %}>Unknown</option>
+                <option value="hold" {% if status == 'hold' %}selected{% endif %}>Hold</option>
+                <option value="rto" {% if status == 'rto' %}selected{% endif %}>Rto</option>
             </select>
         </div>
         <div>
@@ -184,7 +182,7 @@ function toggleAIMode() {
                 {% set preview = shipment_previews.get(s.id, {}) %}
                 {% set ai_status = latest_ai_statuses.get(s.id) %}
                 {% set ai_events = latest_ai_events.get(s.id, []) %}
-                {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else 'yellow') %}
+                {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else ('red' if s.overall_status in ['undelivered', 'hold', 'rto'] else 'yellow')) %}
                 <tr id="shipment-{{ s.id }}" class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
                     <td>
                         <div class="booking-cell-stack">
@@ -321,22 +319,20 @@ function toggleAIMode() {
                             <input type="hidden" name="row_color" value="">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                                <option value="send_to_delhi" {% if s.overall_status == 'send_to_delhi' %}selected{% endif %}>Send to Delhi</option>
+                                <option value="in_scan" {% if s.overall_status == 'in_scan' %}selected{% endif %}>In scan</option>
+                                <option value="processed" {% if s.overall_status == 'processed' %}selected{% endif %}>Processed</option>
                                 <option value="connected" {% if s.overall_status == 'connected' %}selected{% endif %}>Connected</option>
-                                <option value="sent_to_courier" {% if s.overall_status == 'sent_to_courier' %}selected{% endif %}>Sent to Courier</option>
-                                <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
-                                <option value="bagging" {% if s.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
-                                <option value="hand_over_to_airline" {% if s.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
-                                <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
-                                <option value="at_destination" {% if s.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
-                                <option value="custom_clearance" {% if s.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                                <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
-                                <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                                <option value="transit_in_india" {% if s.overall_status == 'transit_in_india' %}selected{% endif %}>Transit in india</option>
+                                <option value="transit_to_dest" {% if s.overall_status == 'transit_to_dest' %}selected{% endif %}>Transit to dest</option>
+                                <option value="arrived" {% if s.overall_status == 'arrived' %}selected{% endif %}>Arrived</option>
+                                <option value="custom_process" {% if s.overall_status == 'custom_process' %}selected{% endif %}>Custom Process</option>
+                                <option value="to_lm" {% if s.overall_status == 'to_lm' %}selected{% endif %}>To LM</option>
+                                <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out For Delivery</option>
                                 <option value="delivered" {% if s.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
                                 <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
-                                <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>RTO</option>
-                                <option value="return_damage" {% if s.overall_status == 'return_damage' %}selected{% endif %}>Return / damage</option>
-                                <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
-                                <option value="unknown" {% if s.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
+                                <option value="hold" {% if s.overall_status == 'hold' %}selected{% endif %}>Hold</option>
+                                <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>Rto</option>
                             </select>
                             <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
                         </form>

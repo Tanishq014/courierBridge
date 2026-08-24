@@ -64,7 +64,7 @@ class Shipment(Base):
     # 7. Status & Tracking 
     status_raw_text = Column(String)
     custom_duty = Column(Boolean, default=False)
-    overall_status = Column(String, index=True, default="booked") # booked/connected/sent_to_courier/received/bagging/in_transit/hand_over_to_airline/at_destination/custom_clearance/at_lm_partner/out_for_delivery/delivered/undelivered/rto/return_damage/exception/unknown
+    overall_status = Column(String, index=True, default="booked") # booked/send_to_delhi/in_scan/processed/connected/transit_in_india/transit_to_dest/arrived/custom_process/to_lm/out_for_delivery/delivered/undelivered/hold/rto
     row_color = Column(String, nullable=True) # manual row highlight: green/yellow/red; blank uses status default
     requires_lm_awb = Column(Boolean, default=False)
     
@@ -92,7 +92,7 @@ class Shipment(Base):
 
     @property
     def is_stuck(self):
-        if self.overall_status in ["delivered", "rto", "return_damage"]:
+        if self.overall_status in ["delivered", "rto", "undelivered"]:
             return False
         if not self.last_status_at:
             return False
@@ -115,7 +115,7 @@ class Shipment(Base):
             return True
             
         # LM AWB missing
-        if self.requires_lm_awb and self.overall_status not in ["delivered", "rto", "return_damage"]:
+        if self.requires_lm_awb and self.overall_status not in ["delivered", "rto", "undelivered"]:
             has_lm = any(tn.tracking_type == "lm_awb" for tn in self.tracking_numbers)
             if not has_lm:
                 return True

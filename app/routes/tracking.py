@@ -67,11 +67,11 @@ def create_tracking_event(
     shipment_id: int = Form(...),
     status_text: str = Form(...),
     location: str = Form(""),
-    normalized_status: str = Form("in_transit"),
+    normalized_status: str = Form("transit_in_india"),
     notes: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    normalized_status = normalize_status(normalized_status) or "in_transit"
+    normalized_status = normalize_status(normalized_status) or "transit_in_india"
     ev = TrackingEvent(
         shipment_id=shipment_id,
         event_time=now_ist(),

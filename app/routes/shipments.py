@@ -295,8 +295,8 @@ def calculate_rate_amount(weight: str, per_kg_rate: str) -> Decimal:
 def status_label(status: str) -> str:
     status = status or "booked"
     custom_labels = {
-        "received": "Received by Courier",
-        "at_lm_partner": "To LM Partner",
+        "send_to_delhi": "Send to Delhi",
+        "to_lm": "To LM",
     }
     return custom_labels.get(status, status.replace("_", " ").title())
 
@@ -432,7 +432,7 @@ def list_shipments(
 
     shipments = query.order_by(Shipment.booking_date.desc(), Shipment.id.desc()).distinct().all()
 
-    terminal_statuses = {"delivered", "rto", "return_damage"}
+    terminal_statuses = {"delivered", "rto", "undelivered"}
     today = now_ist().date()
 
     def get_effective_weight(shipment):
@@ -940,7 +940,7 @@ def quick_update_shipment(
     register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     if request.headers.get("accept", "").startswith("application/json") or request.headers.get("x-requested-with") == "XMLHttpRequest":
-        row_color_effective = shipment.row_color or ('green' if shipment.overall_status == 'delivered' else 'yellow')
+        row_color_effective = shipment.row_color or ('green' if shipment.overall_status == 'delivered' else ('red' if shipment.overall_status in ['undelivered', 'hold', 'rto'] else 'yellow'))
         return {
             "status": "success",
             "message": "Shipment updated successfully",

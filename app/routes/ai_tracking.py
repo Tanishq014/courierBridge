@@ -17,7 +17,7 @@ from app.tracking_fetch import fetch_tracking_for_number, fallback_events_from_s
 
 router = APIRouter(prefix="/ai-tracking")
 
-TERMINAL_STATUSES = {"delivered", "rto", "return_damage"}
+TERMINAL_STATUSES = {"delivered", "rto", "undelivered"}
 
 
 @dataclass
