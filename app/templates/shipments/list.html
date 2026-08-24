@@ -149,8 +149,8 @@ function toggleAIMode() {
                 <tr>
                     <th>Booking</th>
                     <th>Sender</th>
-                    <th>Charged Wt.</th>
                     <th>Receiver</th>
+                    <th>Charged Wt.</th>
                     <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
@@ -218,28 +218,39 @@ function toggleAIMode() {
                         </div>
                     </td>
                     <td>
-                        <div class="hover-preview-cell" style="display: inline-block;">
-                            <div style="display: flex; flex-direction: column;">
-                                <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
-                                    <span class="cell-primary">{{ s.customer_name }}</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
+                                <span class="cell-primary" style="display: block; overflow-wrap: anywhere;">{{ s.customer_name }}</span>
+                            </a>
+                            {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
+                            {% if wa_phone %}
+                                <a href="#" class="cell-secondary whatsapp-composer-link" data-shipment-id="{{ s.id }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Compose WhatsApp message">
+                                    {{ wa_phone }}
                                 </a>
-                                {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
-                                {% if wa_phone %}
-                                    <a href="#" class="cell-secondary whatsapp-composer-link" data-shipment-id="{{ s.id }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Compose WhatsApp message">
-                                        {{ wa_phone }}
-                                    </a>
-                                {% else %}
-                                    <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
+                            {% else %}
+                                <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column;">
+                            <span class="cell-primary" style="display: block; overflow-wrap: anywhere;">{{ s.receiver_name or '—' }}</span>
+                            {% set state = preview.get('address_parts', {}).get('state') %}
+                            <span class="cell-secondary" style="display: block; line-height: 1.3; margin-top: 2px;">
+                                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ s.destination_country }}">
+                                    {{ s.destination_country }}
+                                </span>
+                                {% if state %}
+                                    <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ state }}">
+                                        {{ state }}
+                                    </span>
                                 {% endif %}
-                            </div>
-                            <div class="cell-hover-card">
-                                <div class="hover-title">Raw items</div>
-                                {% if preview.get('item_raw_text') %}
-                                    <div class="hover-line">{{ preview.get('item_raw_text') }}</div>
-                                {% else %}
-                                    <div class="hover-line muted">No raw items added</div>
+                                {% if s.destination_city %}
+                                    <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ s.destination_city }}">
+                                        {{ s.destination_city }}
+                                    </span>
                                 {% endif %}
-                            </div>
+                            </span>
                         </div>
                     </td>
                     <td>
@@ -252,31 +263,6 @@ function toggleAIMode() {
                                 <div class="hover-line">Volumetric: {{ s.volumetric_weight or '—' }}</div>
                                 <div class="hover-line">Cust. Charged: {{ preview.get('rate_details', {}).get('customer_charged_weight') or '—' }}</div>
                                 <div class="hover-line">Self Charged: {{ preview.get('rate_details', {}).get('vendor_charged_weight') or '—' }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="hover-preview-cell" style="display: inline-block;">
-                            <span class="cell-primary">{{ s.receiver_name or '—' }}</span>
-                            {% set state = preview.get('address_parts', {}).get('state') %}
-                            <span class="cell-secondary" style="display: block; line-height: 1.3; margin-top: 2px;">
-                                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ s.destination_country }}">
-                                    {{ s.destination_country }}
-                                </span>
-                                {% if state %}
-                                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ state }}">
-                                    {{ state }}
-                                </span>
-                                {% endif %}
-                                {% if s.destination_city %}
-                                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="{{ s.destination_city }}">
-                                    {{ s.destination_city }}
-                                </span>
-                                {% endif %}
-                            </span>
-                            <div class="cell-hover-card route-hover-card">
-                                <div class="hover-title">Receiver address</div>
-                                <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
                             </div>
                         </div>
                     </td>
