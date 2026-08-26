@@ -1,0 +1,1501 @@
+{% extends "base.html" %}
+{% block title %}Review Tariff - CourierBridge{% endblock %}
+
+{% block container_class %}container-fluid{% endblock %}
+
+{% block head %}
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <style>
+        /* Linear/Stripe Aesthetics */
+        body { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; background: #fff; color: #111827; }
+        
+        .review-layout { display: flex; height: 100vh; overflow: hidden; background: #fff; }
+        
+        /* Sidebar */
+        .review-sidebar { width: 280px; border-right: 1px solid #e5e7eb; background: #f9fafb; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 1.5rem 1rem 1rem 1rem; border-bottom: 1px solid #e5e7eb; }
+        .sidebar-header h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #111827; }
+        .sidebar-header .meta { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+        
+        .review-nav-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; display: block !important; }
+        .nav-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+        .nav-item:hover { background: #f3f4f6; }
+        .nav-item.active { background: #e0f2fe; border-right: 3px solid #0284c7; }
+        .nav-item-title { font-size: 0.875rem; font-weight: 500; }
+        .badge { padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-clean { background: #d1fae5; color: #065f46; }
+        .badge-warn { background: #fef3c7; color: #92400e; }
+        .badge-err { background: #fee2e2; color: #991b1b; }
+        
+        /* Main Area */
+        .review-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        
+        /* Top Bar & Tabs */
+        .top-bar { padding: 1rem 2rem; border-bottom: 1px solid #e5e7eb; }
+        .top-meta { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .meta-card { font-size: 0.75rem; color: #4b5563; }
+        .meta-card strong { color: #111827; display: block; font-size: 0.875rem; }
+        
+        .progress-container { margin-bottom: 1rem; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; margin-bottom: 0.25rem; }
+        .progress-bar { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #10b981; transition: width 0.3s ease; }
+        
+        .tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid #e5e7eb; }
+        .tab { padding: 0.5rem 0; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: #6b7280; border-bottom: 2px solid transparent; }
+        .tab:hover { color: #111827; }
+        .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+        
+        /* Content Area */
+        .content-area { flex: 1; overflow: auto; padding: 2rem; background: #fff; position: relative; }
+        
+        /* Matrix Spreadsheet */
+        .toolbar { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
+        .search-input { padding: 0.4rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; width: 200px; }
+        .filter-select { padding: 0.4rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; background: #fff; }
+        .btn-next-issue { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+        .btn-next-issue:hover { background: #fde68a; }
+        
+        .matrix-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+        .matrix-table th, .matrix-table td { border: 1px solid #e5e7eb; padding: 0; min-width: 80px; position: relative; }
+        .matrix-table th { background: #f9fafb; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; color: #4b5563; position: sticky; top: 0; z-index: 10; text-align: right; }
+        .matrix-table th.col-weight { left: 0; z-index: 11; text-align: left; background: #f3f4f6; }
+        .matrix-table td.col-weight { left: 0; position: sticky; z-index: 9; background: #f9fafb; padding: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+        
+        /* Cell UX */
+        .cell-content { padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; height: 100%; cursor: pointer; font-size: 0.875rem; text-align: right; }
+        .cell-content:hover { background: #f3f4f6; }
+        .cell-content.focused { box-shadow: inset 0 0 0 2px #3b82f6; background: #eff6ff; }
+        .cell-content .pencil { display: none; color: #9ca3af; width: 12px; height: 12px; }
+        .cell-content:hover .pencil { display: inline-block; }
+        .cell-input { width: 100%; height: 100%; box-sizing: border-box; border: none; outline: none; box-shadow: inset 0 0 0 2px #2563eb; padding: 0.5rem; font-size: 0.875rem; text-align: right; display: none; }
+        
+        .diff-tag { font-size: 0.65rem; padding: 1px 4px; border-radius: 4px; margin-left: 4px; }
+        .diff-inc { background: #fee2e2; color: #991b1b; }
+        .diff-dec { background: #d1fae5; color: #065f46; }
+        .cell-edited { background: #e0f2fe; }
+        
+        .critic-added { background: #dcfce7; box-shadow: inset 0 0 0 1px #86efac; }
+        .critic-modified { background: #fef9c3; box-shadow: inset 0 0 0 1px #fde047; }
+        .critic-removed { background: #fee2e2; box-shadow: inset 0 0 0 1px #fca5a5; text-decoration: line-through; opacity: 0.7; }
+        
+        /* Warnings Inline */
+        .cell-warn { background: #fef3c7; }
+        .cell-err { background: #fee2e2; }
+        .warning-tooltip { position: absolute; bottom: 100%; right: 0; background: #1f2937; color: #fff; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; width: max-content; max-width: 200px; z-index: 20; display: none; }
+        .matrix-table td:hover .warning-tooltip { display: block; }
+        
+        /* Removed bottom-bar for better vertical space */
+        .btn { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+        .btn-cancel { background: #fff; border-color: #d1d5db; color: #374151; }
+        .btn-cancel:hover { background: #f3f4f6; }
+        .btn-draft { background: #fff; border-color: #d1d5db; color: #0284c7; }
+        .btn-draft:hover { background: #f0f9ff; }
+        .btn-approve { background: #174c3c; color: #fff; }
+        .btn-approve:hover { background: #123c2f; }
+        
+        /* Import Summary Card */
+        .import-summary { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; cursor: pointer; }
+        .import-summary-header { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.875rem; color: #111827; }
+        .import-summary-details { display: none; margin-top: 1rem; font-size: 0.875rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;}
+        
+        /* Raw AI Tab */
+        .raw-json { background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; overflow-x: auto; }
+        
+        /* Hide sections */
+        .section-view { display: none; }
+        .section-view.active { display: block; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Auto-complete datalists for Carrier and Service -->
+    <datalist id="carrier-list">
+        {% for c in all_carriers %}
+            <option value="{{ c }}"></option>
+        {% endfor %}
+    </datalist>
+    <div class="review-layout">
+        <!-- Sidebar Navigation -->
+        <div class="review-sidebar">
+            <div class="sidebar-header">
+                <h2>Review Tariff</h2>
+                <div class="meta">{{ doc.vendor.name }} • {{ doc.uploaded_at.strftime('%d %b %Y') if doc.uploaded_at else 'Unknown' }}</div>
+            </div>
+            <ul class="review-nav-list" id="review-nav-list">
+                <!-- Populated by JS -->
+            </ul>
+        </div>
+        
+        <!-- Main Area -->
+        <div class="review-main">
+            <div class="top-bar">
+                <div class="top-meta">
+                    <div class="meta-card"><strong>Extraction Time</strong> <span>{{ "%.1f"|format(raw_json.get('metadata', {}).get('extraction_time_sec', 2.4)) }} sec</span></div>
+                    <div class="meta-card"><strong>AI Model</strong> <span>{{ raw_json.metadata.ai_model if raw_json.metadata and raw_json.metadata.ai_model else 'Gemini 3.5 Flash' }}</span></div>
+                    <div class="meta-card"><strong>Compared Against</strong> <span id="meta-compare">Latest Approved</span></div>
+                    <div class="meta-card"><strong>AI Critic</strong> <span id="critic-metric-badge" style="background:#15803d; color:white; padding: 2px 6px; border-radius:12px; font-size:0.7rem; font-weight:bold;">0 Corrections</span></div>
+                    <div class="meta-card" style="text-align:right;">
+                        <button class="btn btn-cancel" style="padding: 0.25rem 0.5rem; font-size:0.75rem;" onclick="alert('PDF Viewer Drawer would open here')">View Original</button>
+                    </div>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>Review Progress</span>
+                        <span id="progress-text">0% | 0 issues remaining</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #e5e7eb;">
+                    <div class="tabs" style="border-bottom: none; margin-bottom: -1px;">
+                        <div class="tab active" onclick="switchTab('review')">Review Workspace</div>
+                        <div class="tab" onclick="switchTab('diff')">Changes Only</div>
+                        <div class="tab" onclick="switchTab('raw')">Raw AI JSON</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <button class="btn btn-cancel" onclick="window.location.href='/rates'" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Cancel</button>
+                        <button class="btn btn-draft" onclick="alert('Draft Saved')" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Save Draft</button>
+                        <button class="btn btn-approve" onclick="approveTariff()" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Approve & Import</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-area">
+                <!-- Tab: Review -->
+                <div id="tab-review">
+                    <!-- Import Summary Compact Card -->
+                    <div class="import-summary" onclick="toggleSummary()">
+                        <div class="import-summary-header">
+                            <span id="summary-title">Import Summary...</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="import-summary-details" id="summary-details">
+                            <div style="display:flex; gap: 2rem;">
+                                <div><strong>New Services</strong><ul id="sum-new-srv" style="margin:0; padding-left:1rem; color:#0284c7;"></ul></div>
+                                <div><strong>New Zones</strong><ul id="sum-new-zones" style="margin:0; padding-left:1rem; color:#059669;"></ul></div>
+                                <div><strong>Price Changes</strong><ul id="sum-price-chg" style="margin:0; padding-left:1rem; color:#dc2626;"></ul></div>
+                                <div id="sum-knowledge-col" style="display:none;"><strong>Knowledge Updates</strong><ul id="sum-knowledge" style="margin:0; padding-left:1rem; color:#d97706;"></ul></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <input type="text" class="search-input" id="search-input" placeholder="🔍 Search zone, weight, price..." onkeyup="applyFilters()">
+                            <select class="filter-select" id="filter-select" onchange="applyFilters()">
+                                <option value="all">Show All</option>
+                                <option value="changed">Changed Only</option>
+                                <option value="warnings">Warnings Only</option>
+                                <option value="edited">Edited Only</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn-next-issue" onclick="nextIssue()">Next Issue ❯</button>
+                        </div>
+                    </div>
+                    
+                    <div id="matrix-container">
+                        <!-- Matrices rendered by JS -->
+                    </div>
+                </div>
+                
+                <!-- Tab: Diff -->
+                <div id="tab-diff" style="display: none;">
+                    <h3>Price Changes (Diff)</h3>
+                    <p>Coming soon. Filter "Changed Only" in Review tab for now.</p>
+                </div>
+                
+                <!-- Tab: Raw AI -->
+                <div id="tab-raw" style="display: none;">
+                    <pre class="raw-json">{{ raw_json | tojson(indent=2) }}</pre>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+    const docId = "{{ doc.id }}";
+    const rawJson = {{ raw_json | tojson | safe }};
+    const validation = {{ validation | tojson | safe }};
+    let diffData = {{ diff_data|tojson|safe if diff_data else '{"diffs":[]}' }};
+    let zoneSuggestions = {{ zone_suggestions|tojson|safe if zone_suggestions else '{}' }};
+    let autoSuggestions = {{ auto_suggestions|tojson|safe if auto_suggestions else '{}' }};
+    const allResolvers = {{ all_resolvers|tojson|safe if all_resolvers else '[]' }};
+    const allCountries = {{ all_countries|tojson|safe if all_countries else '[]' }};
+        
+        let activeSectionIndex = 0;
+        let auditLog = [];
+        let totalIssues = 0;
+        let resolvedIssues = 0;
+        
+        let allIssues = []; // array of DOM elements with warnings
+        
+        function init() {
+            if (diffData.old_doc) {
+                document.getElementById('meta-compare').innerText = new Date(diffData.old_doc.uploaded_at).toLocaleDateString();
+            }
+            populateSummary();
+            buildMatrices();
+            renderNavigation();
+            updateProgress();
+            
+            if (rawJson.sections.length > 0) {
+                showSection(0);
+            }
+        }
+        
+        function populateSummary() {
+            let newSrv = new Set();
+            let newZones = new Set();
+            let changes = [];
+            
+            diffData.diffs.forEach(d => {
+                if (d.status === 'NEW') {
+                    newSrv.add(`${d.carrier} - ${d.service}`);
+                    newZones.add(d.zone);
+                } else if (d.status === 'INCREASED') {
+                    changes.push(`${d.zone} ${d.weight}kg: ${d.old_price} → ${d.new_price} (+${d.diff.toFixed(2)})`);
+                } else if (d.status === 'DECREASED') {
+                    changes.push(`${d.zone} ${d.weight}kg: ${d.old_price} → ${d.new_price} (-${d.diff.toFixed(2)})`);
+                }
+            });
+            
+            const totalRates = rawJson.sections.reduce((acc, s) => acc + (s.rates ? s.rates.length : 0), 0);
+            window.summaryStaticPart = `✓ ${totalRates} rates | +${newSrv.size} new services | +${newZones.size} new zones | ~${changes.length} prices changed`;
+            document.getElementById('summary-title').innerText = `${window.summaryStaticPart} | ⚠ ${validation.warnings} warnings | 🚨 ${validation.blockers} blockers`;
+            
+            document.getElementById('sum-new-srv').innerHTML = Array.from(newSrv).map(s => `<li>${s}</li>`).join('');
+            document.getElementById('sum-new-zones').innerHTML = Array.from(newZones).map(z => `<li>${z}</li>`).join('');
+            document.getElementById('sum-price-chg').innerHTML = changes.map(c => `<li>${c}</li>`).join('');
+            
+            let kUpdates = [];
+            if (diffData.knowledge_diffs) {
+                diffData.knowledge_diffs.forEach(kd => {
+                    if (kd.status !== 'UNCHANGED') {
+                        let cStatus = kd.status === 'NEW' ? 'New' : 'Update';
+                        let str = `${kd.type.toUpperCase()}: ${kd.zone} (${cStatus})`;
+                        if (kd.confidence < 0.8) {
+                            str = `⚠️ <span style="cursor:help;" title="Low AI Confidence: ${kd.confidence}">${str}</span>`;
+                        }
+                        if (kd.status === 'UPDATED') {
+                            str += ` <span style="font-size:0.75rem; color:#6b7280;" title="Old: ${kd.old_countries.join(', ')} \nNew: ${kd.new_countries.join(', ')}">[Hover for diff]</span>`;
+                        } else {
+                            str += ` <span style="font-size:0.75rem; color:#6b7280;" title="New: ${kd.new_countries.join(', ')}">[Hover for details]</span>`;
+                        }
+                        kUpdates.push(str);
+                    }
+                });
+            }
+            if (kUpdates.length > 0) {
+                document.getElementById('sum-knowledge-col').style.display = 'block';
+                document.getElementById('sum-knowledge').innerHTML = kUpdates.map(k => `<li style="margin-bottom:4px;">${k}</li>`).join('');
+            }
+        }
+        
+        function toggleSummary() {
+            const el = document.getElementById('summary-details');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('tab-review').style.display = 'none';
+            document.getElementById('tab-diff').style.display = 'none';
+            document.getElementById('tab-raw').style.display = 'none';
+            
+            document.getElementById(`tab-${tabId}`).style.display = 'block';
+        }
+        
+        function renderNavigation() {
+            const nav = document.getElementById('review-nav-list');
+            let html = '';
+            
+            totalIssues = 0; // Reset before counting
+            let globalWarnings = 0;
+            let globalBlockers = 0;
+            
+            rawJson.sections.forEach((s, idx) => {
+                const secVal = (validation.sections || []).find(v => v.index === idx) || { errors: [], rate_errors: {} };
+                let badgeClass = 'badge-clean';
+                let badgeText = '✓';
+                
+                let bCount = (secVal.errors || []).filter(e => e.type==='BLOCKER').length;
+                let wCount = (secVal.errors || []).filter(e => e.type==='WARNING').length;
+                Object.values(secVal.rate_errors || {}).forEach(errs => {
+                    bCount += (errs || []).filter(e => e.type==='BLOCKER').length;
+                    wCount += (errs || []).filter(e => e.type==='WARNING').length;
+                });
+                
+                totalIssues += bCount + wCount;
+                globalWarnings += wCount;
+                globalBlockers += bCount;
+                
+                if (bCount > 0) { badgeClass = 'badge-err'; badgeText = `${bCount} 🚨`; }
+                else if (wCount > 0) { badgeClass = 'badge-warn'; badgeText = `${wCount} ⚠`; }
+                
+                
+                let importTag = '';
+                if (s._import_status === 'IMPORTED') {
+                    importTag = ' <span style="color:#15803d;font-size:0.7rem;">(Imported)</span>';
+                }
+                
+                html += `
+                    <li id="nav-item-${idx}" class="nav-item ${idx === activeSectionIndex ? 'active' : ''}" onclick="showSection(${idx}, this)">
+                        <div class="nav-item-title">${s.carrier} <br><span style="font-size:0.7rem; color:#6b7280; font-weight:normal;">${s.service}</span>${importTag}</div>
+                        <span class="badge ${badgeClass}">${badgeText}</span>
+                    </li>
+                `;
+            });
+            nav.innerHTML = html;
+            
+            if (window.summaryStaticPart) {
+                document.getElementById('summary-title').innerText = `${window.summaryStaticPart} | ⚠ ${globalWarnings} warnings | 🚨 ${globalBlockers} blockers`;
+            }
+        }
+        
+        function showSection(idx, el = null) {
+            activeSectionIndex = idx;
+            document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
+            const target = document.getElementById(`section-view-${idx}`);
+            if (target) target.classList.add('active');
+            
+            if (el) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                el.classList.add('active');
+            }
+            
+            // Collect all issues in current view
+            allIssues = Array.from(document.querySelectorAll(`#section-view-${idx} td.has-issue`));
+            applyFilters();
+        }
+        
+        // --- MATRIX BUILDER ---
+        // Dynamic Service Datalist
+        const carrierServicesMap = {{ carrier_services|tojson|safe }};
+        function updateServiceList(serviceInputEl) {
+            // Find the sibling carrier input in the same flex row container
+            const container = serviceInputEl.closest('div[style*="display:flex; gap: 1rem"]');
+            if (!container) return;
+            const carrierInput = container.querySelector('input[list="carrier-list"]');
+            if (!carrierInput) return;
+            
+            let datalist = document.getElementById('service-list');
+            if (!datalist) {
+                datalist = document.createElement('datalist');
+                datalist.id = 'service-list';
+                document.body.appendChild(datalist);
+            }
+            datalist.innerHTML = ''; // clear previous options
+            
+            const carrierName = carrierInput.value.trim();
+            const validServices = carrierServicesMap[carrierName] || [];
+            
+            validServices.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                datalist.appendChild(opt);
+            });
+        }
+        
+        function buildMatrices() {
+            const container = document.getElementById('matrix-container');
+            let html = '';
+            
+            // Compute Critic Corrections
+            let criticCorrections = 0;
+            rawJson.sections.forEach(section => {
+                if (section._draft && section._draft.rates) {
+                    const finalRates = section.rates || [];
+                    const draftRates = section._draft.rates || [];
+                    finalRates.forEach(fr => {
+                        const dr = draftRates.find(d => d.zone === fr.zone && d.weight === fr.weight && d.weight_max === fr.weight_max);
+                        if (!dr || dr.price !== fr.price) criticCorrections++;
+                    });
+                    draftRates.forEach(dr => {
+                        const fr = finalRates.find(f => f.zone === dr.zone && f.weight === dr.weight && f.weight_max === dr.weight_max);
+                        if (!fr) criticCorrections++;
+                    });
+                }
+            });
+            const badgeEl = document.getElementById('critic-metric-badge');
+            if (badgeEl) {
+                badgeEl.textContent = `${criticCorrections} Correction${criticCorrections !== 1 ? 's' : ''}`;
+                badgeEl.style.background = criticCorrections === 0 ? '#6b7280' : '#15803d';
+            }
+            
+            // PRE-PROCESSING: Collect all document-scoped and sheet-scoped notes
+            let documentNotes = [];
+            let sheetNotesMap = {}; // "sheet_name" -> [notes...]
+            rawJson.sections.forEach(s => {
+                const sName = s.source ? s.source.source_name : '';
+                (s.notes || []).forEach(n => {
+                    if (n.scope === 'document') {
+                        documentNotes.push(n.text);
+                    } else if (n.scope === 'sheet' && sName) {
+                        if (!sheetNotesMap[sName]) sheetNotesMap[sName] = [];
+                        sheetNotesMap[sName].push(n.text);
+                    }
+                });
+            });
+            documentNotes = [...new Set(documentNotes)]; // deduplicate
+            Object.keys(sheetNotesMap).forEach(k => {
+                sheetNotesMap[k] = [...new Set(sheetNotesMap[k])];
+            });
+            
+            rawJson.sections.forEach((section, sIdx) => {
+                const secVal = validation.sections.find(s => s.index === sIdx) || { rate_errors: {}, errors: [] };
+                
+                // Collect unique weights and zones from BOTH final and draft
+                let weightsSet = new Set(); // key = "min_max" string
+                let zonesSet = new Set();
+                let weightKeyMap = {}; // "min_max" -> {weight_min, weight_max, label}
+                
+                const processRateForSets = (r) => {
+                    if (r.weight !== null && r.weight !== undefined) {
+                        const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                        const key = `${r.weight}_${wMax}`;
+                        weightsSet.add(key);
+                        if (!weightKeyMap[key]) {
+                            let label;
+                            if (wMax === null) {
+                                label = String(r.weight);
+                            } else if (wMax >= 99999) {
+                                label = `${r.weight} – ∞`;
+                            } else {
+                                label = `${r.weight} – ${wMax}`;
+                            }
+                            weightKeyMap[key] = { weight_min: r.weight, weight_max: wMax, label };
+                        }
+                    }
+                    if (r.zone) {
+                        r.zone = String(r.zone).trim().toUpperCase();
+                        zonesSet.add(r.zone);
+                    }
+                };
+                
+                (section.rates || []).forEach(processRateForSets);
+                if (section._draft && section._draft.rates) {
+                    section._draft.rates.forEach(processRateForSets);
+                }
+                
+                // Sort weight keys numerically by weight_min then weight_max
+                let weights = Array.from(weightsSet).sort((a, b) => {
+                    const aMin = weightKeyMap[a].weight_min;
+                    const bMin = weightKeyMap[b].weight_min;
+                    if (aMin !== bMin) return aMin - bMin;
+                    const aMax = weightKeyMap[a].weight_max ?? 0;
+                    const bMax = weightKeyMap[b].weight_max ?? 0;
+                    return aMax - bMax;
+                });
+                let zones = Array.from(zonesSet).sort();
+                
+                // Map rates to matrix using the bracket key
+                let matrix = {}; // wKey -> zone -> rate_idx
+                (section.rates || []).forEach((r, rIdx) => {
+                    if (r.weight !== null && r.weight !== undefined) {
+                        const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                        const key = `${r.weight}_${wMax}`;
+                        if (!matrix[key]) matrix[key] = {};
+                        matrix[key][r.zone] = rIdx;
+                    }
+                });
+                
+                let draftMatrix = {}; // wKey -> zone -> rate
+                if (section._draft && section._draft.rates) {
+                    section._draft.rates.forEach((r) => {
+                        if (r.weight !== null && r.weight !== undefined) {
+                            const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                            const key = `${r.weight}_${wMax}`;
+                            if (!draftMatrix[key]) draftMatrix[key] = {};
+                            draftMatrix[key][r.zone] = r;
+                        }
+                    });
+                }
+                
+                // Build Table
+                html += `<div id="section-view-${sIdx}" class="section-view">`;
+                
+                // Editable Carrier & Service
+                html += `<div style="display:flex; gap: 1rem; margin-bottom: 1rem; background:#f9fafb; padding:1rem; border-radius:6px; border:1px solid #e5e7eb;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:0.75rem; font-weight:bold; color:#4b5563; margin-bottom:0.25rem;">Carrier Name <span style="color:#dc2626">*</span></label>
+                        <input type="text" list="carrier-list" value="${section.carrier || ''}" class="filter-select" style="width:100%; border-color: ${!section.carrier ? '#f87171' : '#d1d5db'}" onblur="updateSectionData(${sIdx}, 'carrier', this.value)" placeholder="e.g. FedEx, Aramex">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:0.75rem; font-weight:bold; color:#4b5563; margin-bottom:0.25rem;">Service (Optional)</label>
+                        <input type="text" id="service-input-${sIdx}" list="service-list" value="${section.service || ''}" class="filter-select" style="width:100%;" onfocus="updateServiceList(this)" onblur="updateSectionData(${sIdx}, 'service', this.value)" placeholder="e.g. IP, Economy">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        ${section._import_status === 'IMPORTED' 
+                            ? `<button id="btn-import-${sIdx}" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; background: #15803d; color: white;" disabled>✓ Imported</button>`
+                            : `<button id="btn-import-${sIdx}" class="btn btn-approve" onclick="approveTariff(${sIdx})" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;">Import Just This Service</button>`
+                        }
+                    </div>
+                </div>`;
+                
+                // Validity Dates
+                if (section.valid_from || section.valid_to) {
+                    html += `<div style="margin-bottom:1rem; font-size:0.875rem; color:#4b5563;">
+                        <strong>Valid:</strong> ${section.valid_from || 'Immediate'} to ${section.valid_to || 'Further Notice'}
+                    </div>`;
+                }
+                
+                // Provenance (Source)
+                if (section.source) {
+                    let extractionStr = '';
+                    if (rawJson.metadata && rawJson.metadata.extracted_at) {
+                        const extDate = new Date(rawJson.metadata.extracted_at);
+                        extractionStr = `&nbsp; | &nbsp;<strong>Extracted:</strong> ${extDate.toLocaleString()}`;
+                    }
+                    html += `<div style="margin-bottom:1rem; font-size:0.875rem; color:#4b5563; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong>Source:</strong> <span style="background:#e0f2fe; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd; font-family: monospace;">${section.source.source_name}</span>${extractionStr}
+                        </div>
+                        <button class="btn btn-cancel" style="padding:0.25rem 0.5rem; font-size:0.75rem; border-color:#fca5a5; color:#b91c1c;" onclick="clearSectionRates(${sIdx})" title="Delete this rate table, but keep any T&Cs/Rules extracted from this sheet.">Discard Table Data</button>
+                    </div>`;
+                }
+                
+                // Section level errors
+                if ((secVal.errors || []).length > 0) {
+                    html += `<div id="sec-errors-${sIdx}" style="margin-bottom:1rem;">`;
+                    (secVal.errors || []).forEach(e => {
+                        html += `<div class="sec-err-msg" data-code="${e.code}" style="background:#fee2e2; color:#991b1b; padding:0.5rem; border-radius:4px; font-size:0.875rem; margin-bottom:0.25rem;">🚨 ${e.message}</div>`;
+                    });
+                    html += `</div>`;
+                }
+                
+                // Reusable Zone Resolver Linking
+                const zoneMappings = section.zone_mappings || [];
+                const hasExtractedResolver = zoneMappings.some(zm => zm.mapping && zm.mapping.length > 0);
+                
+                html += `<div style="margin-bottom:1rem; padding:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px;">`;
+                html += `<h4 style="margin:0 0 0.5rem 0; font-size:0.875rem; color:#166534;">Reusable Zone Resolver</h4>`;
+                
+                let linkedDraftIdx = -1;
+                let linkedSavedResolver = null;
+                if (!hasExtractedResolver && section.zone_resolver_id) {
+                    if (section.zone_resolver_id.startsWith('draft_')) {
+                        linkedDraftIdx = parseInt(section.zone_resolver_id.replace('draft_', ''));
+                    } else {
+                        linkedSavedResolver = allResolvers.find(r => r.id === section.zone_resolver_id);
+                    }
+                }
+                
+                if (hasExtractedResolver || linkedDraftIdx >= 0 || linkedSavedResolver) {
+                    let totalRecords = 0;
+                    let sample = [];
+                    
+                    if (hasExtractedResolver || linkedDraftIdx >= 0) {
+                        const sourceZMs = hasExtractedResolver ? zoneMappings : (rawJson.sections[linkedDraftIdx].zone_mappings || []);
+                        totalRecords = sourceZMs.reduce((sum, zm) => sum + (zm.mapping ? zm.mapping.length : 0), 0);
+                        const allMap = sourceZMs.flatMap(zm => zm.mapping || []);
+                        sample = allMap.slice(0, 15);
+                    } else if (linkedSavedResolver) {
+                        totalRecords = linkedSavedResolver.totalRecords || 0;
+                        sample = linkedSavedResolver.sample || [];
+                    }
+                    
+                    let previewHtml = '';
+                    if (totalRecords > 0) {
+                        previewHtml = `<div style="margin-top: 0.75rem; background: #fff; border: 1px solid #bbf7d0; padding: 0.75rem; border-radius: 4px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; color: #166534; line-height: 1.5;">`;
+                        sample.forEach(m => {
+                            previewHtml += `<div style="display:inline-block; margin-right:1.5rem; background:#dcfce7; padding:0.1rem 0.4rem; border-radius:4px;"><strong>${m.key}</strong> ➔ ${m.zone}</div>`;
+                        });
+                        if (totalRecords > 15) previewHtml += `<div style="display:inline-block; color:#15803d; font-style:italic;">...and ${totalRecords - 15} more mappings</div>`;
+                        previewHtml += `</div>`;
+                    }
+                    
+                    if (hasExtractedResolver) {
+                        const fallbackText = section.fallback_country ? ` [Fallback: <b>${section.fallback_country}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">✅ Successfully extracted Zone Resolver from <b>this sheet</b> with ${totalRecords} records${fallbackText}. This will be automatically saved as a reusable asset.</p>`;
+                    } else if (linkedDraftIdx >= 0) {
+                        const linkedSec = rawJson.sections[linkedDraftIdx];
+                        const linkedSheetName = linkedSec.source && linkedSec.source.source_name ? linkedSec.source.source_name : `Section ${linkedDraftIdx}`;
+                        const fallbackText = section.fallback_country ? ` [Fallback: <b>${section.fallback_country}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to resolver extracted from another sheet (<b>${linkedSheetName}</b>) with ${totalRecords} records${fallbackText}.</p>`;
+                    } else if (linkedSavedResolver) {
+                        // For saved resolvers, the country is loaded from the DB, but can be overridden by section.fallback_country
+                        const assignedC = section.fallback_country || linkedSavedResolver.assignedCountry;
+                        const fallbackText = assignedC ? ` [Fallback: <b>${assignedC}</b>]` : '';
+                        html += `<p style="margin:0; font-size:0.875rem; color:#15803d;">🔗 Linked to an older saved resolver (<b>${linkedSavedResolver.name}</b>) with ${totalRecords} records${fallbackText}.</p>`;
+                    }
+                    html += previewHtml;
+                }
+                
+                html += `<p style="margin:${hasExtractedResolver ? '1rem' : '0'} 0 0.5rem 0; font-size:0.875rem; color:#15803d;">If this rate matrix relies on a separate massive postcode/zone list, you can override or link it here:</p>`;
+                html += `<select class="filter-select" style="width:100%; border-color:#86efac;" onchange="updateSectionData(${sIdx}, 'zone_resolver_id', this.value)">`;
+                html += `<option value="">-- Use Native / No Resolver --</option>`;
+                allResolvers.forEach(res => {
+                    const selected = (section.zone_resolver_id === res.id) ? 'selected' : '';
+                    html += `<option value="${res.id}" ${selected}>${res.name}</option>`;
+                });
+                
+                // Add draft resolvers extracted from this document
+                rawJson.sections.forEach((draftSec, draftIdx) => {
+                    const zm = draftSec.zone_mappings || [];
+                    if (zm.some(z => z.mapping && z.mapping.length > 0)) {
+                        const sheetName = draftSec.source && draftSec.source.source_name ? draftSec.source.source_name : `Section ${draftIdx}`;
+                        const val = `draft_${draftIdx}`;
+                        const selected = (section.zone_resolver_id === val) ? 'selected' : '';
+                        html += `<option value="${val}" ${selected}>[This Document] ${sheetName}</option>`;
+                    }
+                });
+                
+                html += `</select>`;
+                
+                // Fallback Country Input
+                if (hasExtractedResolver || section.zone_resolver_id) {
+                    html += `
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.75rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Fallback Country:</span>
+                        <select class="filter-select" style="flex: 1; border: 1px solid #86efac; padding: 0.25rem 0.5rem; background: #fff;" 
+                                onchange="updateSectionData(${sIdx}, 'fallback_country', this.value)">
+                            <option value="">-- No Fallback Country --</option>
+                            ${allCountries.map(c => `<option value="${c}" ${section.fallback_country === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    </div>`;
+                }
+                html += `</div>`;
+                
+                // Zone Mapping UI
+                html += `<div style="margin-bottom:1rem; padding:1rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">`;
+                html += `<h4 style="margin:0 0 0.5rem 0; font-size:0.875rem; color:#0f172a;">Zone Mapping (Interactive)</h4>`;
+                
+                let allMappings = zoneMappings.flatMap(zm => zm.mapping || []);
+                if (section.zone_resolver_id && section.zone_resolver_id.startsWith('draft_')) {
+                    const draftIdx = parseInt(section.zone_resolver_id.replace('draft_', ''));
+                    const draftSec = rawJson.sections[draftIdx];
+                    if (draftSec) {
+                        const draftZM = draftSec.zone_mappings || [];
+                        allMappings = draftZM.flatMap(zm => zm.mapping || []);
+                    }
+                }
+                
+                zones.forEach(z => {
+                    const zId = z.replace(/\W/g, '');
+                    
+                    // First, check if AI explicitly extracted a zone_mapping for this zone
+                    let aiKnowledgeCountries = null;
+                    if (rawJson.knowledge) {
+                        const kObj = rawJson.knowledge.find(ko => ko.type === 'zone_mapping' && ko.zone === z);
+                        if (kObj && kObj.countries && kObj.countries.length > 0) {
+                            aiKnowledgeCountries = kObj.countries;
+                        }
+                    }
+
+                    let suggestion = null;
+                    let isAuto = false;
+                    let isAiExtracted = false;
+                    
+                    if (aiKnowledgeCountries) {
+                        suggestion = aiKnowledgeCountries;
+                        isAiExtracted = true;
+                    } else if (section.carrier && section.service) {
+                        const k = `${section.carrier}|${section.service}|${z}`;
+                        if (zoneSuggestions[k]) {
+                            suggestion = zoneSuggestions[k];
+                        }
+                    }
+                    
+                    if (!suggestion && autoSuggestions[z]) {
+                        suggestion = autoSuggestions[z];
+                        isAuto = true;
+                    }
+                    
+                    if (!section.confirmed_zone_mappings) {
+                        section.confirmed_zone_mappings = {};
+                    }
+                    let currentVal = section.confirmed_zone_mappings[z] || [];
+                    
+                    let autoFilled = false;
+                    if (currentVal.length === 0 && suggestion) {
+                        section.confirmed_zone_mappings[z] = suggestion;
+                        currentVal = suggestion;
+                        autoFilled = true;
+                    }
+                    
+                    let currentTransit = '';
+                    if (section.zone_segments) {
+                        const zs = section.zone_segments.find(s => String(s.zone) === z);
+                        if (zs && zs.transit_days) currentTransit = zs.transit_days;
+                    }
+                    
+                    html += `<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem; font-size:0.875rem;">`;
+                    html += `<div style="width:120px; display:flex; flex-direction:column; gap:0.25rem;">
+                        <span style="font-weight:600; color:#334155;">${z}</span>`;
+                        
+                    const zoneNum = z.replace(/[^0-9]/g, '');
+                    const mForZ = allMappings.filter(m => {
+                        if (String(m.zone).toUpperCase() === String(z).toUpperCase()) return true;
+                        const mNum = String(m.zone).replace(/[^0-9]/g, '');
+                        return zoneNum !== '' && mNum === zoneNum;
+                    });
+                    
+                    let badgeHtml = '';
+                    if (mForZ.length > 0) {
+                        const sampleText = mForZ.slice(0, 5).map(m => m.key).join(', ') + (mForZ.length > 5 ? '...' : '');
+                        const kt = mForZ[0].key_type;
+                        const label = kt === 'suburb' ? 'Suburbs' : kt === 'country' ? 'Countries' : 'Postcodes';
+                        const icon = kt === 'country' ? '🌍' : '📦';
+                        badgeHtml = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:0.1rem 0.3rem; border-radius:4px; align-self:flex-start;" title="${label}: ${sampleText}">${icon} ${mForZ.length} ${label}</span>`;
+                    } else if (linkedSavedResolver && linkedSavedResolver.zoneCounts) {
+                        let savedZoneCount = linkedSavedResolver.zoneCounts[z] || 0;
+                        if (savedZoneCount === 0) {
+                            Object.keys(linkedSavedResolver.zoneCounts).forEach(kz => {
+                                if (String(kz).toUpperCase() === String(z).toUpperCase()) {
+                                    savedZoneCount += linkedSavedResolver.zoneCounts[kz];
+                                } else if (zoneNum !== '' && String(kz).replace(/[^0-9]/g, '') === zoneNum) {
+                                    savedZoneCount += linkedSavedResolver.zoneCounts[kz];
+                                }
+                            });
+                        }
+                        if (savedZoneCount > 0) {
+                            const kt = linkedSavedResolver.keyType || 'postcode';
+                            const label = kt === 'suburb' ? 'Suburbs' : kt === 'country' ? 'Countries' : 'Postcodes';
+                            const icon = kt === 'country' ? '🌍' : '📦';
+                            badgeHtml = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:0.1rem 0.3rem; border-radius:4px; align-self:flex-start;">${icon} ${savedZoneCount} ${label}</span>`;
+                        }
+                    }
+                    
+                    if (badgeHtml) {
+                        html += badgeHtml;
+                    }
+                    html += `</div>`;
+                    
+                    html += `<div style="width:120px;">
+                        <input type="text" value="${currentTransit}" placeholder="Transit (e.g. 3-5)" style="width:100%; font-size:0.75rem; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" onchange="updateTransitDays(${sIdx}, '${z.replace(/'/g, "\\'")}', this.value)">
+                    </div>`;
+                    
+                    html += `<div style="flex:1; min-width: 0;">
+                            <select id="zone-map-${sIdx}-${zId}" multiple class="country-select" style="width:100%;" placeholder="Select countries..." data-sidx="${sIdx}" data-z="${z}">`;
+                    allCountries.forEach(c => {
+                        const selected = currentVal.includes(c) ? 'selected' : '';
+                        html += `<option value="${c}" ${selected}>${c}</option>`;
+                    });
+                    html += `</select>
+                        </div>`;
+                    if (isAiExtracted && autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#059669; background:#d1fae5; padding:0.25rem 0.5rem; border-radius:4px;">✨ AI-Extracted</span>`;
+                    } else if (isAuto && autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#059669; background:#d1fae5; padding:0.25rem 0.5rem; border-radius:4px;">✓ Auto-detected</span>`;
+                    } else if (autoFilled) {
+                        html += `<span style="font-size:0.75rem; color:#475569; background:#e2e8f0; padding:0.25rem 0.5rem; border-radius:4px;">Historical</span>`;
+                    }
+                    
+                    html += `</div>`;
+                });
+                html += `</div>`;
+                
+                // Pricing Rules UI
+                html += `<div style="margin-bottom:1rem; padding:1rem; background:#fefce8; border:1px solid #fef08a; border-radius:6px;">`;
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">`;
+                html += `<h4 style="margin:0; font-size:0.875rem; color:#854d0e;">Pricing Models</h4>`;
+                html += `<div style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-cancel" style="padding:0.25rem 0.5rem; font-size:0.7rem; border-color:#fde047;" onclick="bulkSetPriceType(${sIdx}, 'FLAT')">Set all to FLAT</button>
+                    <button class="btn btn-cancel" style="padding:0.25rem 0.5rem; font-size:0.7rem; border-color:#fde047;" onclick="bulkSetPriceType(${sIdx}, 'PER_KG')">Set all to PER KG</button>
+                </div>`;
+                html += `</div>`;
+                
+                let zsData = section.zone_segments || [];
+                if (zsData.length === 0) {
+                    html += `<div style="font-size:0.875rem; color:#a16207;">No pricing models detected.</div>`;
+                } else {
+                    html += `<div style="display:flex; flex-direction:column; gap:0.5rem;">`;
+                    zsData.forEach((zs, zIdx) => {
+                        html += `<div style="display:flex; gap:1rem; align-items:center; font-size:0.875rem;">`;
+                        html += `<strong style="width:120px; color:#854d0e;">${zs.zone}</strong>`;
+                        
+                        html += `<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">`;
+                        (zs.segments || []).forEach((seg, segIdx) => {
+                            let endStr = seg.end_weight ? seg.end_weight : '+';
+                            let titleStr = seg.reason ? seg.reason.replace(/"/g, '&quot;') : '';
+                            
+                            let color = '#065f46';
+                            let bg = '#d1fae5';
+                            let border = '#34d399';
+                            if (seg.price_type === 'UNKNOWN') {
+                                color = '#991b1b'; bg = '#fee2e2'; border = '#f87171';
+                            } else if (seg.confidence < 0.8) {
+                                color = '#92400e'; bg = '#fef3c7'; border = '#fbbf24';
+                            }
+                            
+                            html += `<div style="background:${bg}; color:${color}; border:1px solid ${border}; padding:0.25rem 0.5rem; border-radius:4px; display:flex; align-items:center; gap:0.5rem;" title="${titleStr}">`;
+                            html += `<span>${seg.start_weight} - ${endStr} kg :</span>`;
+                            html += `<select style="background:transparent; border:none; color:inherit; font-weight:bold; cursor:pointer; outline:none;" onchange="updateSegmentType(${sIdx}, '${zs.zone.replace(/'/g, "\\'")}', ${zIdx}, ${segIdx}, this.value)">`;
+                            html += `<option value="FLAT" ${seg.price_type==='FLAT'?'selected':''}>FLAT</option>`;
+                            html += `<option value="PER_KG" ${seg.price_type==='PER_KG'?'selected':''}>PER_KG</option>`;
+                            html += `<option value="UNKNOWN" ${seg.price_type==='UNKNOWN'?'selected':''}>UNKNOWN</option>`;
+                            html += `</select>`;
+                            html += `<button class="btn btn-cancel" style="padding:0.1rem 0.3rem; font-size:0.6rem; border:none; background:transparent; cursor:pointer;" onclick="splitSegment(${sIdx}, ${zIdx}, ${segIdx})" title="Split this segment">✂️</button>`;
+                            html += `</div>`;
+                        });
+                        html += `</div>`;
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                }
+                html += `</div>`;
+                
+                // Add Manual Rate UI
+                html += `<div style="margin-bottom:1rem;">`;
+                html += `<button class="btn" style="padding:0.4rem 0.75rem; font-size:0.75rem; border:1px solid #d1d5db; background:white; cursor:pointer;" onclick="addManualRate(${sIdx})">➕ Add Manual Rate Row</button>`;
+                html += `</div>`;
+                
+                // AI Notes for this section
+                const sName = section.source ? section.source.source_name : '';
+                let globalNotes = [...documentNotes]; // Initialize with all document-scoped notes
+                if (sName && sheetNotesMap[sName]) {
+                    sheetNotesMap[sName].forEach(sn => {
+                        if (!globalNotes.includes(sn)) globalNotes.push(sn);
+                    });
+                }
+                
+                let zoneNotes = {};
+                
+                (section.notes || []).forEach(n => {
+                    if (typeof n === 'string') {
+                        if (!globalNotes.includes(n)) globalNotes.push(n);
+                    } else if (n.scope === 'zone' && n.applies_to) {
+                        (n.applies_to || []).forEach(z => {
+                            if (!zoneNotes[z]) zoneNotes[z] = [];
+                            zoneNotes[z].push(n.text);
+                        });
+                    } else {
+                        if (n.category === 'POINTER' && n.applies_to && n.applies_to.length > 0) {
+                            const targetSheet = n.applies_to[0].toLowerCase().replace(' sheet', '').trim();
+                            Object.keys(sheetNotesMap).forEach(k => {
+                                const kLower = k.toLowerCase().trim();
+                                if (kLower.includes(targetSheet) || targetSheet.includes(kLower)) {
+                                    sheetNotesMap[k].forEach(sn => {
+                                        if (!globalNotes.includes(sn)) globalNotes.push(sn);
+                                    });
+                                }
+                            });
+                        }
+                        if (n.scope === 'section' || n.scope === 'sheet' || n.scope === 'document') {
+                            if (!globalNotes.includes(n.text)) globalNotes.push(n.text);
+                        }
+                    }
+                });
+                
+                if (globalNotes.length > 0) {
+                    html += `<details style="margin-bottom:1rem; background:#eff6ff; color:#1e3a8a; padding:0.75rem; border-radius:6px; font-size:0.875rem; border: 1px solid #bfdbfe;">`;
+                    html += `<summary style="display:flex; align-items:center; gap:0.5rem; font-weight:bold; cursor:pointer;"><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg> Terms & Conditions (${globalNotes.length})</summary>`;
+                    html += `<ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem; line-height: 1.4;">`;
+                    globalNotes.forEach(note => {
+                        html += `<li>${note}</li>`;
+                    });
+                    html += `</ul></details>`;
+                }
+                
+                html += `<table class="matrix-table"><thead><tr><th class="col-weight">Weight (kg)</th>`;
+                zones.forEach(z => { 
+                    html += `<th>${z}`;
+                    if (zoneNotes[z] && zoneNotes[z].length > 0) {
+                        const tText = zoneNotes[z].join('&#10;');
+                        html += ` <span style="cursor:help; color:#3b82f6;" title="${tText}">ⓘ</span>`;
+                    }
+                    html += `</th>`; 
+                });
+                html += `</tr></thead><tbody>`;
+                
+                weights.forEach(wKey => {
+                    const wInfo = weightKeyMap[wKey];
+                    const isBracket = wInfo.weight_max !== null;
+                    html += `<tr data-weight="${wKey}">`;
+                    // Weight label cell — editable
+                    if (isBracket) {
+                        const maxDisp = wInfo.weight_max >= 99999 ? '∞' : wInfo.weight_max;
+                        html += `<td class="col-weight" title="Bracket row: ${wInfo.label} kg">
+                            <div style="display:flex; align-items:center; gap:3px; font-size:0.78rem;">
+                                <input type="number" step="0.1" value="${wInfo.weight_min}" style="width:48px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                    onblur="updateWeightBracket(${sIdx}, '${wKey}', this.value, null)" title="Min weight">
+                                <span style="color:#6b7280;">–</span>
+                                <input type="number" step="0.1" value="${wInfo.weight_max >= 99999 ? '' : wInfo.weight_max}" placeholder="∞" style="width:48px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                    onblur="updateWeightBracket(${sIdx}, '${wKey}', null, this.value || 99999)" title="Max weight (leave empty for open-ended)">
+                                <span style="color:#6b7280; font-size:0.7rem;">kg</span>
+                            </div>
+                        </td>`;
+                    } else {
+                        html += `<td class="col-weight">
+                            <input type="number" step="0.1" value="${wInfo.weight_min}" style="width:56px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px; font-size:0.75rem;"
+                                onblur="updateWeightBracket(${sIdx}, '${wKey}', this.value, null)" title="Weight (kg)">
+                        </td>`;
+                    }
+                    
+                    zones.forEach(z => {
+                        const rIdx = matrix[wKey] && matrix[wKey][z] !== undefined ? matrix[wKey][z] : undefined;
+                        const draftRate = draftMatrix[wKey] && draftMatrix[wKey][z] !== undefined ? draftMatrix[wKey][z] : undefined;
+                        
+                        if (rIdx !== undefined) {
+                            const rate = section.rates[rIdx];
+                            const errs = (secVal.rate_errors || {})[rIdx] || [];
+                            
+                            let cellClass = '';
+                            let tooltip = '';
+                            let isIssue = false;
+                            
+                            // Diff Tag & Classes
+                            let diffHtml = '';
+                            let isChanged = false;
+                            if (!draftRate && section._draft) {
+                                cellClass += ' critic-added';
+                                diffHtml = `<span class="diff-tag diff-dec">New</span>`;
+                                isChanged = true;
+                            } else if (draftRate && rate.price !== draftRate.price) {
+                                cellClass += ' critic-modified';
+                                diffHtml = `<span class="diff-tag diff-inc" title="Was ${draftRate.price}">Was ${draftRate.price}</span>`;
+                                isChanged = true;
+                            }
+                            
+                            if (errs.length > 0) {
+                                isIssue = true;
+                                const isBlocker = errs.some(e => e.type === 'BLOCKER');
+                                cellClass += isBlocker ? ' cell-err has-issue' : ' cell-warn has-issue';
+                                tooltip = `<div class="warning-tooltip">${errs.map(e => e.message).join('<br>')}</div>`;
+                            }
+                            
+                            html += `
+                                <td class="${cellClass.trim()}" data-zone="${z}" data-changed="${isChanged}" data-issue="${isIssue}">
+                                    <div class="cell-content" tabindex="0" 
+                                         onclick="focusCell(this)" 
+                                         ondblclick="editCell(${sIdx}, ${rIdx}, this)"
+                                         onkeydown="handleKey(event, ${sIdx}, ${rIdx}, this)">
+                                        <span class="val-span">${rate.price !== null ? rate.price : '-'}</span>
+                                        ${diffHtml}
+                                        <svg class="pencil" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+                                    </div>
+                                    <input type="number" step="0.01" class="cell-input" value="${rate.price !== null ? rate.price : ''}"
+                                           onblur="saveCell(${sIdx}, ${rIdx}, this)"
+                                           onkeydown="if(event.key==='Enter') this.blur(); if(event.key==='Escape') cancelEdit(this);">
+                                    ${tooltip}
+                                </td>
+                            `;
+                        } else if (draftRate) {
+                            html += `
+                                <td class="critic-removed" data-zone="${z}" title="Hallucination removed by AI Critic">
+                                    <div class="cell-content" style="cursor:not-allowed;">
+                                        <span class="val-span">${draftRate.price !== null ? draftRate.price : '-'}</span>
+                                        <span class="diff-tag diff-inc">Del</span>
+                                    </div>
+                                </td>
+                            `;
+                        } else {
+                            html += `<td style="background: repeating-linear-gradient(45deg, #fef2f2, #fef2f2 5px, #fee2e2 5px, #fee2e2 10px);"></td>`;
+                        }
+                    });
+                    html += `</tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+            });
+            
+            container.innerHTML = html;
+            
+            // Initialize TomSelect for country dropdowns
+            document.querySelectorAll('.country-select').forEach(selectEl => {
+                new TomSelect(selectEl, {
+                    plugins: ['remove_button'],
+                    maxItems: null,
+                    onChange: function(values) {
+                        const sIdx = selectEl.getAttribute('data-sidx');
+                        const z = selectEl.getAttribute('data-z');
+                        applyMapping(sIdx, z, values);
+                    }
+                });
+            });
+        }
+        
+        // --- UX LOGIC ---
+        function updateTransitDays(sIdx, z, value) {
+            const section = rawJson.sections[sIdx];
+            if (!section.zone_segments) section.zone_segments = [];
+            let zs = section.zone_segments.find(s => String(s.zone) === String(z));
+            if (!zs) {
+                zs = { zone: z, segments: [] };
+                section.zone_segments.push(zs);
+            }
+            zs.transit_days = value.trim();
+        }
+
+        function updateWeightBracket(sIdx, oldKey, newMin, newMax) {
+            // Find all rates in this section that match the old bracket key
+            const section = rawJson.sections[sIdx];
+            if (!section || !section.rates) return;
+            
+            section.rates.forEach(r => {
+                const wMax = (r.weight_max !== undefined && r.weight_max !== null) ? r.weight_max : null;
+                const key = `${r.weight}_${wMax}`;
+                if (key === oldKey) {
+                    if (newMin !== null && newMin !== '') r.weight = parseFloat(newMin);
+                    if (newMax !== null && newMax !== '') r.weight_max = parseFloat(newMax) >= 99999 ? 99999 : parseFloat(newMax);
+                    // Empty max = open-ended
+                    if (newMax === '' || newMax === null) r.weight_max = 99999;
+                }
+            });
+            
+            // Re-render the matrix table for this section
+            setTimeout(() => buildMatrices(), 0);
+        }
+
+        function updateSectionData(sIdx, field, value) {
+            rawJson.sections[sIdx][field] = value.trim();
+            
+            if (field === 'zone_resolver_id') {
+                setTimeout(() => {
+                    buildMatrices();
+                    showSection(activeSectionIndex);
+                }, 0);
+                return;
+            }
+            
+            if (field === 'carrier' && value.trim() !== '') {
+                const secVal = validation.sections.find(v => v.index === sIdx);
+                if (secVal) {
+                    const blockIdx = secVal.errors.findIndex(e => e.code === 'MISSING_CARRIER');
+                    if (blockIdx > -1) {
+                        secVal.errors.splice(blockIdx, 1);
+                        totalIssues--; // Decrease total issues since we resolved one
+                        
+                        // Remove visual error block
+                        const errDiv = document.querySelector(`#sec-errors-${sIdx} .sec-err-msg[data-code="MISSING_CARRIER"]`);
+                        if (errDiv) errDiv.remove();
+                        
+                        // Clear red border on input
+                        const inputEl = document.querySelector(`#section-view-${sIdx} input[placeholder*="FedEx"]`);
+                        if (inputEl) inputEl.style.borderColor = '#d1d5db';
+                        
+                        updateProgress();
+                    }
+                }
+            }
+            renderNavigation();
+        }
+        
+        function applyMapping(sIdx, zoneName, destinations) {
+            rawJson.sections[sIdx].confirmed_zone_mappings[zoneName] = destinations;
+        }
+
+        function removePriceTypeWarnings(sIdx, zoneName) {
+            const secVal = validation.sections.find(v => v.index === sIdx);
+            if (secVal && secVal.rate_errors) {
+                const rates = rawJson.sections[sIdx].rates || [];
+                rates.forEach((r, rIdx) => {
+                    if (r.zone === zoneName || !zoneName) {
+                        if (secVal.rate_errors[rIdx]) {
+                            const before = secVal.rate_errors[rIdx].length;
+                            secVal.rate_errors[rIdx] = secVal.rate_errors[rIdx].filter(e => e.code !== 'UNKNOWN_PRICE_TYPE' && e.code !== 'PRICE_NOT_INCREASING');
+                            const after = secVal.rate_errors[rIdx].length;
+                            resolvedIssues += (before - after);
+                            
+                            if (secVal.rate_errors[rIdx].length === 0) {
+                                delete secVal.rate_errors[rIdx];
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function restorePriceTypeWarnings(sIdx, zoneName) {
+            const secVal = validation.sections.find(v => v.index === sIdx);
+            if (secVal) {
+                if (!secVal.rate_errors) secVal.rate_errors = {};
+                const rates = rawJson.sections[sIdx].rates || [];
+                rates.forEach((r, rIdx) => {
+                    if (r.zone === zoneName || !zoneName) {
+                        if (!secVal.rate_errors[rIdx]) secVal.rate_errors[rIdx] = [];
+                        
+                        // Check if it's already there
+                        if (!secVal.rate_errors[rIdx].some(e => e.code === 'UNKNOWN_PRICE_TYPE')) {
+                            secVal.rate_errors[rIdx].push({
+                                type: 'WARNING',
+                                code: 'UNKNOWN_PRICE_TYPE',
+                                message: 'Price type (FLAT vs PER_KG) could not be determined from explicit evidence. Please verify.'
+                            });
+                        }
+                    }
+                });
+            }
+        }
+        
+        function updateSegmentType(sIdx, zoneName, zIdx, segIdx, newType) {
+            rawJson.sections[sIdx].zone_segments[zIdx].segments[segIdx].price_type = newType;
+            
+            if (newType !== 'UNKNOWN') {
+                removePriceTypeWarnings(sIdx, zoneName);
+            } else {
+                restorePriceTypeWarnings(sIdx, zoneName);
+            }
+            
+            buildMatrices();
+            showSection(activeSectionIndex);
+            renderNavigation();
+            updateProgress();
+        }
+        
+        function splitSegment(sIdx, zIdx, segIdx) {
+            const splitWStr = prompt("Enter the exact weight to split at (e.g. 6 or 6.0):");
+            if (!splitWStr) return;
+            const splitW = parseFloat(splitWStr);
+            if (isNaN(splitW)) return;
+            
+            const zs = rawJson.sections[sIdx].zone_segments[zIdx];
+            const seg = zs.segments[segIdx];
+            
+            if (splitW <= seg.start_weight) {
+                alert("Split weight must be greater than start weight (" + seg.start_weight + ").");
+                return;
+            }
+            if (seg.end_weight !== null && seg.end_weight !== undefined && splitW >= seg.end_weight) {
+                alert("Split weight must be less than end weight (" + seg.end_weight + ").");
+                return;
+            }
+            
+            const newSeg = {
+                start_weight: splitW,
+                end_weight: seg.end_weight,
+                price_type: seg.price_type,
+                confidence: 1.0,
+                reason: 'Manually split'
+            };
+            
+            seg.end_weight = splitW;
+            zs.segments.splice(segIdx + 1, 0, newSeg);
+            
+            buildMatrices();
+            showSection(activeSectionIndex);
+        }
+        
+        function bulkSetPriceType(sIdx, newType) {
+            const zsData = rawJson.sections[sIdx].zone_segments || [];
+            zsData.forEach((zs, zIdx) => {
+                (zs.segments || []).forEach((seg, segIdx) => {
+                    seg.price_type = newType;
+                    
+                    if (newType !== 'UNKNOWN') {
+                        removePriceTypeWarnings(sIdx, zs.zone);
+                    } else {
+                        restorePriceTypeWarnings(sIdx, zs.zone);
+                    }
+                });
+            });
+            
+            buildMatrices();
+            showSection(activeSectionIndex);
+            renderNavigation();
+            updateProgress();
+        }
+
+        function focusCell(el) {
+            document.querySelectorAll('.cell-content').forEach(c => c.classList.remove('focused'));
+            el.classList.add('focused');
+            el.focus();
+        }
+        
+        function handleKey(e, sIdx, rIdx, el) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                editCell(sIdx, rIdx, el);
+            }
+        }
+        
+        function editCell(sIdx, rIdx, contentDiv) {
+            const td = contentDiv.parentElement;
+            const input = td.querySelector('.cell-input');
+            contentDiv.style.display = 'none';
+            input.style.display = 'block';
+            input.focus();
+            input.select();
+        }
+        
+        function cancelEdit(inputEl) {
+            const td = inputEl.parentElement;
+            const contentDiv = td.querySelector('.cell-content');
+            inputEl.style.display = 'none';
+            contentDiv.style.display = 'flex';
+            inputEl.value = rawJson.sections[0].rates[0].price; // revert visually (mock)
+            contentDiv.focus();
+        }
+        
+        function saveCell(sIdx, rIdx, inputEl) {
+            const td = inputEl.parentElement;
+            const contentDiv = td.querySelector('.cell-content');
+            const valSpan = contentDiv.querySelector('.val-span');
+            const tooltip = td.querySelector('.warning-tooltip');
+            
+            const newValue = inputEl.value ? parseFloat(inputEl.value) : null;
+            const oldValue = rawJson.sections[sIdx].rates[rIdx].price;
+            
+            inputEl.style.display = 'none';
+            contentDiv.style.display = 'flex';
+            
+            if (newValue !== oldValue) {
+                valSpan.innerText = newValue;
+                td.classList.add('cell-edited');
+                td.dataset.edited = "true";
+                rawJson.sections[sIdx].rates[rIdx].price = newValue;
+                rawJson.sections[sIdx].rates[rIdx].import_status = 'MANUALLY_EDITED';
+                
+                auditLog.push({
+                    section: sIdx, rate_index: rIdx, field: 'price',
+                    old: oldValue, new: newValue, timestamp: new Date().toISOString()
+                });
+                
+                // If it had an issue, mark resolved
+                if (td.classList.contains('has-issue')) {
+                    td.classList.remove('has-issue');
+                    td.classList.remove('cell-warn');
+                    td.classList.remove('cell-err');
+                    td.dataset.issue = "false";
+                    if (tooltip) tooltip.remove();
+                    resolvedIssues++;
+                    updateProgress();
+                }
+            }
+        }
+        
+        function updateProgress() {
+            const remaining = totalIssues - resolvedIssues;
+            const pct = totalIssues === 0 ? 100 : Math.round((resolvedIssues / totalIssues) * 100);
+            document.getElementById('progress-text').innerText = `${pct}% | ${remaining} issues remaining`;
+            document.getElementById('progress-fill').style.width = `${pct}%`;
+        }
+        
+        function recalcIssues() {
+            totalIssues = 0;
+            resolvedIssues = 0;
+            validation.sections.forEach(sec => {
+                if (sec.rate_errors) {
+                    Object.values(sec.rate_errors).forEach(errs => {
+                        totalIssues += errs.length;
+                    });
+                }
+                if (sec.errors) {
+                    totalIssues += sec.errors.length;
+                }
+            });
+            updateProgress();
+        }
+        
+        function clearSectionRates(sIdx) {
+            if (confirm("Are you sure you want to discard the rate table for this section? Any global Terms & Conditions extracted from this sheet will still be saved.")) {
+                rawJson.sections[sIdx].rates = [];
+                const secVal = validation.sections.find(s => s.index === sIdx);
+                if (secVal) {
+                    secVal.rate_errors = {};
+                }
+                recalcIssues();
+                buildMatrices();
+                showSection(sIdx);
+                renderNavigation();
+            }
+        }
+        
+        function addManualRate(sIdx) {
+            const z = prompt("Enter Zone (e.g. '1', 'A'):", "");
+            if (!z) return;
+            const w = prompt("Enter Weight (e.g. '1.5'):", "");
+            if (!w || isNaN(parseFloat(w))) return;
+            const p = prompt("Enter Price (e.g. '25.50'):", "");
+            if (!p || isNaN(parseFloat(p))) return;
+            
+            if (!rawJson.sections[sIdx].rates) {
+                rawJson.sections[sIdx].rates = [];
+            }
+            
+            rawJson.sections[sIdx].rates.push({
+                zone: z.trim(),
+                weight: parseFloat(w),
+                price: parseFloat(p),
+                import_status: 'MANUALLY_ADDED'
+            });
+            
+            buildMatrices();
+            showSection(sIdx);
+            renderNavigation();
+        }
+        
+        let currentIssueIdx = -1;
+        function nextIssue() {
+            // Re-fetch all issues in active section
+            allIssues = Array.from(document.querySelectorAll(`#section-view-${activeSectionIndex} td.has-issue`));
+            if (allIssues.length === 0) {
+                alert("No remaining issues in this section!");
+                return;
+            }
+            currentIssueIdx = (currentIssueIdx + 1) % allIssues.length;
+            const target = allIssues[currentIssueIdx];
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            focusCell(target.querySelector('.cell-content'));
+        }
+        
+        function applyFilters() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const filter = document.getElementById('filter-select').value;
+            
+            const tbody = document.querySelector(`#section-view-${activeSectionIndex} tbody`);
+            if (!tbody) return;
+            
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(tr => {
+                let rowMatch = false;
+                const weight = tr.dataset.weight;
+                
+                tr.querySelectorAll('td:not(.col-weight)').forEach(td => {
+                    const zone = td.dataset.zone;
+                    const val = td.querySelector('.val-span') ? td.querySelector('.val-span').innerText : '';
+                    const isChanged = td.dataset.changed === "true";
+                    const isIssue = td.dataset.issue === "true";
+                    const isEdited = td.dataset.edited === "true";
+                    
+                    let cellMatch = true;
+                    
+                    // Search
+                    if (search) {
+                        cellMatch = weight.includes(search) || (zone && zone.toLowerCase().includes(search)) || val.includes(search);
+                    }
+                    
+                    // Filter
+                    if (filter === 'changed' && !isChanged) cellMatch = false;
+                    if (filter === 'warnings' && !isIssue) cellMatch = false;
+                    if (filter === 'edited' && !isEdited) cellMatch = false;
+                    
+                    if (cellMatch) {
+                        rowMatch = true;
+                        td.style.opacity = '1';
+                    } else {
+                        td.style.opacity = '0.2'; // fade out non-matching cells
+                    }
+                });
+                
+                tr.style.display = rowMatch ? '' : 'none';
+            });
+        }
+        
+        async function approveTariff(sIdx = null) {
+            let sectionsToPush = rawJson.sections;
+            let isPartial = false;
+            
+            if (sIdx !== null) {
+                // Deep copy so we don't modify rawJson accidentally
+                const secCopy = JSON.parse(JSON.stringify(rawJson.sections[sIdx]));
+                
+                // Inject document-level notes from ALL sections into this specific section
+                // so we don't lose global T&Cs when importing a single service
+                const globalNotes = [];
+                rawJson.sections.forEach(s => {
+                    (s.notes || []).forEach(n => {
+                        if (n.scope === 'document') {
+                            globalNotes.push(n);
+                        }
+                    });
+                });
+                
+                if (globalNotes.length > 0) {
+                    if (!secCopy.notes) secCopy.notes = [];
+                    globalNotes.forEach(gn => {
+                        const exists = secCopy.notes.some(en => en.text === gn.text && en.scope === 'document');
+                        if (!exists) {
+                            secCopy.notes.push(gn);
+                        }
+                    });
+                }
+                
+                sectionsToPush = [secCopy];
+                isPartial = true;
+            }
+            
+            const existingServicesInfo = {{ existing_services_info|tojson|safe }};
+            let overwriteWarnings = [];
+            
+            sectionsToPush.forEach(sec => {
+                const c = (sec.carrier || "").trim().toLowerCase();
+                const s = (sec.service || "").trim().toLowerCase();
+                if (c) {
+                    const key = `${c}|${s}`;
+                    if (existingServicesInfo[key]) {
+                        overwriteWarnings.push(`- ${sec.carrier} ${sec.service ? sec.service : '(No Service Name)'} (last updated from ${existingServicesInfo[key].filename} on ${existingServicesInfo[key].date})`);
+                    }
+                }
+            });
+            
+            if (overwriteWarnings.length > 0) {
+                const msg = `WARNING: Active rate cards already exist for this vendor:\n\n${overwriteWarnings.join('\n')}\n\nImporting this will overwrite the active Quoting Engine rates for these services. Are you sure you want to proceed?`;
+                if (!confirm(msg)) {
+                    return; // Abort import
+                }
+            }
+            
+            const payload = {
+                sections: sectionsToPush,
+                knowledge: rawJson.knowledge || [],
+                audit_log: auditLog,
+                partial: isPartial,
+                partial_indices: isPartial ? [sIdx] : []
+            };
+            
+            try {
+                const response = await fetch(`/api/tariffs/${docId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resData = await response.json();
+                
+                if (resData.success) {
+                    if (isPartial) {
+                        alert('Service imported successfully!');
+                        const btn = document.getElementById(`btn-import-${sIdx}`);
+                        if (btn) {
+                            btn.innerText = "✓ Imported";
+                            btn.disabled = true;
+                            btn.classList.remove('btn-approve');
+                            btn.style.background = '#15803d';
+                            btn.style.color = 'white';
+                        }
+                        const navItem = document.getElementById(`nav-item-${sIdx}`);
+                        if (navItem) {
+                            const titleEl = navItem.querySelector('.nav-item-title');
+                            if (titleEl && !titleEl.innerHTML.includes('(Imported)')) {
+                                titleEl.innerHTML += ' <span style="color:#15803d;font-size:0.7rem;">(Imported)</span>';
+                            }
+                        }
+                        rawJson.sections[sIdx]._import_status = 'IMPORTED';
+                        if (resData.doc_status === 'APPROVED') {
+                            alert('All services have been imported! Tariff is fully approved.');
+                            window.location.href = '/rates';
+                        }
+                    } else {
+                        alert('Tariff approved and normalized successfully!');
+                        window.location.href = '/rates';
+                    }
+                } else {
+                    alert('Error: ' + resData.message);
+                }
+            } catch (err) {
+                alert('An error occurred during approval.');
+            }
+        }
+        
+        // Boot
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('uploaded') === 'true') {
+            showToast('Upload and processing complete!', 'success');
+            // Remove the param from URL to prevent showing on reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        init();
+    </script>
+{% endblock %}

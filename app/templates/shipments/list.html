@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Shipments | CourierBridge{% endblock %}
+{% block container_class %}container-fluid{% endblock %}
 
 {% block content %}
 <style>
@@ -8,12 +9,70 @@
 .hidden-radio { display: none !important; }
 .custom-duty-toggle .btn-toggle { cursor: pointer; padding: 2px 8px; font-size: 10px; border-radius: 4px; background: #f1f5f9; color: #64748b; font-weight: 500; border: 1px solid transparent; transition: all 0.15s; }
 .hidden-radio:checked + .btn-toggle { background: #fff; color: #0f172a; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.shipments-table th:nth-child(2), .shipments-table th:nth-child(3),
-.shipments-table td:nth-child(2), .shipments-table td:nth-child(3) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+input[name="custom_duty"][value="true"].hidden-radio:checked + .btn-toggle { background: #ef4444; color: #fff; border-color: #dc2626; }
+.shipments-table th:nth-child(2), .shipments-table th:nth-child(4),
+.shipments-table td:nth-child(2), .shipments-table td:nth-child(4) { width: 105px; min-width: 105px; max-width: 105px; word-wrap: break-word; }
+.shipments-table th.ai-mode-col, .shipments-table td.ai-mode-col { width: 175px; min-width: 175px; max-width: 175px; word-wrap: break-word; }
+.shipments-table th:nth-child(3), .shipments-table td:nth-child(3) { width: 75px; min-width: 75px; max-width: 75px; word-wrap: break-word; }
+
+/* AI Mode Styles */
+.ai-mode-col { display: none; }
+body.ai-mode-active .ai-mode-col { display: table-cell; }
+
+/* Highlight focused date */
+.booking-cell-stack > div:focus-within > span.cell-secondary {
+    color: #2563eb !important;
+    background-color: #eff6ff;
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-left: -4px;
+    font-weight: 600;
+}
 </style>
 
-<section class="card filter-card" id="shipments-filter-card" {% if not (q or status or country or custom_duty or service) %}style="display: none;"{% endif %}>
+<script>
+if (localStorage.getItem('ai_mode') === 'true') {
+    document.body.classList.add('ai-mode-active');
+}
+function toggleAIMode() {
+    const btn = document.getElementById('aiModeBtn');
+    if (document.body.classList.contains('ai-mode-active')) {
+        document.body.classList.remove('ai-mode-active');
+        localStorage.setItem('ai_mode', 'false');
+        document.querySelectorAll('.ai-review-row').forEach(row => {
+            row.style.display = 'none';
+        });
+        if (btn) btn.innerText = 'Enable AI Mode';
+    } else {
+        document.body.classList.add('ai-mode-active');
+        localStorage.setItem('ai_mode', 'true');
+        if (btn) btn.innerText = 'Disable AI Mode';
+    }
+}
+</script>
+
+<section class="card filter-card" id="shipments-filter-card">
+    <script>
+        if (window.location.search.length > 1) {
+            localStorage.setItem('hideShipmentsFilter', 'false');
+        } else if (localStorage.getItem('hideShipmentsFilter') === 'true') {
+            document.getElementById('shipments-filter-card').style.display = 'none';
+        }
+    </script>
+    <div class="quick-filter-row" aria-label="Quick shipment filters">
+        <a class="quick-filter-chip {% if date == 'today' or quick == 'today' %}active{% endif %}" href="/shipments?date=today">Today</a>
+        <a class="quick-filter-chip {% if quick == 'active' %}active{% endif %}" href="/shipments?quick=active">Active</a>
+        <a class="quick-filter-chip {% if quick == 'attention' %}active{% endif %}" href="/shipments?quick=attention">Needs attention</a>
+        <a class="quick-filter-chip {% if quick == 'missing_tracking' %}active{% endif %}" href="/shipments?quick=missing_tracking">Missing tracking</a>
+        <a class="quick-filter-chip {% if quick == 'missing_lm' %}active{% endif %}" href="/shipments?quick=missing_lm">Missing LM</a>
+        <a class="quick-filter-chip {% if quick == 'pending_balance' %}active{% endif %}" href="/shipments?quick=pending_balance">Balance due</a>
+        <a class="quick-filter-chip {% if quick == 'custom_duty' %}active{% endif %}" href="/shipments?quick=custom_duty">Custom duty</a>
+        <a class="quick-filter-chip {% if quick == 'stale' %}active{% endif %}" href="/shipments?quick=stale">No update in 48 hours</a>
+        <a class="quick-filter-chip {% if quick == 'overdue' %}active{% endif %}" href="/shipments?quick=overdue">Overdue</a>
+    </div>
     <form method="GET" action="/shipments" class="filter-form shipment-filter-form">
+        {% if quick %}<input type="hidden" name="quick" value="{{ quick }}">{% endif %}
+        {% if date %}<input type="hidden" name="date" value="{{ date }}">{% endif %}
         <div>
             <label for="ledger-filter-input">Search ledger</label>
             <input autocomplete="off" autocorrect="off" autocapitalize="none" data-lpignore="true" data-1p-ignore="true" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')" id="ledger-filter-input" type="text" value="{{ q }}" placeholder="Customer, phone, destination or reference">
@@ -24,20 +83,20 @@
             <select id="shipment-status" name="status">
                 <option value="">All statuses</option>
                 <option value="booked" {% if status == 'booked' %}selected{% endif %}>Booked</option>
-                <option value="received" {% if status == 'received' %}selected{% endif %}>Received by Courier</option>
-                <option value="bagging" {% if status == 'bagging' %}selected{% endif %}>Bagging</option>
-                <option value="hand_over_to_airline" {% if status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
-                <option value="in_transit" {% if status == 'in_transit' %}selected{% endif %}>In transit</option>
-                <option value="at_destination" {% if status == 'at_destination' %}selected{% endif %}>At destination</option>
-                <option value="custom_clearance" {% if status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                <option value="at_lm_partner" {% if status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
-                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                <option value="send_to_delhi" {% if status == 'send_to_delhi' %}selected{% endif %}>Send to Delhi</option>
+                <option value="in_scan" {% if status == 'in_scan' %}selected{% endif %}>In scan</option>
+                <option value="processed" {% if status == 'processed' %}selected{% endif %}>Processed</option>
+                <option value="connected" {% if status == 'connected' %}selected{% endif %}>Connected</option>
+                <option value="transit_in_india" {% if status == 'transit_in_india' %}selected{% endif %}>Transit in india</option>
+                <option value="transit_to_dest" {% if status == 'transit_to_dest' %}selected{% endif %}>Transit to dest</option>
+                <option value="arrived" {% if status == 'arrived' %}selected{% endif %}>Arrived</option>
+                <option value="custom_process" {% if status == 'custom_process' %}selected{% endif %}>Custom Process</option>
+                <option value="to_lm" {% if status == 'to_lm' %}selected{% endif %}>To LM</option>
+                <option value="out_for_delivery" {% if status == 'out_for_delivery' %}selected{% endif %}>Out For Delivery</option>
                 <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>Delivered</option>
                 <option value="undelivered" {% if status == 'undelivered' %}selected{% endif %}>Undelivered</option>
-                <option value="rto" {% if status == 'rto' %}selected{% endif %}>RTO</option>
-                <option value="return_damage" {% if status == 'return_damage' %}selected{% endif %}>Return / damage</option>
-                <option value="exception" {% if status == 'exception' %}selected{% endif %}>Exception</option>
-                <option value="unknown" {% if status == 'unknown' %}selected{% endif %}>Unknown</option>
+                <option value="hold" {% if status == 'hold' %}selected{% endif %}>Hold</option>
+                <option value="rto" {% if status == 'rto' %}selected{% endif %}>Rto</option>
             </select>
         </div>
         <div>
@@ -59,6 +118,14 @@
             </select>
         </div>
         <div>
+            <label>Weight (kg)</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input autocomplete="off" name="weight_from" type="number" step="0.01" min="0" value="{{ weight_from }}" placeholder="From" style="flex: 1;">
+                <span style="color: #64748b;">-</span>
+                <input autocomplete="off" name="weight_to" type="number" step="0.01" min="0" value="{{ weight_to }}" placeholder="To" style="flex: 1;">
+            </div>
+        </div>
+        <div>
             <label for="shipment-custom-duty">Custom duty</label>
             <select id="shipment-custom-duty" name="custom_duty">
                 <option value="">All</option>
@@ -68,19 +135,20 @@
         </div>
         <div class="button-row">
             <button type="submit" class="btn btn-primary">Apply filter</button>
-            {% if q or status or country or custom_duty or service %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
+            {% if q or status or country or custom_duty or service or quick or date or weight_from or weight_to %}<a href="/shipments" class="btn btn-secondary">Clear</a>{% endif %}
         </div>
     </form>
 </section>
 
 <section class="card table-card shipment-ledger-card">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <div>
-            <h3>Shipment ledger</h3>
-            <p class="card-subtitle">{{ shipments|length }} records shown · Click booking/customer to open; edit status and tracking directly.</p>
+            <h3 style="margin: 0;">Shipment ledger</h3>
         </div>
-        <div class="page-actions" style="display: flex; gap: 0.5rem;">
-            <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';}else{fc.style.display='none';this.innerText='Show filters';}">{% if not (q or status or country or custom_duty or service) %}Show filters{% else %}Hide filters{% endif %}</button>
+        <div class="page-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" onclick="toggleAIMode()" id="aiModeBtn"><script>document.write(localStorage.getItem('ai_mode') === 'true' ? 'Disable AI Mode' : 'Enable AI Mode');</script><noscript>Enable AI Mode</noscript></button>
+            <form method="POST" action="/ai-tracking/fetch-active" style="margin:0;" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';"><button type="submit" class="btn btn-secondary">Fetch all active statuses</button></form>
+            <button type="button" class="btn btn-secondary" onclick="const fc = document.getElementById('shipments-filter-card'); if(fc.style.display === 'none'){fc.style.display='block';this.innerText='Hide filters';localStorage.setItem('hideShipmentsFilter', 'false');}else{fc.style.display='none';this.innerText='Show filters';localStorage.setItem('hideShipmentsFilter', 'true');}"><script>document.write(localStorage.getItem('hideShipmentsFilter') === 'true' ? 'Show filters' : 'Hide filters');</script><noscript>Hide filters</noscript></button>
             <a href="/shipments/new" class="btn btn-primary">+ New booking</a>
         </div>
     </div>
@@ -91,12 +159,13 @@
                 <tr>
                     <th>Booking</th>
                     <th>Sender</th>
-                    <th>Charged weight</th>
-                    <th>Receiver</th>
+                    <th class="receiver-cell">Receiver</th>
+                    <th class="weight-cell">Charged Wt.</th>
                     <th>Service</th>
                     <th>Tracking</th>
                     <th>Status</th>
-                    <th>Financials / balance</th>
+                    <th class="ai-mode-col">AI</th>
+                    <th>Balance</th>
                     <th>Notes</th>
                     <th></th>
                 </tr>
@@ -105,9 +174,11 @@
                 {% for s in shipments %}
                 {% set main_tn = namespace(item=none) %}
                 {% set lm_tn = namespace(item=none) %}
+                {% set bilty_tn = namespace(item=none) %}
                 {% for tn in s.tracking_numbers %}
                     {% if tn.tracking_type == 'main_awb' or tn.is_primary %}{% set main_tn.item = tn %}{% endif %}
                     {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.item = tn %}{% endif %}
+                    {% if tn.tracking_type == 'bilty_no' %}{% set bilty_tn.item = tn %}{% endif %}
                 {% endfor %}
                 {% set row_form_id = 'shipment-row-update-' ~ s.id %}
                 {% set main_courier = (main_tn.item.courier_name if main_tn.item and main_tn.item.courier_name else s.courier_company) %}
@@ -119,47 +190,80 @@
                 {% set main_tracking_site_url = tracking_site_url(main_courier, main_tracking_number) %}
                 {% set lm_tracking_site_url = tracking_site_url(lm_courier, lm_tracking_number) %}
                 {% set preview = shipment_previews.get(s.id, {}) %}
-                {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else 'yellow') %}
-                <tr class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
+                {% set ai_status = latest_ai_statuses.get(s.id) %}
+                {% set ai_events = latest_ai_events.get(s.id, []) %}
+                {% set row_color_effective = s.row_color or ('green' if s.overall_status == 'delivered' else ('red' if s.overall_status in ['undelivered', 'hold', 'rto'] else 'yellow')) %}
+                <tr id="shipment-{{ s.id }}" class="shipment-row{% if row_color_effective %} row-highlight-{{ row_color_effective }}{% endif %}">
                     <td>
                         <div class="booking-cell-stack">
                             <div class="row-color-picker" aria-label="Row highlight color">
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="green" class="row-color-dot row-color-dot-green{% if row_color_effective == 'green' %} is-selected{% endif %}" title="Mark green"></button>
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="yellow" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
-                                <button form="{{ row_form_id }}" type="submit" name="row_color" value="red" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'green' and s.row_color == 'green' %}clear{% else %}green{% endif %}" class="row-color-dot row-color-dot-green{% if row_color_effective == 'green' %} is-selected{% endif %}" title="Mark green"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'yellow' and s.row_color == 'yellow' %}clear{% else %}yellow{% endif %}" class="row-color-dot row-color-dot-yellow{% if row_color_effective == 'yellow' %} is-selected{% endif %}" title="Mark yellow"></button>
+                                <button type="button" data-row-color-value="{% if row_color_effective == 'red' and s.row_color == 'red' %}clear{% else %}red{% endif %}" class="row-color-dot row-color-dot-red{% if row_color_effective == 'red' %} is-selected{% endif %}" title="Mark red"></button>
                             </div>
-                            <a href="/shipments/{{ s.id }}" class="row-open-link">
-                                <span class="cell-primary" style="display: none;">#{{ s.id }}</span>
-                                <span class="cell-secondary">{{ s.booking_date.strftime('%d %b %Y') }}</span>
+                            <div style="margin-top: -2px; position: relative;">
+                                <span class="cell-secondary" style="display: block; cursor: pointer; line-height: 1.0; color: #64748b; font-size: 11px; white-space: nowrap;">
+                                    {% if s.booking_date %}{{ s.booking_date.strftime('%d %b %Y') }}{% else %}Booking date{% endif %}
+                                </span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="row-edit-field" type="date" name="booking_date" value="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.booking_date %}{{ s.booking_date.strftime('%Y-%m-%d') }}{% endif %}" onchange="updateDateSpan(this)" style="position: absolute; opacity: 0; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; padding: 0; margin: 0; border: none; z-index: 2;" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
+                            <div style="margin-top: -2px; position: relative;">
+                                <span class="cell-secondary" style="display: block; cursor: pointer; line-height: 1.0; color: #64748b; font-size: 11px; white-space: nowrap;">
+                                    {% if s.second_booking_date %}{{ s.second_booking_date.strftime('%d %b %Y') }}{% else %}Send date{% endif %}
+                                </span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="row-edit-field" type="date" name="second_booking_date" value="{% if s.second_booking_date %}{{ s.second_booking_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.second_booking_date %}{{ s.second_booking_date.strftime('%Y-%m-%d') }}{% endif %}" onchange="updateDateSpan(this)" style="position: absolute; opacity: 0; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; padding: 0; margin: 0; border: none; z-index: 2;" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
+                            <div style="margin-top: -2px; position: relative;">
+                                <span class="cell-secondary" style="display: block; cursor: pointer; line-height: 1.0; color: #64748b; font-size: 11px; white-space: nowrap;">
+                                    {% if s.receive_date %}{{ s.receive_date.strftime('%d %b %Y') }}{% else %}Receive date{% endif %}
+                                </span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="row-edit-field" type="date" name="receive_date" value="{% if s.receive_date %}{{ s.receive_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.receive_date %}{{ s.receive_date.strftime('%Y-%m-%d') }}{% endif %}" onchange="updateDateSpan(this)" style="position: absolute; opacity: 0; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; padding: 0; margin: 0; border: none; z-index: 2;" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
+                            <div style="margin-top: -2px; position: relative;">
+                                <span class="cell-secondary" style="display: block; cursor: pointer; line-height: 1.0; color: #64748b; font-size: 11px; white-space: nowrap;">
+                                    {% if s.connection_date %}{{ s.connection_date.strftime('%d %b %Y') }}{% else %}Connection date{% endif %}
+                                </span>
+                                <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="row-edit-field" type="date" name="connection_date" value="{% if s.connection_date %}{{ s.connection_date.strftime('%Y-%m-%d') }}{% endif %}" data-initial="{% if s.connection_date %}{{ s.connection_date.strftime('%Y-%m-%d') }}{% endif %}" onchange="updateDateSpan(this)" style="position: absolute; opacity: 0; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; padding: 0; margin: 0; border: none; z-index: 2;" onclick="try{this.showPicker();}catch(e){}">
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column;">
+                            <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
+                                <span class="cell-primary" style="display: block; overflow-wrap: anywhere;">{{ s.customer_name }}</span>
                             </a>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="hover-preview-cell" style="display: inline-block;">
-                            <div style="display: flex; flex-direction: column;">
-                                <a href="/shipments/{{ s.id }}" class="row-open-link" style="display: block;">
-                                    <span class="cell-primary">{{ s.customer_name }}</span>
+                            {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
+                            {% if wa_phone %}
+                                <a href="#" class="cell-secondary whatsapp-composer-link" data-shipment-id="{{ s.id }}" style="text-decoration: underline; color: inherit; width: fit-content;" title="Compose WhatsApp message">
+                                    {{ wa_phone }}
                                 </a>
-                                {% set wa_phone = s.customer_phone or s.contact_or_reference_raw %}
-                                {% if wa_phone %}
-                                    <a href="#" class="cell-secondary whatsapp-app-link" data-whatsapp-phone="{{ wa_phone }}" data-whatsapp-message="" style="text-decoration: underline; color: inherit; width: fit-content;" title="Open WhatsApp app">
-                                        {{ wa_phone }}
-                                    </a>
-                                {% else %}
-                                    <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
-                                {% endif %}
-                            </div>
-                            <div class="cell-hover-card">
-                                <div class="hover-title">Raw items</div>
-                                {% if preview.get('item_raw_text') %}
-                                    <div class="hover-line">{{ preview.get('item_raw_text') }}</div>
-                                {% else %}
-                                    <div class="hover-line muted">No raw items added</div>
-                                {% endif %}
-                            </div>
+                            {% else %}
+                                <a href="/shipments/{{ s.id }}" class="row-open-link cell-secondary" style="display: block;">No contact</a>
+                            {% endif %}
                         </div>
                     </td>
-                    <td>
+                    <td class="receiver-cell">
+                        <div style="display: flex; flex-direction: column;">
+                            <span class="cell-primary" style="display: block; overflow-wrap: anywhere;">{{ s.receiver_name or '—' }}</span>
+                            {% set state = preview.get('address_parts', {}).get('state') %}
+                            <span class="cell-secondary" style="display: block; line-height: 1.3; margin-top: 2px;">
+                                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="{{ s.destination_country }}">
+                                    {{ s.destination_country }}
+                                </span>
+                                {% if state %}
+                                    <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="{{ state }}">
+                                        {{ state }}
+                                    </span>
+                                {% endif %}
+                                {% if s.destination_city %}
+                                    <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="{{ s.destination_city }}">
+                                        {{ s.destination_city }}
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="weight-cell">
                         <div class="hover-preview-cell" style="display: inline-block;">
                             {% set cust_charged = preview.get('rate_details', {}).get('customer_charged_weight') %}
                             <span class="cell-primary">{% if cust_charged %}{{ cust_charged }} kg{% elif s.charged_weight %}{{ s.charged_weight }} kg{% else %}—{% endif %}</span>
@@ -172,23 +276,13 @@
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <div class="hover-preview-cell" style="display: inline-block;">
-                            <span class="cell-primary">{{ s.receiver_name or '—' }}</span>
-                            <span class="cell-secondary">{{ s.destination_country }}</span>
-                            <div class="cell-hover-card route-hover-card">
-                                <div class="hover-title">Receiver address</div>
-                                <div class="hover-line">{{ preview.get('address') or 'No address details added' }}</div>
-                            </div>
-                        </div>
-                    </td>
                     <td class="service-cell">
-                        <span class="cell-primary" style="display:block;">{{ s.vendor_partner or 'Direct' }}</span>
+                        <span class="cell-primary" style="display:block;">{{ (s.vendor_partner or 'Direct')|upper }}</span>
                         <span style="display:block; font-size:9px; letter-spacing:0.05em; margin-top:8px; color:#94a3b8; text-transform:uppercase;">Custom Duty</span>
                         <div class="custom-duty-toggle" style="margin-top:2px;">
                             <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="false" id="duty-free-{{s.id}}" class="row-edit-field hidden-radio" {% if not s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if not s.custom_duty else 'false' }}">
                             <label for="duty-free-{{s.id}}" class="btn-toggle">Free</label>
-                            
+
                             <input form="{{ row_form_id }}" type="radio" name="custom_duty" value="true" id="duty-paid-{{s.id}}" class="row-edit-field hidden-radio" {% if s.custom_duty %}checked{% endif %} data-initial="{{ 'true' if s.custom_duty else 'false' }}">
                             <label for="duty-paid-{{s.id}}" class="btn-toggle">Paid</label>
                         </div>
@@ -217,60 +311,162 @@
                     </td>
                     <td class="status-cell">
                         <form id="{{ row_form_id }}" method="POST" action="/shipments/{{ s.id }}/quick-update" class="inline-row-form">
-                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                            <input type="hidden" name="row_color" value="">
                             <select name="overall_status" class="row-edit-field" data-initial="{{ s.overall_status }}" aria-label="Shipment status">
                                 <option value="booked" {% if s.overall_status == 'booked' %}selected{% endif %}>Booked</option>
-                                <option value="received" {% if s.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
-                                <option value="bagging" {% if s.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
-                                <option value="hand_over_to_airline" {% if s.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
-                                <option value="in_transit" {% if s.overall_status == 'in_transit' %}selected{% endif %}>In transit</option>
-                                <option value="at_destination" {% if s.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
-                                <option value="custom_clearance" {% if s.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                                <option value="at_lm_partner" {% if s.overall_status == 'at_lm_partner' %}selected{% endif %}>To LM partner</option>
-                                <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for delivery</option>
+                                <option value="send_to_delhi" {% if s.overall_status == 'send_to_delhi' %}selected{% endif %}>Send to Delhi</option>
+                                <option value="in_scan" {% if s.overall_status == 'in_scan' %}selected{% endif %}>In scan</option>
+                                <option value="processed" {% if s.overall_status == 'processed' %}selected{% endif %}>Processed</option>
+                                <option value="connected" {% if s.overall_status == 'connected' %}selected{% endif %}>Connected</option>
+                                <option value="transit_in_india" {% if s.overall_status == 'transit_in_india' %}selected{% endif %}>Transit in india</option>
+                                <option value="transit_to_dest" {% if s.overall_status == 'transit_to_dest' %}selected{% endif %}>Transit to dest</option>
+                                <option value="arrived" {% if s.overall_status == 'arrived' %}selected{% endif %}>Arrived</option>
+                                <option value="custom_process" {% if s.overall_status == 'custom_process' %}selected{% endif %}>Custom Process</option>
+                                <option value="to_lm" {% if s.overall_status == 'to_lm' %}selected{% endif %}>To LM</option>
+                                <option value="out_for_delivery" {% if s.overall_status == 'out_for_delivery' %}selected{% endif %}>Out For Delivery</option>
                                 <option value="delivered" {% if s.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
                                 <option value="undelivered" {% if s.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
-                                <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>RTO</option>
-                                <option value="return_damage" {% if s.overall_status == 'return_damage' %}selected{% endif %}>Return / damage</option>
-                                <option value="exception" {% if s.overall_status == 'exception' %}selected{% endif %}>Exception</option>
-                                <option value="unknown" {% if s.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
+                                <option value="hold" {% if s.overall_status == 'hold' %}selected{% endif %}>Hold</option>
+                                <option value="rto" {% if s.overall_status == 'rto' %}selected{% endif %}>Rto</option>
                             </select>
                             <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" class="row-edit-field" value="{{ s.status_raw_text or '' }}" data-initial="{{ s.status_raw_text or '' }}" placeholder="Status notes">
                         </form>
-                        {% if s.is_stuck %}<span class="cell-secondary text-danger">Movement overdue</span>{% endif %}
+                        {% if s.is_stuck %}<span class="cell-secondary text-danger">No update in 48 hours</span>{% endif %}
+                     </td>
+                     <td class="ai-status-cell ai-mode-col">
+                        <div style="display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px;">
+                            <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/fetch" class="ai-inline-form" style="display: flex; align-items: center; white-space: nowrap;" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<span class=\'spinner-border spinner-border-sm\' style=\'width: 0.9rem; height: 0.9rem; border-width: 0.15em;\' role=\'status\' aria-hidden=\'true\'></span> Fetching...';">
+                                <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                                <button type="submit" class="btn btn-sm btn-secondary">Get status</button>
+                                {% if latest_failed_checks and s.id in latest_failed_checks %}
+                                  <span title="API Sync Failed: {{ latest_failed_checks[s.id].error_message }}" style="cursor: help; color: var(--danger); font-size: 0.9rem; margin-left: 4px;">⚠️</span>
+                                {% endif %}
+                            </form>
+                            {% if ai_status and ai_status.created_at %}
+                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1.1; padding-top: 2px;">
+                                {{ ai_status.created_at.strftime('%d %b') }}<br>
+                                {{ ai_status.created_at.strftime('%H:%M') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if ai_status %}
+                            <div style="margin-top: 5px; cursor: pointer;" onclick="document.getElementById('ai-row-{{ s.id }}').style.display = document.getElementById('ai-row-{{ s.id }}').style.display === 'none' ? 'table-row' : 'none';">
+                                <div class="ai-chip ai-chip-{{ ai_status.severity or 'gray' }}" style="margin-top: 0; display: inline-block;">
+                                    {{ ai_status.label or 'AI review' }} ▼
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                                {% if not ai_status.ignored_at and ai_status.suggested_status and ai_status.suggested_status != s.overall_status %}
+                                    <span class="badge badge-warning" title="Status update recommended" style="font-size: 0.65rem; padding: 2px 4px;">Update Status</span>
+                                {% endif %}
+                                {% if not ai_status.ignored_at and ai_status.found_lm_awb %}
+                                    <span class="badge badge-info" title="New LM AWB found" style="font-size: 0.65rem; padding: 2px 4px;">New LM</span>
+                                {% endif %}
+                                {% if not ai_status.ignored_at and ai_status.severity in ['red', 'yellow'] %}
+                                    <span class="badge badge-danger" title="Action needed" style="font-size: 0.65rem; padding: 2px 4px; background-color: var(--danger); color: white;">Action Needed</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="cell-secondary" style="display: block; margin-top: 5px;">Not checked</span>
+                        {% endif %}
                     </td>
                     <td class="financial-cell">
                         <div class="hover-preview-cell" style="display: inline-block;">
-                            <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.2f'|format(s.balance_amount or 0) }}</span>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                                <span class="cell-primary{% if s.balance_amount and s.balance_amount > 0 %} text-danger{% endif %}">Bal ₹{{ '%.0f'|format(s.balance_amount or 0) }}</span>
+                                <button type="button" class="btn btn-sm btn-secondary" style="min-height: auto; padding: 4px 8px; font-size: 11px; line-height: 1; {% if s.is_delayed %}background-color: var(--danger); color: white;{% endif %}" title="Mark as delayed" onclick="const hiddenInput = this.nextElementSibling; const isDelayed = hiddenInput.value === 'true'; if (!isDelayed) { this.style.backgroundColor = 'var(--danger)'; this.style.color = 'white'; hiddenInput.value = 'true'; } else { this.style.backgroundColor = ''; this.style.color = ''; hiddenInput.value = 'false'; } const rowForm = this.closest('tr').querySelector('form.inline-row-form'); if (rowForm) { this.closest('tr').classList.add('row-is-dirty'); rowForm.requestSubmit(); }">Delay</button>
+                                <input type="hidden" name="is_delayed" form="{{ row_form_id }}" value="{{ 'true' if s.is_delayed else 'false' }}">
+                            </div>
                             <div class="cell-hover-card" style="min-width: 160px; right: 0; left: auto; /* align right so it doesn't clip */">
                                 <div class="hover-title">Financial Details</div>
                                 <div class="hover-line">Bill: ₹{{ '%.2f'|format(s.billed_amount or 0) }}</div>
-                                <div class="hover-line">Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
+                                <div class="hover-line">Cust. Paid: ₹{{ '%.2f'|format(s.received_amount or 0) }}</div>
                                 <div class="hover-line">Cost: ₹{{ '%.2f'|format(s.self_cost or 0) }}</div>
+                                <div class="hover-line">Ven. Paid: ₹{{ '%.2f'|format(s.paid_amount or 0) }}</div>
                                 <div class="hover-line">Profit: <span{% if s.service_value and s.service_value > 0 %} class="text-success"{% elif s.service_value and s.service_value < 0 %} class="text-danger"{% endif %}>₹{{ '%.2f'|format(s.service_value or 0) }}</span></div>
                                 <hr style="margin: 4px 0; border: none; border-top: 1px solid #e2e8f0;">
                                 <div class="hover-line">Cust. Rate: {{ s.customer_rate_text or '—' }}</div>
                                 <div class="hover-line">Self Rate: {{ s.vendor_rate_text or '—' }}</div>
                             </div>
                         </div>
+                        <input autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" class="mono row-edit-field" type="text" name="bilty_number" value="{{ bilty_tn.item.tracking_number if bilty_tn.item else '' }}" data-initial="{{ bilty_tn.item.tracking_number if bilty_tn.item else '' }}" placeholder="Bilty No." style="margin-top: 6px; display: block; width: 100%; max-width: 100px; padding: 3px 6px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 4px; height: 24px; min-height: 24px; line-height: 1.2;">
                     </td>
                     <td class="notes-cell">
                         <textarea autocomplete="new-password" spellcheck="false" form="{{ row_form_id }}" name="internal_notes" class="row-edit-field row-notes-input" data-initial="{{ s.internal_notes or '' }}" rows="2" placeholder="Notes">{{ s.internal_notes or '' }}</textarea>
                     </td>
                     <td>
                         <div class="button-row row-actions" data-row-actions>
-                            <div class="row-default-actions">
-                                <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary">Open</a>
-                                <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                            <div class="row-default-actions" style="flex-direction: column; align-items: stretch;">
+                                <div style="display: flex; gap: 4px;">
+                                    <a href="/shipments/{{ s.id }}" class="btn btn-sm btn-secondary" style="flex: 1;">Open</a>
+                                    <a href="/shipments/{{ s.id }}/edit" class="btn btn-sm btn-primary" style="flex: 1;">Edit</a>
+                                </div>
                             </div>
-                            <div class="row-dirty-actions" hidden>
-                                <span class="row-changed-label">Changed</span>
-                                <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save">Save</button>
-                                <button type="button" class="btn btn-sm btn-secondary row-discard">Discard</button>
+                            <div class="row-dirty-actions" hidden style="flex-direction: column; align-items: stretch;">
+                                <div style="display: flex; gap: 4px;">
+                                    <button form="{{ row_form_id }}" type="submit" class="btn btn-sm btn-primary row-save" style="flex: 1;">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary row-discard" style="flex: 1;">Cancel</button>
+                                </div>
+                                <span class="row-changed-label" style="font-size: 10px; font-weight: 600; margin-top: 2px; text-align: center; color: var(--warning);">Changed</span>
                             </div>
                         </div>
                     </td>
                 </tr>
+                {% if ai_status %}
+                <tr id="ai-row-{{ s.id }}" class="ai-review-row" style="display: none;">
+                    <td colspan="11" style="padding: 0;">
+                        <div class="ai-review-full-width">
+                            <div class="ai-summary-col">
+                                <div class="ai-review-summary" style="margin-bottom: 5px;">{{ ai_status.summary or 'No summary available.' }}</div>
+                                {% if ai_status.reason %}<div class="ai-review-reason" style="margin-bottom: 8px;">{{ ai_status.reason }}</div>{% endif %}
+                                {% if ai_status.suggested_status or ai_status.suggested_status_note %}
+                                <div class="ai-review-block ai-suggested-note-block" style="margin-bottom: 8px;"><span>Suggested note</span>{% if ai_status.suggested_status_note %}<div class="ai-suggested-note-body">{{ ai_status.suggested_status_note }}</div>{% endif %}{% if ai_status.suggested_status %}<div class="ai-suggested-status-body">Status: {{ ai_status.suggested_status|replace('_', ' ')|title }}{% if ai_status.suggested_status != s.overall_status %} <em>Current: {{ (s.overall_status or 'booked')|replace('_', ' ')|title }}</em>{% endif %}</div>{% endif %}</div>
+                                {% endif %}
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    {% if not ai_status.ignored_at and ai_status.found_lm_awb %}
+                                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-lm" style="margin:0;">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                                            <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                            <input type="hidden" name="lm_awb" value="{{ ai_status.found_lm_awb }}">
+                                            <input type="hidden" name="lm_courier" value="{{ ai_status.found_lm_courier or '' }}">
+                                            <button type="submit" class="btn btn-sm btn-primary">Apply LM {{ ai_status.found_lm_awb }}{% if ai_status.found_lm_courier %} ({{ ai_status.found_lm_courier }}){% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if not ai_status.ignored_at and (ai_status.suggested_status_note or ai_status.suggested_status) %}
+                                        <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/apply-status-note" style="margin:0;">
+                                            <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                                            <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                            <input type="hidden" name="suggested_status" value="{{ ai_status.suggested_status or s.overall_status }}">
+                                            <input type="hidden" name="suggested_status_note" value="{{ ai_status.suggested_status_note or ai_status.summary or '' }}">
+                                            <button type="submit" class="btn btn-sm btn-secondary">Apply {{ (ai_status.suggested_status or s.overall_status or 'status')|replace('_', ' ')|title }}{% if ai_status.suggested_status_note %} + note{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if not ai_status.ignored_at %}
+                                    <form method="POST" action="/ai-tracking/shipments/{{ s.id }}/ignore" style="margin:0;">
+                                        <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}#shipment-{{ s.id }}">
+                                        <input type="hidden" name="ai_status_id" value="{{ ai_status.id }}">
+                                        <button type="submit" class="btn btn-sm btn-secondary">Ignore</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="ai-timeline-col">
+
+                                {% for ev in ai_events[:10] %}
+                                    <div class="ai-event-line" style="display: flex; gap: 8px; align-items: baseline; white-space: nowrap; padding-bottom: 2px;">
+                                        <span style="flex-shrink: 0; min-width: 105px;">{{ ev.display_time or ev.event_time or '' }}</span>
+                                        <strong style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; min-width: 0;" title="{{ ev.status or '-' }} {{ ev.location }}">{{ ev.status or '-' }}{% if ev.location %} - {{ ev.location }}{% endif %}</strong>
+                                        {% if ev._source_courier %}
+                                        <span class="badge badge-info" style="font-size: 0.6rem; padding: 1px 4px; flex-shrink: 0; margin-left: auto;">{{ ev._source_courier }}</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
@@ -285,6 +481,44 @@
     </div>
     {% endif %}
 </section>
+
+<dialog id="whatsappModal" class="dialog whatsapp-composer-dialog">
+    <div class="dialog-header">
+        <div>
+            <h3>WhatsApp message</h3>
+            <p class="card-subtitle">Select the parts, edit the text, then send.</p>
+        </div>
+    </div>
+    <div class="dialog-body whatsapp-composer-body">
+        <div class="whatsapp-phone-row">
+            <label for="waPhone">Send to number</label>
+            <input autocomplete="new-password" spellcheck="false" id="waPhone" type="text" placeholder="Phone number">
+        </div>
+        <div class="whatsapp-composer-grid">
+            <div class="whatsapp-parts" aria-label="Message parts">
+                <label><input type="checkbox" class="wa-part" value="greeting" checked> Greeting</label>
+                <label><input type="checkbox" class="wa-part" value="terms" checked> T&C</label>
+                <label><input type="checkbox" class="wa-part" value="booking" checked> Booking</label>
+                <label><input type="checkbox" class="wa-part" value="address"> Address</label>
+                <label><input type="checkbox" class="wa-part" value="status" checked> Status</label>
+                <label><input type="checkbox" class="wa-part" value="tracking" checked> Tracking</label>
+                <label><input type="checkbox" class="wa-part" value="items"> Items</label>
+                <label><input type="checkbox" class="wa-part" value="payment"> Payment</label>
+                <label><input type="checkbox" class="wa-part" value="closing" checked> Closing</label>
+            </div>
+            <div class="whatsapp-preview-wrap">
+                <label for="waText">Final message</label>
+                <textarea autocomplete="new-password" spellcheck="false" id="waText" rows="12"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="dialog-footer">
+        <button onclick="document.getElementById('whatsappModal').close()" class="btn btn-secondary">Close</button>
+        <button onclick="copyWA()" class="btn btn-secondary">Copy</button>
+        <button onclick="refreshWhatsAppMessage()" class="btn btn-secondary">Reset</button>
+        <button onclick="openGeneratedWhatsApp()" class="btn btn-primary">Send on WhatsApp</button>
+    </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
@@ -318,10 +552,144 @@
         return true;
     }
 
-    document.querySelectorAll('.whatsapp-app-link').forEach(link => {
+    const shipmentWhatsappDataMap = {
+        {% for s in shipments %}
+        {% set preview = shipment_previews.get(s.id, {}) %}
+        {% set main_tn = namespace(item=none) %}
+        {% set lm_tn = namespace(item=none) %}
+        {% for tn in s.tracking_numbers %}
+            {% if tn.tracking_type == 'main_awb' or tn.is_primary %}{% set main_tn.item = tn %}{% endif %}
+            {% if tn.tracking_type == 'lm_awb' %}{% set lm_tn.item = tn %}{% endif %}
+        {% endfor %}
+        {% set main_courier = (main_tn.item.courier_name if main_tn.item and main_tn.item.courier_name else s.courier_company) %}
+        {% set lm_courier = lm_tn.item.courier_name if lm_tn.item else '' %}
+        {% set main_tracking_number = main_tn.item.tracking_number if main_tn.item else '' %}
+        {% set lm_tracking_number = lm_tn.item.tracking_number if lm_tn.item else '' %}
+        {% set main_tracking_url = tracking_url(main_courier, main_tracking_number, tracking_type='main_awb') or tracking_site_url(main_courier, main_tracking_number) %}
+        {% set lm_tracking_url = tracking_url(lm_courier, lm_tracking_number, tracking_type='lm_awb') or tracking_site_url(lm_courier, lm_tracking_number) %}
+        "{{ s.id }}": {
+            senderName: {{ (s.customer_name or s.name_country_raw or 'Customer') | tojson }},
+            receiverName: {{ (s.receiver_name or '') | tojson }},
+            destinationCountry: {{ (s.destination_country or '') | tojson }},
+            destinationCity: {{ (s.destination_city or '') | tojson }},
+            bookingDate: {{ s.booking_date.strftime('%d %b %Y') | tojson }},
+            senderPhone: {{ (s.customer_phone or '') | tojson }},
+            receiverPhone: {{ (s.contact_or_reference_raw or '') | tojson }},
+            receiverAddress: {{ (preview.get('address') or '') | tojson }},
+            receiverAddressParts: {{ (preview.get('address_parts') or {}) | tojson }},
+            promisedDays: {{ ((s.promised_days_text or s.promised_days_number or '') | string) | tojson }},
+            statusText: {{ (s.status_raw_text or s.last_status_text or '') | tojson }},
+            normalizedStatus: {{ (s.overall_status or 'booked') | replace('_', ' ') | title | tojson }},
+            itemRawText: {{ (preview.get('item_raw_text') or '') | tojson }},
+            balanceAmount: {{ ('%.2f'|format(s.balance_amount or 0)) | tojson }},
+            hasBalance: {{ 'true' if s.balance_amount and s.balance_amount > 0 else 'false' }},
+            isStuck: {{ 'true' if s.is_stuck else 'false' }},
+            trackingNumbers: [
+                {% if main_tracking_number %}{ type: 'Main Awb', courier: {{ (main_courier or '') | tojson }}, number: {{ main_tracking_number | tojson }}, url: {{ (main_tracking_url or '') | tojson }}, primary: true }{% endif %}
+                {% if main_tracking_number and lm_tracking_number %},{% endif %}
+                {% if lm_tracking_number %}{ type: 'Lm Awb', courier: {{ (lm_courier or '') | tojson }}, number: {{ lm_tracking_number | tojson }}, url: {{ (lm_tracking_url or '') | tojson }}, primary: false }{% endif %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    let activeWhatsappData = null;
+
+    function selectedWhatsAppParts() {
+        return Array.from(document.querySelectorAll('.wa-part:checked')).map(input => input.value);
+    }
+
+    function appendSection(parts, key, text) {
+        if (!text || !selectedWhatsAppParts().includes(key)) return;
+        parts.push(text.trim());
+    }
+
+    function customerFacingTrackingUrl(url) {
+        const value = String(url || '').trim();
+        if (!value || value.startsWith('/')) return '';
+        try {
+            const parsed = new URL(value, window.location.origin);
+            if (parsed.origin === window.location.origin) return '';
+            return value;
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function buildWhatsAppMessage(data) {
+        if (!data) return '';
+        const parts = [];
+        const route = [data.destinationCity, data.destinationCountry].filter(Boolean).join(', ') || data.destinationCountry || 'destination';
+        const receiverLine = data.receiverName ? `Receiver: ${data.receiverName}` : '';
+        const trackingLines = (data.trackingNumbers || [])
+            .filter(tn => tn.number)
+            .map(tn => {
+                const label = `${tn.type}${tn.courier ? ` (${tn.courier})` : ''}: ${tn.number}`;
+                const url = customerFacingTrackingUrl(tn.url);
+                return url ? `${label}
+Track: ${url}` : label;
+            })
+            .join('\n');
+        const addr = data.receiverAddressParts || {};
+        const addressLines = [
+            data.senderName ? `Sender: ${data.senderName}` : '',
+            data.senderPhone ? `Sender phone: ${data.senderPhone}` : '',
+            receiverLine || 'Receiver name not added',
+            data.receiverPhone ? `Receiver phone: ${data.receiverPhone}` : '',
+            addr.line_1 ? `Address line 1: ${addr.line_1}` : '',
+            addr.line_2 ? `Address line 2: ${addr.line_2}` : '',
+            addr.line_3 ? `Address line 3: ${addr.line_3}` : '',
+            addr.city ? `City: ${addr.city}` : '',
+            addr.state ? `State: ${addr.state}` : '',
+            addr.zip ? `ZIP: ${addr.zip}` : '',
+            `Country: ${data.destinationCountry || '-'}`,
+        ].filter(Boolean).join('\n');
+
+        appendSection(parts, 'greeting', `Hello ${data.senderName || 'Ji'} ji,`);
+        appendSection(parts, 'terms', '*Before booking, please note:*\n1. Delivery may sometimes be delayed by a few days due to courier processing, transport delays, flight delays, weather, customs, weekends/holidays, remote area service, or other reasons not in our control.\n2. Custom duty is rare in most cases, but if charged by destination government/authorities, the receiver must pay it. It will not be paid by us.\n3. In rare cases of damage or loss, the claim will be as per courier company policy. For lost shipments, the maximum claim is usually limited to USD 100.');
+        appendSection(parts, 'booking', `Booking confirmation\nShipment booked on ${data.bookingDate} for ${route}.${receiverLine ? `\n${receiverLine}` : ''}${data.promisedDays ? `\nExpected timeline: ${data.promisedDays} days.` : ''}`);
+        appendSection(parts, 'address', `Address confirmation\n${addressLines}`);
+        appendSection(parts, 'status', `Current status\n${data.statusText || data.normalizedStatus || 'Booked'}${data.isStuck ? '\nNote: Movement is delayed, we are following up.' : ''}`);
+        appendSection(parts, 'tracking', trackingLines ? `Tracking details\n${trackingLines}` : 'Tracking details\nTracking number will be shared once generated.');
+        appendSection(parts, 'items', data.itemRawText ? `Item details\n${data.itemRawText}` : 'Item details\nNot added.');
+        appendSection(parts, 'payment', data.hasBalance ? `Payment\nPending balance: Rs ${data.balanceAmount}.` : 'Payment\nNo pending balance as per our records.');
+        appendSection(parts, 'closing', 'Thank you.');
+        return parts.join('\n\n');
+    }
+
+    function refreshWhatsAppMessage() {
+        const textArea = document.getElementById('waText');
+        if (textArea) textArea.value = buildWhatsAppMessage(activeWhatsappData);
+    }
+
+    function openComposerForShipment(shipmentId) {
+        activeWhatsappData = shipmentWhatsappDataMap[String(shipmentId)];
+        if (!activeWhatsappData) return;
+        const phoneInput = document.getElementById('waPhone');
+        phoneInput.value = activeWhatsappData.senderPhone || activeWhatsappData.receiverPhone || '';
+        refreshWhatsAppMessage();
+        document.getElementById('whatsappModal').showModal();
+    }
+
+    function openGeneratedWhatsApp() {
+        const text = document.getElementById('waText').value;
+        const phone = document.getElementById('waPhone').value;
+        openWhatsAppApp(phone, text);
+        document.getElementById('whatsappModal').close();
+    }
+
+    async function copyWA() {
+        const text = document.getElementById('waText').value;
+        await navigator.clipboard.writeText(text);
+    }
+
+    document.querySelectorAll('.wa-part').forEach(input => {
+        input.addEventListener('change', refreshWhatsAppMessage);
+    });
+
+    document.querySelectorAll('.whatsapp-composer-link').forEach(link => {
         link.addEventListener('click', event => {
             event.preventDefault();
-            openWhatsAppApp(link.dataset.whatsappPhone, link.dataset.whatsappMessage || '');
+            openComposerForShipment(link.dataset.shipmentId);
         });
     });
 
@@ -336,13 +704,20 @@
             sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
             filterForm.requestSubmit();
         };
+        
+        filterForm.addEventListener('submit', () => {
+            if (searchInput && searchValue) searchValue.value = searchInput.value;
+            sessionStorage.setItem('shipmentFilterFocus', searchInput && document.activeElement === searchInput ? 'q' : '');
+        });
+        const restoreFilterFocus = (input) => {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        };
+        const rememberedFocus = sessionStorage.getItem('shipmentFilterFocus');
+        if (rememberedFocus) sessionStorage.removeItem('shipmentFilterFocus');
         dropdowns.forEach(dropdown => dropdown.addEventListener('change', submitAndRefocus));
         if (searchInput) {
-            if (sessionStorage.getItem('shipmentFilterFocus') === 'q') {
-                sessionStorage.removeItem('shipmentFilterFocus');
-                searchInput.focus();
-                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-            }
+            if (rememberedFocus === 'q') restoreFilterFocus(searchInput);
             searchInput.addEventListener('input', () => {
                 if (searchValue) searchValue.value = searchInput.value;
                 clearTimeout(searchTimer);
@@ -352,19 +727,8 @@
     }
 
     const rows = document.querySelectorAll('.shipment-row');
-    const trackingTemplates = {
-        quickship: 'https://track.quickshipnow.com/?awb={awb}',
-        fedex: 'https://www.fedex.com/fedextrack/?trknbr={awb}',
-        ups: 'https://www.ups.com/track?HTMLVersion=5.0&loc=en_IN&Requester=UPSHome&tracknum={awb}/trackdetails',
-        aramax: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
-        aramex: 'https://www.aramex.com/ae/en/track/results?source=aramex&ShipmentNumber={awb}',
-        dpd: 'https://t.17track.net/en#nums={awb}',
-        maww: 'https://www.mawwl.in/tracking.php?searchSelected=1&tracking_no={awb}',
-        nzpost: 'https://www.nzpost.co.nz/tools/tracking?trackid={awb}',
-        purolator: 'https://www.purolator.com/en/shipping/tracker?pin={awb}',
-    };
-    const copyAndOpenSites = {
-    };
+    const trackingTemplates = {{ tracking_templates | tojson | safe }};
+    const copyAndOpenSites = {{ copy_and_open_sites | tojson | safe }};
 
     const valueOf = field => {
         if (field.type === 'radio' || field.type === 'checkbox') return field.checked ? 'true' : 'false';
@@ -377,6 +741,8 @@
         if (!awb) return { url: '', copy: false };
         if (normalized === 'atlantic') return { url: `/tracking/atlantic?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
         if (normalized === 'overseas') return { url: `/tracking/overseas?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
+        if (normalized === 'skynet') return { url: `/tracking/skynet?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
+        if (normalized === 'uniuni') return { url: `/tracking/uniuni?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
         if (copyAndOpenSites[normalized]) return { url: copyAndOpenSites[normalized], copy: true, autoFill: false };
         const template = trackingTemplates[normalized] || (trackingType === 'lm_awb' ? 'https://t.17track.net/en#nums={awb}' : '');
         return { url: template ? template.replace('{awb}', encodeURIComponent(awb)) : '', copy: false, autoFill: false };
@@ -384,12 +750,16 @@
 
     rows.forEach(row => {
         const fields = Array.from(row.querySelectorAll('.row-edit-field'));
+        const rowForm = row.querySelector('form.inline-row-form');
         const save = row.querySelector('.row-save');
         const discard = row.querySelector('.row-discard');
         const defaultActions = row.querySelector('.row-default-actions');
         const dirtyActions = row.querySelector('.row-dirty-actions');
         const changedLabel = row.querySelector('.row-changed-label');
         const trackingLines = Array.from(row.querySelectorAll('.tracking-line'));
+        const rowColorButtons = Array.from(row.querySelectorAll('.row-color-dot[data-row-color-value]'));
+        const rowColorInput = rowForm ? rowForm.querySelector('input[name="row_color"]') : null;
+        let rowAutoSubmitting = false;
 
         const updateTrackingLinks = () => {
             trackingLines.forEach(line => {
@@ -418,7 +788,9 @@
             let changed = false;
             fields.forEach(field => {
                 resizeRowTextarea(field);
-                const fieldChanged = valueOf(field) !== (field.dataset.initial || '');
+                const currentVal = valueOf(field).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const initialVal = (field.dataset.initial || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const fieldChanged = currentVal !== initialVal;
                 field.classList.toggle('is-dirty', fieldChanged);
                 changed = changed || fieldChanged;
             });
@@ -431,6 +803,24 @@
             updateTrackingLinks();
         };
 
+
+        const autoSaveDropdown = field => {
+            if (rowAutoSubmitting || !rowForm) return;
+            const currentVal = valueOf(field).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const initialVal = (field.dataset.initial || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            if (currentVal === initialVal) return;
+            rowAutoSubmitting = true;
+            row.classList.add('row-is-dirty');
+            if (defaultActions) defaultActions.hidden = true;
+            if (dirtyActions) dirtyActions.hidden = false;
+            if (save) save.hidden = false;
+            if (discard) discard.hidden = false;
+            if (changedLabel) {
+                changedLabel.hidden = false;
+                changedLabel.textContent = 'Saving';
+            }
+            rowForm.requestSubmit();
+        };
 
         trackingLines.forEach(line => {
             const link = line.querySelector('.tracking-label-link');
@@ -452,20 +842,145 @@
                 }
             });
         });
-        fields.forEach(field => field.addEventListener('input', updateRowState));
-        fields.forEach(field => field.addEventListener('change', updateRowState));
+
+        rowColorButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (!rowForm || !rowColorInput) return;
+                rowColorInput.value = button.dataset.rowColorValue || '';
+                rowForm.requestSubmit();
+            });
+        });
+
+        const updateDateSpan = (field) => {
+            if (field.type !== 'date') return;
+            const span = field.previousElementSibling;
+            if (span && span.tagName === 'SPAN') {
+                if (field.value) {
+                    const parts = field.value.split('-');
+                    if (parts.length === 3) {
+                        const d = new Date(parts[0], parts[1]-1, parts[2]);
+                        const formatter = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        span.textContent = formatter.format(d);
+                    }
+                } else {
+                    if (field.name === 'booking_date') span.textContent = 'Booking date';
+                    else if (field.name === 'receive_date') span.textContent = 'Receive date';
+                    else if (field.name === 'second_booking_date') span.textContent = 'Send date';
+                    else if (field.name === 'connection_date') span.textContent = 'Connection date';
+                    else span.textContent = 'Select date';
+                }
+            }
+        };
+
+        fields.forEach(field => {
+            field.addEventListener('input', updateRowState);
+            field.addEventListener('change', () => {
+                updateDateSpan(field);
+                updateRowState();
+                if (field.tagName === 'SELECT' || field.type === 'date') autoSaveDropdown(field);
+            });
+            field.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (rowForm) rowForm.requestSubmit();
+                }
+            });
+        });
 
         if (discard) {
             discard.addEventListener('click', () => {
                 fields.forEach(field => {
-                    field.value = field.dataset.initial || '';
+                    if (field.type === 'radio' || field.type === 'checkbox') {
+                        field.checked = (field.dataset.initial || '') === 'true';
+                    } else {
+                        field.value = field.dataset.initial || '';
+                    }
+                    updateDateSpan(field);
                 });
                 updateRowState();
             });
         }
 
+        if (rowForm) {
+            rowForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (changedLabel) {
+                    changedLabel.hidden = false;
+                    changedLabel.textContent = 'Saving...';
+                }
+                
+                try {
+                    const formData = new FormData(rowForm);
+                    const response = await fetch(rowForm.action, {
+                        method: rowForm.method,
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        if (data.row_color_effective !== undefined) {
+                            row.classList.remove('row-highlight-green', 'row-highlight-yellow', 'row-highlight-red');
+                            if (data.row_color_effective) {
+                                row.classList.add(`row-highlight-${data.row_color_effective}`);
+                            }
+                            rowColorButtons.forEach(btn => {
+                                const btnColor = btn.classList.contains('row-color-dot-green') ? 'green' : 
+                                                 btn.classList.contains('row-color-dot-yellow') ? 'yellow' : 'red';
+                                if (data.row_color_effective === btnColor) {
+                                    btn.classList.add('is-selected');
+                                    btn.dataset.rowColorValue = (data.row_color === btnColor) ? 'clear' : btnColor;
+                                } else {
+                                    btn.classList.remove('is-selected');
+                                    btn.dataset.rowColorValue = btnColor;
+                                }
+                            });
+                        }
+
+                        fields.forEach(field => {
+                            if (field.type === 'radio' || field.type === 'checkbox') {
+                                field.dataset.initial = field.checked ? 'true' : 'false';
+                            } else {
+                                field.dataset.initial = field.value;
+                            }
+                        });
+                        rowAutoSubmitting = false;
+                        updateRowState();
+                        
+                        if (defaultActions) {
+                            const savedMsg = document.createElement('span');
+                            savedMsg.textContent = 'Saved!';
+                            savedMsg.style.color = 'var(--success)';
+                            savedMsg.style.fontWeight = '600';
+                            savedMsg.style.fontSize = '12px';
+                            savedMsg.style.marginTop = '4px';
+                            savedMsg.style.textAlign = 'center';
+                            savedMsg.style.display = 'block';
+                            defaultActions.appendChild(savedMsg);
+                            setTimeout(() => savedMsg.remove(), 2000);
+                        }
+                    } else {
+                        throw new Error('Save failed');
+                    }
+                } catch (error) {
+                    if (changedLabel) {
+                        changedLabel.textContent = 'Error';
+                        changedLabel.style.color = 'var(--danger)';
+                    }
+                    rowAutoSubmitting = false;
+                }
+            });
+        }
+
         updateRowState();
     });
+
+    window.refreshWhatsAppMessage = refreshWhatsAppMessage;
+    window.openGeneratedWhatsApp = openGeneratedWhatsApp;
+    window.copyWA = copyWA;
 })();
 </script>
 {% endblock %}

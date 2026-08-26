@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Skynet tracking | CourierBridge{% endblock %}
+
+{% block content %}
+<header class="page-header compact-page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Tracking lookup</div>
+        <h1>Skynet tracking</h1>
+        <p class="page-description">AWB {{ awb }} · loaded through Skynet API.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/shipments" class="btn btn-secondary">Back</a>
+    </div>
+</header>
+
+<section class="card stack">
+    <div class="form-group">
+        <label>Skynet AWB</label>
+        <input autocomplete="new-password" spellcheck="false" id="skynet-awb" type="text" value="{{ awb }}">
+    </div>
+    <div class="button-row">
+        <button type="button" class="btn btn-primary" id="lookup-btn">Run backend lookup</button>
+        <a class="btn btn-secondary" href="{{ skynet_url }}" target="_blank" rel="noopener">Open Skynet</a>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Tracking result</h3>
+            <p class="card-subtitle">Rendered from Skynet API response.</p>
+        </div>
+    </div>
+    <div id="skynet-rendered-result" class="skynet-rendered-result empty-state compact">
+        <div><div class="empty-icon">⌁</div><h3>No result loaded</h3><p>Run backend lookup to load tracking details.</p></div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Debug output</h3>
+            <p class="card-subtitle">Raw API response.</p>
+        </div>
+    </div>
+    <pre id="debug-output" class="debug-output">Waiting...</pre>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const awbInput = document.getElementById('skynet-awb');
+    const output = document.getElementById('debug-output');
+    const renderedResult = document.getElementById('skynet-rendered-result');
+    const skynetUrl = {{ skynet_url | tojson }};
+    const log = (...args) => {
+        console.log('[Skynet tracking debug]', ...args);
+        output.textContent += `\n${args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2)).join(' ')}`;
+    };
+    const awb = () => awbInput.value.trim();
+
+    async function runLookup() {
+        output.textContent = 'Running API lookup...';
+        renderedResult.classList.add('empty-state', 'compact');
+        renderedResult.innerHTML = '<div><div class="empty-icon">⌁</div><h3>Loading...</h3><p>Calling Skynet API endpoint.</p></div>';
+        const number = awb();
+        log('lookup:start', {awb: number});
+        try {
+            const response = await fetch(`/tracking/skynet/lookup?awb=${encodeURIComponent(number)}`);
+            const payload = await response.json();
+            log('lookup:status', response.status);
+            output.textContent = JSON.stringify(payload, null, 2);
+            
+            if (payload.json && payload.json.data && payload.json.data.shipmentHistory) {
+                const history = payload.json.data.shipmentHistory;
+                const details = payload.json.data.shipmentDetails ? payload.json.data.shipmentDetails[0] : null;
+                
+                let html = '<div style="padding: 1rem;">';
+                if (details) {
+                    html += `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Status</strong><br><span style="font-weight: 500">${details.status || '-'}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Service Name</strong><br><span>${details.serviceName || '-'}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Destination</strong><br><span>${details.destination || '-'}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Origin Hub</strong><br><span>${details.originHub || '-'}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Shipper</strong><br><span>${details.shipperName || '-'}</span><br><span style="font-size: 0.9em; color: #64748b">${details.shipperLocation || ''}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Consignee</strong><br><span>${details.consigneeName || '-'}</span><br><span style="font-size: 0.9em; color: #64748b">${details.consigneeLocation || ''}</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Forwarder</strong><br><span>${details.forwarder || '-'} (${details.forwarderNo || ''})</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Weight / Pieces</strong><br><span>${details.weight || '-'} kg / ${details.pieces || '-'} pcs</span></div>
+                        <div><strong style="color: #64748b; font-size: 0.8em; text-transform: uppercase;">Booking Date</strong><br><span>${details.awbDate || '-'}</span></div>
+                    </div>`;
+                }
+                html += '<table class="table"><thead><tr><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Date/Time</th><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Location</th><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Status</th><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Details</th></tr></thead><tbody>';
+                
+                for (const item of history) {
+                    html += `<tr>
+                        <td style="white-space: nowrap; padding: 8px; border-bottom: 1px solid #f1f5f9;">${item.date || ''} ${item.time || ''}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${item.location || ''}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${item.shipmentStatus || ''}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${item.shipmentDetails || ''}</td>
+                    </tr>`;
+                }
+                html += '</tbody></table></div>';
+                
+                renderedResult.classList.remove('empty-state', 'compact');
+                renderedResult.innerHTML = html;
+            } else {
+                renderedResult.classList.add('empty-state', 'compact');
+                renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>No tracking history returned</h3><p>Check debug output below.</p></div>';
+            }
+        } catch (err) {
+            log('lookup:error', String(err));
+            renderedResult.classList.add('empty-state', 'compact');
+            renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>Lookup failed</h3><p>Check debug output below.</p></div>';
+        }
+    }
+
+    document.getElementById('lookup-btn').addEventListener('click', runLookup);
+    if (awb()) runLookup();
+})();
+</script>
+{% endblock %}

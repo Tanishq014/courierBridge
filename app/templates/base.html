@@ -5,13 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#123b30">
     <title>{% block title %}CourierBridge{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
+    <script>
+        (function() {
+            var w = localStorage.getItem('courierbridge.sidebarWidth');
+            if (w) {
+                document.documentElement.style.setProperty('--sidebar-width', w + 'px');
+                document.documentElement.style.setProperty('--sidebar-expanded-width', w + 'px');
+            }
+            if (localStorage.getItem('courierbridge.sidebarCollapsed') === 'true') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
     {% set path = request.url.path %}
     <div class="app-shell">
         <aside class="sidebar" id="app-sidebar">
@@ -37,6 +52,12 @@
                 <a href="/tools/quick-add" class="nav-link {% if path.startswith('/tools') %}active{% endif %}">
                     Quick add
                 </a>
+                <a href="/rates" class="nav-link {% if path.startswith('/rates') %}active{% endif %}">
+                    Rate Compare
+                </a>
+                <a href="/tariffs" class="nav-link {% if path.startswith('/tariffs') %}active{% endif %}">
+                    Tariff Management
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -54,17 +75,34 @@
                 <nav class="mobile-nav" aria-label="Mobile navigation">
                     <a href="/" class="{% if path == '/' %}active{% endif %}">Home</a>
                     <a href="/shipments" class="{% if path.startswith('/shipments') %}active{% endif %}">Shipments</a>
-                    <a href="/customers" class="{% if path.startswith('/customers') %}active{% endif %}">Customers</a>
+                    <a href="/rates" class="{% if path.startswith('/rates') %}active{% endif %}">Rate Compare</a>
                 </nav>
             </header>
 
-            <div class="container">
+            <div class="container {% block container_class %}{% endblock %}">
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
 
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        function showToast(message, type='success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+    
     {% block scripts %}{% endblock %}
+    
     <script>
         (() => {
             const root = document.documentElement;
@@ -124,5 +162,213 @@
                 resizer.addEventListener('pointerup', onUp);
             });
         })();
-    </script></body>
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.searchable-country').forEach((el) => {
+                new TomSelect(el, {
+                    create: true,
+                    maxOptions: 100,
+                    sortField: [
+                        {field: "$score"},
+                        {field: "text", direction: "asc"}
+                    ]
+                });
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pendingDraftKey = localStorage.getItem('pending_submit_draft_key');
+            const pendingDraftId = localStorage.getItem('pending_submit_draft_id');
+            const pendingPath = localStorage.getItem('pending_submit_path');
+
+            if (pendingDraftKey && pendingDraftId && pendingPath) {
+                // If we navigated away from the form page (and not to login), the submit was successful!
+                if (window.location.pathname !== pendingPath && !window.location.pathname.includes('/login')) {
+                    const saved = localStorage.getItem(pendingDraftKey);
+                    if (saved) {
+                        try {
+                            let drafts = JSON.parse(saved);
+                            drafts = drafts.filter(d => d.id !== pendingDraftId);
+                            if (drafts.length > 0) {
+                                localStorage.setItem(pendingDraftKey, JSON.stringify(drafts));
+                            } else {
+                                localStorage.removeItem(pendingDraftKey);
+                            }
+                        } catch (e) {}
+                    }
+                }
+                
+                // Always clear the pending markers after checking, so manual navigation later doesn't delete drafts
+                localStorage.removeItem('pending_submit_draft_key');
+                localStorage.removeItem('pending_submit_draft_id');
+                localStorage.removeItem('pending_submit_path');
+            }
+
+            const forms = document.querySelectorAll('form.shipment-form');
+            forms.forEach(form => {
+                let path = window.location.pathname;
+                if (path.startsWith('/shipments/new')) {
+                    path = '/shipments/new';
+                }
+                const storageKey = 'autosave_' + path;
+                
+                let currentDraftId = 'draft_' + Date.now();
+
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    try {
+                        let drafts = JSON.parse(saved);
+                        // Filter out old drafts (> 24h)
+                        drafts = drafts.filter(d => Date.now() - d.time < 24 * 60 * 60 * 1000);
+                        
+                        drafts.forEach(draft => {
+                            const banner = document.createElement('div');
+                            banner.className = 'draft-banner';
+                            banner.style.padding = '10px 15px';
+                            banner.style.marginBottom = '10px';
+                            banner.style.backgroundColor = '#f8fafc';
+                            banner.style.border = '1px solid #e2e8f0';
+                            banner.style.borderLeft = '4px solid #3b82f6';
+                            banner.style.borderRadius = '6px';
+                            banner.style.display = 'flex';
+                            banner.style.justifyContent = 'space-between';
+                            banner.style.alignItems = 'center';
+                            
+                            const dateStr = new Date(draft.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            const dateFullStr = new Date(draft.time).toLocaleDateString();
+                            
+                            // Try to find a name to show and escape it to prevent XSS
+                            const rawName = draft.data.customer_name || 'Empty form';
+                            const customerName = String(rawName).replace(/[&<>'"]/g, tag => ({
+                                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+                            }[tag]));
+                            
+                            banner.innerHTML = `
+                                <span style="font-size: 0.9rem; color: #334155;">Unsaved draft from <strong>${dateFullStr} ${dateStr}</strong> (${customerName})</span>
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="button" class="btn btn-sm btn-primary restore-draft-btn" style="padding: 4px 10px; font-size: 0.85rem;">Restore</button>
+                                    <button type="button" class="btn btn-sm btn-secondary discard-draft-btn" style="padding: 4px 10px; font-size: 0.85rem; background: transparent; border: 1px solid #cbd5e1; color: #475569;">Discard</button>
+                                </div>
+                            `;
+                            
+                            form.parentNode.insertBefore(banner, form);
+                            
+                            banner.querySelector('.restore-draft-btn').addEventListener('click', () => {
+                                // If they restore, they are now working on THIS draft.
+                                currentDraftId = draft.id;
+                                
+                                for (const [name, value] of Object.entries(draft.data)) {
+                                    const el = form.elements[name];
+                                    if (el && el.type !== 'hidden' && el.type !== 'submit') {
+                                        if (el.type === 'checkbox' || el.type === 'radio') {
+                                            el.checked = value === true;
+                                        } else {
+                                            let stringVal = String(value).toLowerCase();
+                                            if (el.tomselect) {
+                                                if (value) {
+                                                    const existingOpts = Object.values(el.tomselect.options);
+                                                    const match = existingOpts.find(opt => opt.value.toLowerCase() === stringVal);
+                                                    const finalVal = match ? match.value : value;
+                                                    if (!match) el.tomselect.addOption({value: finalVal, text: finalVal});
+                                                    el.tomselect.setValue(finalVal);
+                                                }
+                                            } else if (el.tagName === 'SELECT') {
+                                                const match = Array.from(el.options).find(opt => opt.value.toLowerCase() === stringVal);
+                                                if (match) el.value = match.value;
+                                            } else {
+                                                el.value = value;
+                                            }
+                                        }
+                                    }
+                                }
+                                Array.from(form.elements).forEach(el => {
+                                    if(el.name && el.type !== 'hidden') {
+                                         el.dispatchEvent(new Event('input', { bubbles: true }));
+                                         el.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                });
+                                // Hide just this banner so they know it's loaded
+                                banner.remove();
+                            });
+                            
+                            banner.querySelector('.discard-draft-btn').addEventListener('click', () => {
+                                let currentDrafts = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                                currentDrafts = currentDrafts.filter(d => d.id !== draft.id);
+                                if (currentDrafts.length > 0) {
+                                    localStorage.setItem(storageKey, JSON.stringify(currentDrafts));
+                                } else {
+                                    localStorage.removeItem(storageKey);
+                                }
+                                banner.remove();
+                            });
+                        });
+                        
+                        if (drafts.length > 0) {
+                            localStorage.setItem(storageKey, JSON.stringify(drafts));
+                        } else {
+                            localStorage.removeItem(storageKey);
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(storageKey);
+                    }
+                }
+                
+                let saveTimeout;
+                const saveForm = () => {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => {
+                        const data = {};
+                        const formData = new FormData(form);
+                        let hasData = false;
+                        for (const [key, value] of formData.entries()) {
+                            const el = form.elements[key];
+                            if (el && el.type !== 'hidden' && el.type !== 'password' && el.type !== 'submit') {
+                                if (el.type === 'checkbox' || el.type === 'radio') {
+                                    data[key] = el.checked;
+                                    if (el.checked) hasData = true;
+                                } else {
+                                    data[key] = value;
+                                    if (typeof value === 'string' && value.trim() !== '') hasData = true;
+                                }
+                            }
+                        }
+                        
+                        let drafts = [];
+                        try { drafts = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e){}
+                        
+                        if (hasData) {
+                            const existingIndex = drafts.findIndex(d => d.id === currentDraftId);
+                            if (existingIndex >= 0) {
+                                drafts[existingIndex].data = data;
+                                drafts[existingIndex].time = Date.now();
+                            } else {
+                                drafts.push({ id: currentDraftId, time: Date.now(), data });
+                            }
+                            localStorage.setItem(storageKey, JSON.stringify(drafts));
+                        } else {
+                            // If they cleared the form manually, remove this draft
+                            drafts = drafts.filter(d => d.id !== currentDraftId);
+                            if (drafts.length > 0) {
+                                localStorage.setItem(storageKey, JSON.stringify(drafts));
+                            } else {
+                                localStorage.removeItem(storageKey);
+                            }
+                        }
+                    }, 500);
+                };
+
+                form.addEventListener('input', saveForm);
+                form.addEventListener('change', saveForm);
+
+                form.addEventListener('submit', () => {
+                    localStorage.setItem('pending_submit_draft_key', storageKey);
+                    localStorage.setItem('pending_submit_draft_id', currentDraftId);
+                    localStorage.setItem('pending_submit_path', path);
+                });
+            });
+        });
+    </script>
+</body>
 </html>

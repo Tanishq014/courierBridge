@@ -1,0 +1,1877 @@
+{
+  "success": true,
+  "data": [
+    {
+      "name": "Virgin Islands-US",
+      "iso3Code": "VIR",
+      "dialCode": "+340",
+      "euCountry": 0,
+      "iso2Code": "VI",
+      "currency": "USD",
+      "currencyName": "US Dollar"
+    },
+    {
+      "name": "Hong Kong",
+      "iso3Code": "HKG",
+      "dialCode": "+852",
+      "euCountry": 0,
+      "iso2Code": "HK",
+      "currency": "HKD",
+      "currencyName": "Hong Kong Dollar"
+    },
+    {
+      "name": "Afghanistan",
+      "iso3Code": "AFG",
+      "dialCode": "+93",
+      "euCountry": 0,
+      "iso2Code": "AF",
+      "currency": "AFN",
+      "currencyName": "Afghan Afghani"
+    },
+    {
+      "name": "Angola",
+      "iso3Code": "AGO",
+      "dialCode": "+244",
+      "euCountry": 0,
+      "iso2Code": "AO",
+      "currency": "AOA",
+      "currencyName": "Angolan Kwanza"
+    },
+    {
+      "name": "Albania",
+      "iso3Code": "ALB",
+      "dialCode": "+355",
+      "euCountry": 0,
+      "iso2Code": "AL",
+      "currency": "ALL",
+      "currencyName": "Albanian Lek"
+    },
+    {
+      "name": "Andorra",
+      "iso3Code": "AND",
+      "dialCode": "+376",
+      "euCountry": 0,
+      "iso2Code": "AD",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "United Arab Emirates",
+      "iso3Code": "ARE",
+      "dialCode": "+971",
+      "euCountry": 0,
+      "iso2Code": "AE",
+      "currency": "AED",
+      "currencyName": "United Arab Emirates Dirham"
+    },
+    {
+      "name": "Argentina",
+      "iso3Code": "ARG",
+      "dialCode": "+54",
+      "euCountry": 0,
+      "iso2Code": "AR",
+      "currency": "ARS",
+      "currencyName": "Argentine Peso"
+    },
+    {
+      "name": "Armenia",
+      "iso3Code": "ARM",
+      "dialCode": "+374",
+      "euCountry": 0,
+      "iso2Code": "AM",
+      "currency": "AMD",
+      "currencyName": "Armenian Dram"
+    },
+    {
+      "name": "Antigua and Barbuda",
+      "iso3Code": "ATG",
+      "dialCode": "+1-268",
+      "euCountry": 0,
+      "iso2Code": "AG",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "Australia",
+      "iso3Code": "AUS",
+      "dialCode": "+61",
+      "euCountry": 0,
+      "iso2Code": "AU",
+      "currency": "AUD",
+      "currencyName": "Australian Dollar"
+    },
+    {
+      "name": "Austria",
+      "iso3Code": "AUT",
+      "dialCode": "+43",
+      "euCountry": 1,
+      "iso2Code": "AT",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Azerbaijan",
+      "iso3Code": "AZE",
+      "dialCode": "+994",
+      "euCountry": 0,
+      "iso2Code": "AZ",
+      "currency": "AZN",
+      "currencyName": "Azerbaijani Manat"
+    },
+    {
+      "name": "Burundi",
+      "iso3Code": "BDI",
+      "dialCode": "+257",
+      "euCountry": 0,
+      "iso2Code": "BI",
+      "currency": "BIF",
+      "currencyName": "Burundian Franc"
+    },
+    {
+      "name": "Belgium",
+      "iso3Code": "BEL",
+      "dialCode": "+32",
+      "euCountry": 1,
+      "iso2Code": "BE",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Benin",
+      "iso3Code": "BEN",
+      "dialCode": "+229",
+      "euCountry": 0,
+      "iso2Code": "BJ",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Burkina Faso",
+      "iso3Code": "BFA",
+      "dialCode": "+226",
+      "euCountry": 0,
+      "iso2Code": "BF",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Bangladesh",
+      "iso3Code": "BGD",
+      "dialCode": "+880",
+      "euCountry": 0,
+      "iso2Code": "BD",
+      "currency": "BDT",
+      "currencyName": "Bangladeshi Taka"
+    },
+    {
+      "name": "Bulgaria",
+      "iso3Code": "BGR",
+      "dialCode": "+359",
+      "euCountry": 1,
+      "iso2Code": "BG",
+      "currency": "BGN",
+      "currencyName": "Bulgarian Lev"
+    },
+    {
+      "name": "Bahrain",
+      "iso3Code": "BHR",
+      "dialCode": "+973",
+      "euCountry": 0,
+      "iso2Code": "BH",
+      "currency": "BHD",
+      "currencyName": "Bahraini Dinar"
+    },
+    {
+      "name": "Bahamas",
+      "iso3Code": "BHS",
+      "dialCode": "+1-242",
+      "euCountry": 0,
+      "iso2Code": "BS",
+      "currency": "BSD",
+      "currencyName": "Bahamian Dollar"
+    },
+    {
+      "name": "Bosnia and Herzegovina",
+      "iso3Code": "BIH",
+      "dialCode": "+387",
+      "euCountry": 0,
+      "iso2Code": "BA",
+      "currency": "BAM",
+      "currencyName": "Bosnia and Herzegovina Convertible Mark"
+    },
+    {
+      "name": "Saint Barthelemy",
+      "iso3Code": "BLM",
+      "dialCode": "+590",
+      "euCountry": 0,
+      "iso2Code": "BL",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Belarus",
+      "iso3Code": "BLR",
+      "dialCode": "+375",
+      "euCountry": 0,
+      "iso2Code": "BY",
+      "currency": "BYN",
+      "currencyName": "Belarusian Ruble"
+    },
+    {
+      "name": "Belize",
+      "iso3Code": "BLZ",
+      "dialCode": "+501",
+      "euCountry": 0,
+      "iso2Code": "BZ",
+      "currency": "BZD",
+      "currencyName": "Belize Dollar"
+    },
+    {
+      "name": "Bermuda",
+      "iso3Code": "BMU",
+      "dialCode": "+1-441",
+      "euCountry": 0,
+      "iso2Code": "BM",
+      "currency": "BMD",
+      "currencyName": "Bermudian dollar"
+    },
+    {
+      "name": "Bolivia",
+      "iso3Code": "BOL",
+      "dialCode": "+591",
+      "euCountry": 0,
+      "iso2Code": "BO",
+      "currency": "BOB",
+      "currencyName": "Boliviano"
+    },
+    {
+      "name": "Brazil",
+      "iso3Code": "BRA",
+      "dialCode": "+55",
+      "euCountry": 0,
+      "iso2Code": "BR",
+      "currency": "BRL",
+      "currencyName": "Brazilian Real"
+    },
+    {
+      "name": "Barbados",
+      "iso3Code": "BRB",
+      "dialCode": "+1-246",
+      "euCountry": 0,
+      "iso2Code": "BB",
+      "currency": "BBD",
+      "currencyName": "Barbados Dollar"
+    },
+    {
+      "name": "Brunei",
+      "iso3Code": "BRN",
+      "dialCode": "+673",
+      "euCountry": 0,
+      "iso2Code": "BN",
+      "currency": "BND",
+      "currencyName": "Brunei Dollar"
+    },
+    {
+      "name": "Bhutan",
+      "iso3Code": "BTN",
+      "dialCode": "+975",
+      "euCountry": 0,
+      "iso2Code": "BT",
+      "currency": "BTN",
+      "currencyName": "Bhutanese Ngultrum"
+    },
+    {
+      "name": "Botswana",
+      "iso3Code": "BWA",
+      "dialCode": "+267",
+      "euCountry": 0,
+      "iso2Code": "BW",
+      "currency": "BWP",
+      "currencyName": "Botswana Pula"
+    },
+    {
+      "name": "Central African Republic",
+      "iso3Code": "CAF",
+      "dialCode": "+236",
+      "euCountry": 0,
+      "iso2Code": "CF",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "Canada",
+      "iso3Code": "CAN",
+      "dialCode": "+1",
+      "euCountry": 0,
+      "iso2Code": "CA",
+      "currency": "CAD",
+      "currencyName": "Canadian Dollar"
+    },
+    {
+      "name": "Switzerland",
+      "iso3Code": "CHE",
+      "dialCode": "+41",
+      "euCountry": 0,
+      "iso2Code": "CH",
+      "currency": "CHF",
+      "currencyName": "Swiss Franc"
+    },
+    {
+      "name": "Chile",
+      "iso3Code": "CHL",
+      "dialCode": "+56",
+      "euCountry": 0,
+      "iso2Code": "CL",
+      "currency": "CLP",
+      "currencyName": "Chilean Peso"
+    },
+    {
+      "name": "China",
+      "iso3Code": "CHN",
+      "dialCode": "+86",
+      "euCountry": 0,
+      "iso2Code": "CN",
+      "currency": "CNY",
+      "currencyName": "Chinese Yuan Renminbi"
+    },
+    {
+      "name": "Cote dIvoire",
+      "iso3Code": "CIV",
+      "dialCode": "+225",
+      "euCountry": 0,
+      "iso2Code": "CI",
+      "currency": "CFA",
+      "currencyName": "CFA Francs"
+    },
+    {
+      "name": "Cameroon",
+      "iso3Code": "CMR",
+      "dialCode": "+237",
+      "euCountry": 0,
+      "iso2Code": "CM",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "Congo (Kinshasa)",
+      "iso3Code": "COD",
+      "dialCode": "+243",
+      "euCountry": 0,
+      "iso2Code": "CD",
+      "currency": "CDF",
+      "currencyName": "Congolese Franc"
+    },
+    {
+      "name": "Congo (Brazzaville)",
+      "iso3Code": "COG",
+      "dialCode": "+242",
+      "euCountry": 0,
+      "iso2Code": "CG",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "Colombia",
+      "iso3Code": "COL",
+      "dialCode": "+57",
+      "euCountry": 0,
+      "iso2Code": "CO",
+      "currency": "COP",
+      "currencyName": "Colombian Peso"
+    },
+    {
+      "name": "Comoros",
+      "iso3Code": "COM",
+      "dialCode": "+269",
+      "euCountry": 0,
+      "iso2Code": "KM",
+      "currency": "KMF",
+      "currencyName": "Comoro Franc"
+    },
+    {
+      "name": "Cabo Verde",
+      "iso3Code": "CPV",
+      "dialCode": "+238",
+      "euCountry": 0,
+      "iso2Code": "CV",
+      "currency": "CVE",
+      "currencyName": "Cape Verde Escudo"
+    },
+    {
+      "name": "Costa Rica",
+      "iso3Code": "CRI",
+      "dialCode": "+506",
+      "euCountry": 0,
+      "iso2Code": "CR",
+      "currency": "CRC",
+      "currencyName": "Costa Rican Colon"
+    },
+    {
+      "name": "Cuba",
+      "iso3Code": "CUB",
+      "dialCode": "+53",
+      "euCountry": 0,
+      "iso2Code": "CU",
+      "currency": "CUP",
+      "currencyName": "Cuban Peso"
+    },
+    {
+      "name": "CAYMAN ISLAND",
+      "iso3Code": "CYM",
+      "dialCode": "+1-345",
+      "euCountry": 0,
+      "iso2Code": "KY",
+      "currency": "KYD",
+      "currencyName": "Cayman Islands Dollar"
+    },
+    {
+      "name": "Cyprus",
+      "iso3Code": "CYP",
+      "dialCode": "+357",
+      "euCountry": 1,
+      "iso2Code": "CY",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Czech Republic",
+      "iso3Code": "CZE",
+      "dialCode": "+420",
+      "euCountry": 1,
+      "iso2Code": "CZ",
+      "currency": "CZK",
+      "currencyName": "Czech Koruna"
+    },
+    {
+      "name": "Germany",
+      "iso3Code": "DEU",
+      "dialCode": "+49",
+      "euCountry": 1,
+      "iso2Code": "DE",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Djibouti",
+      "iso3Code": "DJI",
+      "dialCode": "+253",
+      "euCountry": 0,
+      "iso2Code": "DJ",
+      "currency": "DJF",
+      "currencyName": "Djibouti Franc"
+    },
+    {
+      "name": "Dominica",
+      "iso3Code": "DMA",
+      "dialCode": "+1-767",
+      "euCountry": 0,
+      "iso2Code": "DM",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "Denmark",
+      "iso3Code": "DNK",
+      "dialCode": "+45",
+      "euCountry": 1,
+      "iso2Code": "DK",
+      "currency": "DKK",
+      "currencyName": "Danish Krone"
+    },
+    {
+      "name": "Dominican Republic",
+      "iso3Code": "DOM",
+      "dialCode": "+1-809",
+      "euCountry": 0,
+      "iso2Code": "DO",
+      "currency": "DOP",
+      "currencyName": "Dominican Peso"
+    },
+    {
+      "name": "Algeria",
+      "iso3Code": "DZA",
+      "dialCode": "+213",
+      "euCountry": 0,
+      "iso2Code": "DZ",
+      "currency": "DZD",
+      "currencyName": "Algerian Dinar"
+    },
+    {
+      "name": "Ecuador",
+      "iso3Code": "ECU",
+      "dialCode": "+593",
+      "euCountry": 0,
+      "iso2Code": "EC",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "Egypt",
+      "iso3Code": "EGY",
+      "dialCode": "+20",
+      "euCountry": 0,
+      "iso2Code": "EG",
+      "currency": "EGP",
+      "currencyName": "Egyptian Pound"
+    },
+    {
+      "name": "Eritrea",
+      "iso3Code": "ERI",
+      "dialCode": "+291",
+      "euCountry": 0,
+      "iso2Code": "ER",
+      "currency": "ERN",
+      "currencyName": "Eritrean Nakfa"
+    },
+    {
+      "name": "CANARY ISLANDS",
+      "iso3Code": "ESI",
+      "dialCode": "+34",
+      "euCountry": 0,
+      "iso2Code": "IC",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Spain",
+      "iso3Code": "ESP",
+      "dialCode": "+34",
+      "euCountry": 1,
+      "iso2Code": "ES",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Estonia",
+      "iso3Code": "EST",
+      "dialCode": "+372",
+      "euCountry": 1,
+      "iso2Code": "EE",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Ethiopia",
+      "iso3Code": "ETH",
+      "dialCode": "+251",
+      "euCountry": 0,
+      "iso2Code": "ET",
+      "currency": "ETB",
+      "currencyName": "Ethiopian Birr"
+    },
+    {
+      "name": "Finland",
+      "iso3Code": "FIN",
+      "dialCode": "+358",
+      "euCountry": 1,
+      "iso2Code": "FI",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Fiji",
+      "iso3Code": "FJI",
+      "dialCode": "+679",
+      "euCountry": 0,
+      "iso2Code": "FJ",
+      "currency": "FJD",
+      "currencyName": "Fiji Dollar"
+    },
+    {
+      "name": "France",
+      "iso3Code": "FRA",
+      "dialCode": "+33",
+      "euCountry": 1,
+      "iso2Code": "FR",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Micronesia",
+      "iso3Code": "FSM",
+      "dialCode": "+691",
+      "euCountry": 0,
+      "iso2Code": "FM",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "Gabon",
+      "iso3Code": "GAB",
+      "dialCode": "+241",
+      "euCountry": 0,
+      "iso2Code": "GA",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "United Kingdom",
+      "iso3Code": "GBR",
+      "dialCode": "+44",
+      "euCountry": 0,
+      "iso2Code": "GB",
+      "currency": "GBP",
+      "currencyName": "Pound Sterling"
+    },
+    {
+      "name": "Georgia",
+      "iso3Code": "GEO",
+      "dialCode": "+995",
+      "euCountry": 0,
+      "iso2Code": "GE",
+      "currency": "GEL",
+      "currencyName": "Georgian Lari"
+    },
+    {
+      "name": "Ghana",
+      "iso3Code": "GHA",
+      "dialCode": "+233",
+      "euCountry": 0,
+      "iso2Code": "GH",
+      "currency": "GHS",
+      "currencyName": "Ghanaian Cedi"
+    },
+    {
+      "name": "Guinea",
+      "iso3Code": "GIN",
+      "dialCode": "+224",
+      "euCountry": 0,
+      "iso2Code": "GN",
+      "currency": "GNF",
+      "currencyName": "Guinean Franc"
+    },
+    {
+      "name": "Gambia",
+      "iso3Code": "GMB",
+      "dialCode": "+220",
+      "euCountry": 0,
+      "iso2Code": "GM",
+      "currency": "GMD",
+      "currencyName": "Gambian Dalasi"
+    },
+    {
+      "name": "Guinea-Bissau",
+      "iso3Code": "GNB",
+      "dialCode": "+245",
+      "euCountry": 0,
+      "iso2Code": "GW",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Equatorial Guinea",
+      "iso3Code": "GNQ",
+      "dialCode": "+240",
+      "euCountry": 0,
+      "iso2Code": "GQ",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "Greece",
+      "iso3Code": "GRC",
+      "dialCode": "+30",
+      "euCountry": 1,
+      "iso2Code": "GR",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Grenada",
+      "iso3Code": "GRD",
+      "dialCode": "+1-473",
+      "euCountry": 0,
+      "iso2Code": "GD",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "Guatemala",
+      "iso3Code": "GTM",
+      "dialCode": "+502",
+      "euCountry": 0,
+      "iso2Code": "GT",
+      "currency": "GTQ",
+      "currencyName": "Guatemalan Quetzal"
+    },
+    {
+      "name": "Guam",
+      "iso3Code": "GUM",
+      "dialCode": "+1-671",
+      "euCountry": 0,
+      "iso2Code": "GU",
+      "currency": "USD",
+      "currencyName": "US Dollar"
+    },
+    {
+      "name": "Guyana",
+      "iso3Code": "GUY",
+      "dialCode": "+592",
+      "euCountry": 0,
+      "iso2Code": "GY",
+      "currency": "GYD",
+      "currencyName": "Guyanese Dollar"
+    },
+    {
+      "name": "Honduras",
+      "iso3Code": "HND",
+      "dialCode": "+504",
+      "euCountry": 0,
+      "iso2Code": "HN",
+      "currency": "HNL",
+      "currencyName": "Honduran Lempira"
+    },
+    {
+      "name": "Croatia",
+      "iso3Code": "HRV",
+      "dialCode": "+385",
+      "euCountry": 1,
+      "iso2Code": "HR",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Haiti",
+      "iso3Code": "HTI",
+      "dialCode": "+509",
+      "euCountry": 0,
+      "iso2Code": "HT",
+      "currency": "HTG",
+      "currencyName": "Haitian Gourde"
+    },
+    {
+      "name": "Hungary",
+      "iso3Code": "HUN",
+      "dialCode": "+36",
+      "euCountry": 1,
+      "iso2Code": "HU",
+      "currency": "HUF",
+      "currencyName": "Hungarian Forint"
+    },
+    {
+      "name": "Indonesia",
+      "iso3Code": "IDN",
+      "dialCode": "+62",
+      "euCountry": 0,
+      "iso2Code": "ID",
+      "currency": "IDR",
+      "currencyName": "Indonesian Rupiah"
+    },
+    {
+      "name": "Isle of Man",
+      "iso3Code": "IMN",
+      "dialCode": "+44",
+      "euCountry": 0,
+      "iso2Code": "IM",
+      "currency": "GBP",
+      "currencyName": "Pound Sterling"
+    },
+    {
+      "name": "India",
+      "iso3Code": "IND",
+      "dialCode": "+91",
+      "euCountry": 0,
+      "iso2Code": "IN",
+      "currency": "INR",
+      "currencyName": "Indian Rupee"
+    },
+    {
+      "name": "Ireland",
+      "iso3Code": "IRL",
+      "dialCode": "+353",
+      "euCountry": 1,
+      "iso2Code": "IE",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Iran",
+      "iso3Code": "IRN",
+      "dialCode": "+98",
+      "euCountry": 0,
+      "iso2Code": "IR",
+      "currency": "IRR",
+      "currencyName": "Iranian Rial"
+    },
+    {
+      "name": "Iraq",
+      "iso3Code": "IRQ",
+      "dialCode": "+964",
+      "euCountry": 0,
+      "iso2Code": "IQ",
+      "currency": "IQD",
+      "currencyName": "Iraqi Dinar"
+    },
+    {
+      "name": "Iceland",
+      "iso3Code": "ISL",
+      "dialCode": "+354",
+      "euCountry": 0,
+      "iso2Code": "IS",
+      "currency": "ISK",
+      "currencyName": "Icelandic Krona"
+    },
+    {
+      "name": "Israel",
+      "iso3Code": "ISR",
+      "dialCode": "+972",
+      "euCountry": 0,
+      "iso2Code": "IL",
+      "currency": "ILS",
+      "currencyName": "Israeli New Shekel"
+    },
+    {
+      "name": "Italy",
+      "iso3Code": "ITA",
+      "dialCode": "+39",
+      "euCountry": 1,
+      "iso2Code": "IT",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Jamaica",
+      "iso3Code": "JAM",
+      "dialCode": "+1-876",
+      "euCountry": 0,
+      "iso2Code": "JM",
+      "currency": "JMD",
+      "currencyName": "Jamaican Dollar"
+    },
+    {
+      "name": "Jordan",
+      "iso3Code": "JOR",
+      "dialCode": "+962",
+      "euCountry": 0,
+      "iso2Code": "JO",
+      "currency": "JOD",
+      "currencyName": "Jordanian Dinar"
+    },
+    {
+      "name": "Japan",
+      "iso3Code": "JPN",
+      "dialCode": "+81",
+      "euCountry": 0,
+      "iso2Code": "JP",
+      "currency": "JPY",
+      "currencyName": "Japanese Yen"
+    },
+    {
+      "name": "Kazakhstan",
+      "iso3Code": "KAZ",
+      "dialCode": "+7",
+      "euCountry": 0,
+      "iso2Code": "KZ",
+      "currency": "KZT",
+      "currencyName": "Kazakhstani Tenge"
+    },
+    {
+      "name": "Kenya",
+      "iso3Code": "KEN",
+      "dialCode": "+254",
+      "euCountry": 0,
+      "iso2Code": "KE",
+      "currency": "KES",
+      "currencyName": "Kenyan Shilling"
+    },
+    {
+      "name": "Kyrgyzstan",
+      "iso3Code": "KGZ",
+      "dialCode": "+996",
+      "euCountry": 0,
+      "iso2Code": "KG",
+      "currency": "KGS",
+      "currencyName": "Kyrgyzstani Som"
+    },
+    {
+      "name": "Cambodia",
+      "iso3Code": "KHM",
+      "dialCode": "+855",
+      "euCountry": 0,
+      "iso2Code": "KH",
+      "currency": "KHR",
+      "currencyName": "Cambodian Riel"
+    },
+    {
+      "name": "Kiribati",
+      "iso3Code": "KIR",
+      "dialCode": "+686",
+      "euCountry": 0,
+      "iso2Code": "KI",
+      "currency": "AUD",
+      "currencyName": "Australian Dollar"
+    },
+    {
+      "name": "Saint Kitts and Nevis",
+      "iso3Code": "KNA",
+      "dialCode": "+1-869",
+      "euCountry": 0,
+      "iso2Code": "KN",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "South Korea",
+      "iso3Code": "KOR",
+      "dialCode": "+82",
+      "euCountry": 0,
+      "iso2Code": "KR",
+      "currency": "KRW",
+      "currencyName": "South Korean Won"
+    },
+    {
+      "name": "Kuwait",
+      "iso3Code": "KWT",
+      "dialCode": "+965",
+      "euCountry": 0,
+      "iso2Code": "KW",
+      "currency": "KWD",
+      "currencyName": "Kuwaiti Dinar"
+    },
+    {
+      "name": "Laos",
+      "iso3Code": "LAO",
+      "dialCode": "+856",
+      "euCountry": 0,
+      "iso2Code": "LA",
+      "currency": "LAK",
+      "currencyName": "Lao Kip"
+    },
+    {
+      "name": "Lebanon",
+      "iso3Code": "LBN",
+      "dialCode": "+961",
+      "euCountry": 0,
+      "iso2Code": "LB",
+      "currency": "LBP",
+      "currencyName": "Lebanese Pound"
+    },
+    {
+      "name": "Liberia",
+      "iso3Code": "LBR",
+      "dialCode": "+231",
+      "euCountry": 0,
+      "iso2Code": "LR",
+      "currency": "LRD",
+      "currencyName": "Liberian Dollar"
+    },
+    {
+      "name": "Libya",
+      "iso3Code": "LBY",
+      "dialCode": "+218",
+      "euCountry": 0,
+      "iso2Code": "LY",
+      "currency": "LYD",
+      "currencyName": "Libyan Dinar"
+    },
+    {
+      "name": "Saint Lucia",
+      "iso3Code": "LCA",
+      "dialCode": "+1-758",
+      "euCountry": 0,
+      "iso2Code": "LC",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "Liechtenstein",
+      "iso3Code": "LIE",
+      "dialCode": "+423",
+      "euCountry": 0,
+      "iso2Code": "LI",
+      "currency": "CHF",
+      "currencyName": "Swiss Franc"
+    },
+    {
+      "name": "Sri Lanka",
+      "iso3Code": "LKA",
+      "dialCode": "+94",
+      "euCountry": 0,
+      "iso2Code": "LK",
+      "currency": "LKR",
+      "currencyName": "Sri Lankan Rupee"
+    },
+    {
+      "name": "Lesotho",
+      "iso3Code": "LSO",
+      "dialCode": "+266",
+      "euCountry": 0,
+      "iso2Code": "LS",
+      "currency": "LSL",
+      "currencyName": "Lesotho Loti"
+    },
+    {
+      "name": "Lithuania",
+      "iso3Code": "LTU",
+      "dialCode": "+370",
+      "euCountry": 1,
+      "iso2Code": "LT",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Luxembourg",
+      "iso3Code": "LUX",
+      "dialCode": "+352",
+      "euCountry": 1,
+      "iso2Code": "LU",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Latvia",
+      "iso3Code": "LVA",
+      "dialCode": "+371",
+      "euCountry": 1,
+      "iso2Code": "LV",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Macau SAR China",
+      "iso3Code": "MAC",
+      "dialCode": "+853",
+      "euCountry": 0,
+      "iso2Code": "MO",
+      "currency": "MOP",
+      "currencyName": "Macanese Pataca"
+    },
+    {
+      "name": "Morocco",
+      "iso3Code": "MAR",
+      "dialCode": "+212",
+      "euCountry": 0,
+      "iso2Code": "MA",
+      "currency": "MAD",
+      "currencyName": "Moroccan Dirham"
+    },
+    {
+      "name": "Monaco",
+      "iso3Code": "MCO",
+      "dialCode": "+377",
+      "euCountry": 0,
+      "iso2Code": "MC",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Moldova",
+      "iso3Code": "MDA",
+      "dialCode": "+373",
+      "euCountry": 0,
+      "iso2Code": "MD",
+      "currency": "MDL",
+      "currencyName": "Moldovan Leu"
+    },
+    {
+      "name": "Madagascar",
+      "iso3Code": "MDG",
+      "dialCode": "+261",
+      "euCountry": 0,
+      "iso2Code": "MG",
+      "currency": "MGA",
+      "currencyName": "Malagasy Ariary"
+    },
+    {
+      "name": "Maldives",
+      "iso3Code": "MDV",
+      "dialCode": "+960",
+      "euCountry": 0,
+      "iso2Code": "MV",
+      "currency": "MVR",
+      "currencyName": "Maldivian Rufiyaa"
+    },
+    {
+      "name": "Mexico",
+      "iso3Code": "MEX",
+      "dialCode": "+52",
+      "euCountry": 0,
+      "iso2Code": "MX",
+      "currency": "MXN",
+      "currencyName": "Mexican Peso"
+    },
+    {
+      "name": "Marshall Islands",
+      "iso3Code": "MHL",
+      "dialCode": "+692",
+      "euCountry": 0,
+      "iso2Code": "MH",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "North Macedonia",
+      "iso3Code": "MKD",
+      "dialCode": "+389",
+      "euCountry": 0,
+      "iso2Code": "MK",
+      "currency": "MKD",
+      "currencyName": "Macedonian Denar"
+    },
+    {
+      "name": "Mali",
+      "iso3Code": "MLI",
+      "dialCode": "+223",
+      "euCountry": 0,
+      "iso2Code": "ML",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Malta",
+      "iso3Code": "MLT",
+      "dialCode": "+356",
+      "euCountry": 1,
+      "iso2Code": "MT",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Myanmar",
+      "iso3Code": "MMR",
+      "dialCode": "+95",
+      "euCountry": 0,
+      "iso2Code": "MM",
+      "currency": "MMK",
+      "currencyName": "Myanmar Kyat"
+    },
+    {
+      "name": "Montenegro",
+      "iso3Code": "MNE",
+      "dialCode": "+382",
+      "euCountry": 0,
+      "iso2Code": "ME",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Mongolia",
+      "iso3Code": "MNG",
+      "dialCode": "+976",
+      "euCountry": 0,
+      "iso2Code": "MN",
+      "currency": "MNT",
+      "currencyName": "Mongolian Tugrik"
+    },
+    {
+      "name": "Mozambique",
+      "iso3Code": "MOZ",
+      "dialCode": "+258",
+      "euCountry": 0,
+      "iso2Code": "MZ",
+      "currency": "MZN",
+      "currencyName": "Mozambican Metical"
+    },
+    {
+      "name": "Mauritania",
+      "iso3Code": "MRT",
+      "dialCode": "+222",
+      "euCountry": 0,
+      "iso2Code": "MR",
+      "currency": "MRO",
+      "currencyName": "Mauritanian Ouguiya"
+    },
+    {
+      "name": "Mauritius",
+      "iso3Code": "MUS",
+      "dialCode": "+230",
+      "euCountry": 0,
+      "iso2Code": "MU",
+      "currency": "MUR",
+      "currencyName": "Mauritian Rupee"
+    },
+    {
+      "name": "Malawi",
+      "iso3Code": "MWI",
+      "dialCode": "+265",
+      "euCountry": 0,
+      "iso2Code": "MW",
+      "currency": "MWK",
+      "currencyName": "Malawian Kwacha"
+    },
+    {
+      "name": "Malaysia",
+      "iso3Code": "MYS",
+      "dialCode": "+60",
+      "euCountry": 0,
+      "iso2Code": "MY",
+      "currency": "MYR",
+      "currencyName": "Malaysian Ringgit"
+    },
+    {
+      "name": "Namibia",
+      "iso3Code": "NAM",
+      "dialCode": "+264",
+      "euCountry": 0,
+      "iso2Code": "NA",
+      "currency": "NAD",
+      "currencyName": "Namibian Dollar"
+    },
+    {
+      "name": "Niger",
+      "iso3Code": "NER",
+      "dialCode": "+227",
+      "euCountry": 0,
+      "iso2Code": "NE",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Nigeria",
+      "iso3Code": "NGA",
+      "dialCode": "+234",
+      "euCountry": 0,
+      "iso2Code": "NG",
+      "currency": "NGN",
+      "currencyName": "Nigerian Naira"
+    },
+    {
+      "name": "Nicaragua",
+      "iso3Code": "NIC",
+      "dialCode": "+505",
+      "euCountry": 0,
+      "iso2Code": "NI",
+      "currency": "NIO",
+      "currencyName": "Nicaraguan Cordoba"
+    },
+    {
+      "name": "Netherlands",
+      "iso3Code": "NLD",
+      "dialCode": "+31",
+      "euCountry": 1,
+      "iso2Code": "NL",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Norway",
+      "iso3Code": "NOR",
+      "dialCode": "+47",
+      "euCountry": 0,
+      "iso2Code": "NO",
+      "currency": "NOK",
+      "currencyName": "Norwegian Krone"
+    },
+    {
+      "name": "Nepal",
+      "iso3Code": "NPL",
+      "dialCode": "+977",
+      "euCountry": 0,
+      "iso2Code": "NP",
+      "currency": "NPR",
+      "currencyName": "Nepalese Rupee"
+    },
+    {
+      "name": "Nauru",
+      "iso3Code": "NRU",
+      "dialCode": "+674",
+      "euCountry": 0,
+      "iso2Code": "NR",
+      "currency": "AUD",
+      "currencyName": "Australian Dollar"
+    },
+    {
+      "name": "New Zealand",
+      "iso3Code": "NZL",
+      "dialCode": "+64",
+      "euCountry": 0,
+      "iso2Code": "NZ",
+      "currency": "NZD",
+      "currencyName": "New Zealand Dollar"
+    },
+    {
+      "name": "Oman",
+      "iso3Code": "OMN",
+      "dialCode": "+968",
+      "euCountry": 0,
+      "iso2Code": "OM",
+      "currency": "OMR",
+      "currencyName": "Omani Rial"
+    },
+    {
+      "name": "Pakistan",
+      "iso3Code": "PAK",
+      "dialCode": "+92",
+      "euCountry": 0,
+      "iso2Code": "PK",
+      "currency": "PKR",
+      "currencyName": "Pakistani Rupee"
+    },
+    {
+      "name": "Panama",
+      "iso3Code": "PAN",
+      "dialCode": "+507",
+      "euCountry": 0,
+      "iso2Code": "PA",
+      "currency": "PAB",
+      "currencyName": "Panamanian Balboa"
+    },
+    {
+      "name": "Peru",
+      "iso3Code": "PER",
+      "dialCode": "+51",
+      "euCountry": 0,
+      "iso2Code": "PE",
+      "currency": "PEN",
+      "currencyName": "Peruvian Sol"
+    },
+    {
+      "name": "Philippines",
+      "iso3Code": "PHL",
+      "dialCode": "+63",
+      "euCountry": 0,
+      "iso2Code": "PH",
+      "currency": "PHP",
+      "currencyName": "Philippine Peso"
+    },
+    {
+      "name": "Palau",
+      "iso3Code": "PLW",
+      "dialCode": "+680",
+      "euCountry": 0,
+      "iso2Code": "PW",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "Papua New Guinea",
+      "iso3Code": "PNG",
+      "dialCode": "+675",
+      "euCountry": 0,
+      "iso2Code": "PG",
+      "currency": "PGK",
+      "currencyName": "Papua New Guinean Kina"
+    },
+    {
+      "name": "Poland",
+      "iso3Code": "POL",
+      "dialCode": "+48",
+      "euCountry": 1,
+      "iso2Code": "PL",
+      "currency": "PLN",
+      "currencyName": "Polish Zloty"
+    },
+    {
+      "name": "Pureto Rico",
+      "iso3Code": "PRI",
+      "dialCode": "+1",
+      "euCountry": 0,
+      "iso2Code": "PR",
+      "currency": "USD",
+      "currencyName": "US Dollar"
+    },
+    {
+      "name": "Korea, North",
+      "iso3Code": "PRK",
+      "dialCode": "+850",
+      "euCountry": 0,
+      "iso2Code": "KP",
+      "currency": "KPW",
+      "currencyName": "North Korean Won"
+    },
+    {
+      "name": "Portugal",
+      "iso3Code": "PRT",
+      "dialCode": "+351",
+      "euCountry": 1,
+      "iso2Code": "PT",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Paraguay",
+      "iso3Code": "PRY",
+      "dialCode": "+595",
+      "euCountry": 0,
+      "iso2Code": "PY",
+      "currency": "PYG",
+      "currencyName": "Paraguayan Guarani"
+    },
+    {
+      "name": "Qatar",
+      "iso3Code": "QAT",
+      "dialCode": "+974",
+      "euCountry": 0,
+      "iso2Code": "QA",
+      "currency": "QAR",
+      "currencyName": "Qatari Riyal"
+    },
+    {
+      "name": "Reunion",
+      "iso3Code": "REU",
+      "dialCode": "+262",
+      "euCountry": 0,
+      "iso2Code": "RE",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Romania",
+      "iso3Code": "ROU",
+      "dialCode": "+40",
+      "euCountry": 1,
+      "iso2Code": "RO",
+      "currency": "RON",
+      "currencyName": "Romanian Leu"
+    },
+    {
+      "name": "Russia",
+      "iso3Code": "RUS",
+      "dialCode": "+7",
+      "euCountry": 0,
+      "iso2Code": "RU",
+      "currency": "RUB",
+      "currencyName": "Russian Ruble"
+    },
+    {
+      "name": "Rwanda",
+      "iso3Code": "RWA",
+      "dialCode": "+250",
+      "euCountry": 0,
+      "iso2Code": "RW",
+      "currency": "RWF",
+      "currencyName": "Rwandan Franc"
+    },
+    {
+      "name": "Saudi Arabia",
+      "iso3Code": "SAU",
+      "dialCode": "+966",
+      "euCountry": 0,
+      "iso2Code": "SA",
+      "currency": "SAR",
+      "currencyName": "Saudi Riyal"
+    },
+    {
+      "name": "Sudan",
+      "iso3Code": "SDN",
+      "dialCode": "+249",
+      "euCountry": 0,
+      "iso2Code": "SD",
+      "currency": "SDG",
+      "currencyName": "Sudanese Pound"
+    },
+    {
+      "name": "Senegal",
+      "iso3Code": "SEN",
+      "dialCode": "+221",
+      "euCountry": 0,
+      "iso2Code": "SN",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Singapore",
+      "iso3Code": "SGP",
+      "dialCode": "+65",
+      "euCountry": 0,
+      "iso2Code": "SG",
+      "currency": "SGD",
+      "currencyName": "Singapore Dollar"
+    },
+    {
+      "name": "Solomon Islands",
+      "iso3Code": "SLB",
+      "dialCode": "+677",
+      "euCountry": 0,
+      "iso2Code": "SB",
+      "currency": "SBD",
+      "currencyName": "Solomon Islands Dollar"
+    },
+    {
+      "name": "Sierra Leone",
+      "iso3Code": "SLE",
+      "dialCode": "+232",
+      "euCountry": 0,
+      "iso2Code": "SL",
+      "currency": "SLL",
+      "currencyName": "Sierra Leonean Leone"
+    },
+    {
+      "name": "El Salvador",
+      "iso3Code": "SLV",
+      "dialCode": "+503",
+      "euCountry": 0,
+      "iso2Code": "SV",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "San Marino",
+      "iso3Code": "SMR",
+      "dialCode": "+378",
+      "euCountry": 0,
+      "iso2Code": "SM",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Somalia Mogadishu",
+      "iso3Code": "SOM",
+      "dialCode": "+252",
+      "euCountry": 0,
+      "iso2Code": "SO",
+      "currency": "SOS",
+      "currencyName": "Somali Shilling"
+    },
+    {
+      "name": "Somaliland",
+      "iso3Code": "SOR",
+      "dialCode": "+252",
+      "euCountry": 0,
+      "iso2Code": "XS",
+      "currency": "SOS",
+      "currencyName": "Somali Shilling"
+    },
+    {
+      "name": "Serbia",
+      "iso3Code": "SRB",
+      "dialCode": "+381",
+      "euCountry": 0,
+      "iso2Code": "RS",
+      "currency": "RSD",
+      "currencyName": "Serbian Dinar"
+    },
+    {
+      "name": "South Sudan",
+      "iso3Code": "SSD",
+      "dialCode": "+211",
+      "euCountry": 0,
+      "iso2Code": "SS",
+      "currency": "SSP",
+      "currencyName": "South Sudanese Pound"
+    },
+    {
+      "name": "Sao Tome and Principe",
+      "iso3Code": "STP",
+      "dialCode": "+239",
+      "euCountry": 0,
+      "iso2Code": "ST",
+      "currency": "STD",
+      "currencyName": "Sao Tome and Principe Dobra"
+    },
+    {
+      "name": "Suriname",
+      "iso3Code": "SUR",
+      "dialCode": "+597",
+      "euCountry": 0,
+      "iso2Code": "SR",
+      "currency": "SRD",
+      "currencyName": "Surinamese Dollar"
+    },
+    {
+      "name": "Slovakia",
+      "iso3Code": "SVK",
+      "dialCode": "+421",
+      "euCountry": 1,
+      "iso2Code": "SK",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Slovenia",
+      "iso3Code": "SVN",
+      "dialCode": "+386",
+      "euCountry": 1,
+      "iso2Code": "SI",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Sweden",
+      "iso3Code": "SWE",
+      "dialCode": "+46",
+      "euCountry": 1,
+      "iso2Code": "SE",
+      "currency": "SEK",
+      "currencyName": "Swedish Krona"
+    },
+    {
+      "name": "Eswatini",
+      "iso3Code": "SWZ",
+      "dialCode": "+268",
+      "euCountry": 0,
+      "iso2Code": "SZ",
+      "currency": "SZL",
+      "currencyName": "Swazi Lilangeni"
+    },
+    {
+      "name": "Seychelles",
+      "iso3Code": "SYC",
+      "dialCode": "+248",
+      "euCountry": 0,
+      "iso2Code": "SC",
+      "currency": "SCR",
+      "currencyName": "Seychelles Rupee"
+    },
+    {
+      "name": "Syria",
+      "iso3Code": "SYR",
+      "dialCode": "+963",
+      "euCountry": 0,
+      "iso2Code": "SY",
+      "currency": "SYP",
+      "currencyName": "Syrian Pound"
+    },
+    {
+      "name": "Chad",
+      "iso3Code": "TCD",
+      "dialCode": "+235",
+      "euCountry": 0,
+      "iso2Code": "TD",
+      "currency": "XAF",
+      "currencyName": "CFA Franc BEAC"
+    },
+    {
+      "name": "Togo",
+      "iso3Code": "TGO",
+      "dialCode": "+228",
+      "euCountry": 0,
+      "iso2Code": "TG",
+      "currency": "XOF",
+      "currencyName": "CFA Franc BCEAO"
+    },
+    {
+      "name": "Thailand",
+      "iso3Code": "THA",
+      "dialCode": "+66",
+      "euCountry": 0,
+      "iso2Code": "TH",
+      "currency": "THB",
+      "currencyName": "Thai Baht"
+    },
+    {
+      "name": "Tajikistan",
+      "iso3Code": "TJK",
+      "dialCode": "+992",
+      "euCountry": 0,
+      "iso2Code": "TJ",
+      "currency": "TJS",
+      "currencyName": "Tajikistani Somoni"
+    },
+    {
+      "name": "Turkmenistan",
+      "iso3Code": "TKM",
+      "dialCode": "+993",
+      "euCountry": 0,
+      "iso2Code": "TM",
+      "currency": "TMT",
+      "currencyName": "Turkmenistani Manat"
+    },
+    {
+      "name": "Tonga",
+      "iso3Code": "TON",
+      "dialCode": "+676",
+      "euCountry": 0,
+      "iso2Code": "TO",
+      "currency": "TOP",
+      "currencyName": "Tongan Paʻanga"
+    },
+    {
+      "name": "Trinidad and Tobago",
+      "iso3Code": "TTO",
+      "dialCode": "+1-868",
+      "euCountry": 0,
+      "iso2Code": "TT",
+      "currency": "TTD",
+      "currencyName": "Trinidad and Tobago Dollar"
+    },
+    {
+      "name": "Tunisia",
+      "iso3Code": "TUN",
+      "dialCode": "+216",
+      "euCountry": 0,
+      "iso2Code": "TN",
+      "currency": "TND",
+      "currencyName": "Tunisian Dinar"
+    },
+    {
+      "name": "Turkey",
+      "iso3Code": "TUR",
+      "dialCode": "+90",
+      "euCountry": 0,
+      "iso2Code": "TR",
+      "currency": "TRY",
+      "currencyName": "Turkish Lira"
+    },
+    {
+      "name": "Tuvalu",
+      "iso3Code": "TUV",
+      "dialCode": "+688",
+      "euCountry": 0,
+      "iso2Code": "TV",
+      "currency": "AUD",
+      "currencyName": "Australian Dollar"
+    },
+    {
+      "name": "Taiwan",
+      "iso3Code": "TWN",
+      "dialCode": "+886",
+      "euCountry": 0,
+      "iso2Code": "TW",
+      "currency": "TWD",
+      "currencyName": "New Taiwan Dollar"
+    },
+    {
+      "name": "Tanzania",
+      "iso3Code": "TZA",
+      "dialCode": "+255",
+      "euCountry": 0,
+      "iso2Code": "TZ",
+      "currency": "TZS",
+      "currencyName": "Tanzanian Shilling"
+    },
+    {
+      "name": "Uganda",
+      "iso3Code": "UGA",
+      "dialCode": "+256",
+      "euCountry": 0,
+      "iso2Code": "UG",
+      "currency": "UGX",
+      "currencyName": "Ugandan Shilling"
+    },
+    {
+      "name": "Ukraine",
+      "iso3Code": "UKR",
+      "dialCode": "+380",
+      "euCountry": 0,
+      "iso2Code": "UA",
+      "currency": "UAH",
+      "currencyName": "Ukrainian Hryvnia"
+    },
+    {
+      "name": "Uruguay",
+      "iso3Code": "URY",
+      "dialCode": "+598",
+      "euCountry": 0,
+      "iso2Code": "UY",
+      "currency": "UYU",
+      "currencyName": "Uruguayan Peso"
+    },
+    {
+      "name": "United States of America",
+      "iso3Code": "USA",
+      "dialCode": "+1",
+      "euCountry": 0,
+      "iso2Code": "US",
+      "currency": "USD",
+      "currencyName": "United States Dollar"
+    },
+    {
+      "name": "Uzbekistan",
+      "iso3Code": "UZB",
+      "dialCode": "+998",
+      "euCountry": 0,
+      "iso2Code": "UZ",
+      "currency": "UZS",
+      "currencyName": "Uzbekistani Som"
+    },
+    {
+      "name": "Holy See",
+      "iso3Code": "VAT",
+      "dialCode": "+39",
+      "euCountry": 0,
+      "iso2Code": "VA",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Saint Vincent and the Grenadines",
+      "iso3Code": "VCT",
+      "dialCode": "+1-784",
+      "euCountry": 0,
+      "iso2Code": "VC",
+      "currency": "XCD",
+      "currencyName": "East Caribbean Dollar"
+    },
+    {
+      "name": "Venezuela",
+      "iso3Code": "VEN",
+      "dialCode": "+58",
+      "euCountry": 0,
+      "iso2Code": "VE",
+      "currency": "VES",
+      "currencyName": "Venezuelan Bolívar Soberano"
+    },
+    {
+      "name": "Virgin Islands - British",
+      "iso3Code": "VGB",
+      "dialCode": "+284",
+      "euCountry": 0,
+      "iso2Code": "VG",
+      "currency": "USD",
+      "currencyName": "US Dollar"
+    },
+    {
+      "name": "Vietnam",
+      "iso3Code": "VNM",
+      "dialCode": "+84",
+      "euCountry": 0,
+      "iso2Code": "VN",
+      "currency": "VND",
+      "currencyName": "Vietnamese Dong"
+    },
+    {
+      "name": "Vanuatu",
+      "iso3Code": "VUT",
+      "dialCode": "+678",
+      "euCountry": 0,
+      "iso2Code": "VU",
+      "currency": "VUV",
+      "currencyName": "Vanuatu Vatu"
+    },
+    {
+      "name": "Samoa",
+      "iso3Code": "WSM",
+      "dialCode": "+685",
+      "euCountry": 0,
+      "iso2Code": "WS",
+      "currency": "WST",
+      "currencyName": "Samoan Tala"
+    },
+    {
+      "name": "Kosovo",
+      "iso3Code": "XKX",
+      "dialCode": "+383",
+      "euCountry": 0,
+      "iso2Code": "KV",
+      "currency": "EUR",
+      "currencyName": "Euro"
+    },
+    {
+      "name": "Yemen",
+      "iso3Code": "YEM",
+      "dialCode": "+967",
+      "euCountry": 0,
+      "iso2Code": "YE",
+      "currency": "YER",
+      "currencyName": "Yemeni Rial"
+    },
+    {
+      "name": "South Africa",
+      "iso3Code": "ZAF",
+      "dialCode": "+27",
+      "euCountry": 0,
+      "iso2Code": "ZA",
+      "currency": "ZAR",
+      "currencyName": "South African Rand"
+    },
+    {
+      "name": "Zambia",
+      "iso3Code": "ZMB",
+      "dialCode": "+260",
+      "euCountry": 0,
+      "iso2Code": "ZM",
+      "currency": "ZMW",
+      "currencyName": "Zambian Kwacha"
+    },
+    {
+      "name": "Zimbabwe",
+      "iso3Code": "ZWE",
+      "dialCode": "+263",
+      "euCountry": 0,
+      "iso2Code": "ZW",
+      "currency": "ZWL",
+      "currencyName": "Zimbabwean Dollar"
+    }
+  ]
+}

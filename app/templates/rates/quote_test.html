@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Static Tariff Quote Tester - CourierBridge{% endblock %}
+
+{% block head %}
+    <style>
+        .container { max-width: 800px; margin: 0 auto; margin-top: 2rem;}
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 2rem; }
+        h1 { margin-top: 0; font-size: 1.5rem; font-weight: 600; color: #1f2937; }
+        .form-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { flex: 1; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: #374151; }
+        input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        button { background-color: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        button:hover { background-color: #1d4ed8; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f3f4f6; font-size: 0.875rem; color: #4b5563; }
+        .price { font-weight: bold; color: #059669; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="card">
+            <h1>Test Static Rates Sandbox</h1>
+            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 2rem;">Query only the finalized rate cards that have been processed and approved through the AI Ingestion pipeline.</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Weight (kg)</label>
+                    <input type="number" id="weight" step="0.1" value="1.0">
+                </div>
+                <div class="form-group">
+                    <label>Zone / Country (e.g. USA, Zone 1)</label>
+                    <input type="text" id="zone" value="USA">
+                </div>
+            </div>
+            <button onclick="fetchQuotes()">Get Static Quotes</button>
+        </div>
+        
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2>Results</h2>
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Vendor</th>
+                        <th>Carrier</th>
+                        <th>Service</th>
+                        <th>Billed Weight</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        async function fetchQuotes() {
+            const weight = document.getElementById('weight').value;
+            const zone = document.getElementById('zone').value;
+            
+            const response = await fetch(`/api/tariffs/quote?weight=${weight}&zone=${encodeURIComponent(zone)}`);
+            const data = await response.json();
+            
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            if (data.quotes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6b7280;">No approved rates found for this weight and zone.</td></tr>';
+            } else {
+                data.quotes.forEach(q => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${q.vendor}</td>
+                            <td>${q.carrier}</td>
+                            <td>${q.service}</td>
+                            <td>${q.db_weight} kg</td>
+                            <td class="price">
+                                <div>$${q.total_price.toFixed(2)}</div>
+                                <div style="font-size: 0.75rem; color: #6b7280; font-weight: normal; margin-top: 4px;">
+                                    ${q.calculation_logic}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #9ca3af; font-weight: normal; margin-top: 6px; line-height: 1.4;">
+                                    <strong>Source:</strong> ${q.source_file} <br>
+                                    <strong>Extracted:</strong> ${q.extracted_at ? new Date(q.extracted_at).toLocaleDateString() : 'Unknown'} 
+                                    ${q.valid_from ? `<br><strong>Valid:</strong> ${q.valid_from} to ${q.valid_to || 'Ongoing'}` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            document.getElementById('resultsCard').style.display = 'block';
+        }
+    </script>
+{% endblock %}

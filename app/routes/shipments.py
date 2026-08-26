@@ -4,16 +4,22 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
-from app.models import Shipment, TrackingEvent, TrackingNumber, now_ist
-from app.tracking_links import build_tracking_site_url, build_tracking_url
+from app.models import Shipment, ShipmentAIStatus, TrackingEvent, TrackingNumber, TrackingCheck, now_ist
+from app.tracking_fetch import is_actionable_tracking_fetch_error, register_tracking_if_supported
+from app.tracking_links import build_tracking_site_url, build_tracking_url, normalize_courier_name, DEFAULT_TRACKING_TEMPLATES, COPY_AND_OPEN_TRACKING_SITES
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+import pycountry
+from app.ai_import_service import parse_raw_text_for_import
 
 router = APIRouter(prefix="/shipments")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["tracking_url"] = build_tracking_url
 templates.env.globals["tracking_site_url"] = build_tracking_site_url
+templates.env.globals["country_options"] = sorted([c.name for c in pycountry.countries])
+templates.env.globals["tracking_templates"] = DEFAULT_TRACKING_TEMPLATES
+templates.env.globals["copy_and_open_sites"] = COPY_AND_OPEN_TRACKING_SITES
 
 RECEIVER_ADDRESS_PREFIX = "RECEIVER_ADDRESS_JSON:"
 LEGACY_SENDER_ADDRESS_PREFIX = "SENDER_ADDRESS_JSON:"
@@ -35,6 +41,10 @@ DEFAULT_COURIERS = [
     "MAWW",
     "NZ Post",
     "Purolator",
+    "Skynet",
+    "Shipglobal",
+    "Courier Please",
+    "Uni Uni",
 ]
 
 COUNTRY_ALIASES = {
@@ -98,7 +108,7 @@ def get_service_options(db: Session) -> list[str]:
     vendor_partners = [row[0] for row in db.query(Shipment.vendor_partner).distinct().all() if row[0]]
     shipment_couriers = [row[0] for row in db.query(Shipment.courier_company).distinct().all() if row[0]]
     tn_couriers = [row[0] for row in db.query(TrackingNumber.courier_name).distinct().all() if row[0]]
-    return sorted({s.strip() for s in vendor_partners + shipment_couriers + tn_couriers if s and s.strip()}, key=str.lower)
+    return sorted({s.strip().upper() for s in vendor_partners + shipment_couriers + tn_couriers if s and s.strip()}, key=str.lower)
 
 def parse_receiver_address(raw_notes: str | None) -> dict[str, str]:
     blank = {
@@ -286,8 +296,8 @@ def calculate_rate_amount(weight: str, per_kg_rate: str) -> Decimal:
 def status_label(status: str) -> str:
     status = status or "booked"
     custom_labels = {
-        "received": "Received by Courier",
-        "at_lm_partner": "To LM Partner",
+        "send_to_delhi": "Send to Delhi",
+        "to_lm": "To LM",
     }
     return custom_labels.get(status, status.replace("_", " ").title())
 
@@ -309,10 +319,29 @@ def add_status_timeline_event(db: Session, shipment: Shipment, status: str, note
     if status == "delivered" and not shipment.delivered_at:
         shipment.delivered_at = event_time
 
-def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool):
+def register_tracking_after_save(courier: str, number: str, changed: bool) -> None:
+    if not changed:
+        return
+    try:
+        register_tracking_if_supported(courier, number)
+    except Exception:
+        # Registration is only a pre-warm. Saving the shipment must not fail if
+        # 17TRACK is down or the key is missing; fetch will retry later.
+        pass
+
+
+def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, courier: str, is_primary: bool) -> bool:
     number = number.strip() if number else ""
     if not number:
-        return
+        tns = db.query(TrackingNumber).filter(
+            TrackingNumber.shipment_id == shipment_id,
+            TrackingNumber.tracking_type == t_type
+        ).all()
+        for tn in tns:
+            db.query(TrackingEvent).filter(TrackingEvent.tracking_number_id == tn.id).update({"tracking_number_id": None})
+            db.query(TrackingCheck).filter(TrackingCheck.tracking_number_id == tn.id).update({"tracking_number_id": None})
+            db.delete(tn)
+        return len(tns) > 0
 
     if t_type == "main_awb":
         is_primary = True
@@ -328,19 +357,25 @@ def upsert_tracking(db: Session, shipment_id: int, t_type: str, number: str, cou
     ).first()
 
     if tn:
-        tn.tracking_number = number
-        if courier:
-            tn.courier_name = courier.strip()
-        tn.is_primary = is_primary
-    else:
-        new_tn = TrackingNumber(
-            shipment_id=shipment_id,
-            tracking_type=t_type,
-            tracking_number=number,
-            courier_name=courier.strip() if courier else "",
-            is_primary=is_primary
+        new_courier = courier.strip() if courier else ""
+        changed = (
+            (tn.tracking_number or "").strip().upper() != number.upper()
+            or normalize_courier_name(tn.courier_name) != normalize_courier_name(new_courier)
         )
-        db.add(new_tn)
+        tn.tracking_number = number
+        tn.courier_name = new_courier
+        tn.is_primary = is_primary
+        return changed
+
+    new_tn = TrackingNumber(
+        shipment_id=shipment_id,
+        tracking_type=t_type,
+        tracking_number=number,
+        courier_name=courier.strip() if courier else "",
+        is_primary=is_primary
+    )
+    db.add(new_tn)
+    return True
 
 @router.get("")
 def list_shipments(
@@ -350,7 +385,11 @@ def list_shipments(
     status: str = "",
     country: str = "",
     custom_duty: str = "",
-    service: str = ""
+    service: str = "",
+    quick: str = "",
+    date: str = "",
+    weight_from: str = "",
+    weight_to: str = ""
 ):
     query = db.query(Shipment).outerjoin(TrackingNumber)
 
@@ -358,8 +397,10 @@ def list_shipments(
         query = query.filter(
             or_(
                 Shipment.customer_name.ilike(f"%{q}%"),
+                Shipment.receiver_name.ilike(f"%{q}%"),
                 Shipment.customer_phone.ilike(f"%{q}%"),
                 Shipment.destination_country.ilike(f"%{q}%"),
+                Shipment.destination_city.ilike(f"%{q}%"),
                 Shipment.name_country_raw.ilike(f"%{q}%"),
                 Shipment.contact_or_reference_raw.ilike(f"%{q}%"),
                 TrackingNumber.tracking_number.ilike(f"%{q}%"),
@@ -367,7 +408,9 @@ def list_shipments(
                 Shipment.vendor_partner.ilike(f"%{q}%"),
                 Shipment.status_raw_text.ilike(f"%{q}%"),
                 Shipment.internal_notes.ilike(f"%{q}%"),
-                Shipment.customer_notes.ilike(f"%{q}%")
+                Shipment.customer_notes.ilike(f"%{q}%"),
+                Shipment.raw_excel_notes.ilike(f"%{q}%"),
+                Shipment.raw_excel_row_text.ilike(f"%{q}%")
             )
         )
     if status:
@@ -379,14 +422,123 @@ def list_shipments(
         query = query.filter(Shipment.custom_duty == True)
     elif custom_duty == "no":
         query = query.filter(Shipment.custom_duty == False)
-    if service:
+    normalized_service_filter = " ".join((service or "").strip().split()).upper()
+    if normalized_service_filter:
         query = query.filter(or_(
-            Shipment.vendor_partner == service,
-            Shipment.courier_company == service,
-            Shipment.tracking_numbers.any(TrackingNumber.courier_name == service)
+            Shipment.vendor_partner.ilike(normalized_service_filter),
+            Shipment.courier_company.ilike(normalized_service_filter),
+            Shipment.tracking_numbers.any(TrackingNumber.courier_name.ilike(normalized_service_filter))
         ))
-    shipments = query.order_by(Shipment.booking_date.desc()).distinct().all()
+        
+
+    shipments = query.order_by(Shipment.booking_date.desc(), Shipment.id.desc()).distinct().all()
+
+    terminal_statuses = {"delivered", "rto", "undelivered"}
+    today = now_ist().date()
+
+    def get_effective_weight(shipment):
+        cust_w = parse_rate_details(shipment.raw_excel_notes).get('customer_charged_weight')
+        if cust_w:
+            try:
+                return float(cust_w)
+            except ValueError:
+                pass
+        if shipment.charged_weight is not None:
+            return float(shipment.charged_weight)
+        return None
+
+    def shipment_date(shipment):
+        if not shipment.booking_date:
+            return None
+        return shipment.booking_date.date()
+
+    def is_active(shipment):
+        return shipment.overall_status not in terminal_statuses
+
+    def missing_main_tracking(shipment):
+        return not any((tn.tracking_number or "").strip() for tn in shipment.tracking_numbers)
+
+    def missing_lm_tracking(shipment):
+        return shipment.requires_lm_awb and not any(tn.tracking_type == "lm_awb" and (tn.tracking_number or "").strip() for tn in shipment.tracking_numbers)
+
+    def promised_overdue(shipment):
+        if not shipment.booking_date or not shipment.promised_days_number or not is_active(shipment):
+            return False
+        return shipment.booking_date.date() + timedelta(days=shipment.promised_days_number) < today
+
+    if weight_from and weight_from.strip():
+        try:
+            w_from = float(weight_from.strip())
+            shipments = [s for s in shipments if get_effective_weight(s) is not None and get_effective_weight(s) >= w_from]
+        except ValueError:
+            pass
+
+    if weight_to and weight_to.strip():
+        try:
+            w_to = float(weight_to.strip())
+            shipments = [s for s in shipments if get_effective_weight(s) is not None and get_effective_weight(s) <= w_to]
+        except ValueError:
+            pass
+
+    if date == "today" or quick == "today":
+        shipments = [s for s in shipments if shipment_date(s) == today]
+    if quick == "active":
+        shipments = [s for s in shipments if is_active(s)]
+    elif quick == "missing_tracking":
+        shipments = [s for s in shipments if is_active(s) and missing_main_tracking(s)]
+    elif quick == "missing_lm":
+        shipments = [s for s in shipments if is_active(s) and missing_lm_tracking(s)]
+    elif quick == "pending_balance":
+        shipments = [s for s in shipments if s.balance_amount and float(s.balance_amount) > 0]
+    elif quick == "custom_duty":
+        shipments = [s for s in shipments if s.custom_duty]
+    elif quick == "stale":
+        shipments = [s for s in shipments if s.is_stuck]
+    elif quick == "overdue":
+        shipments = [s for s in shipments if promised_overdue(s)]
+    elif quick == "attention":
+        shipments = [s for s in shipments if s.needs_attention]
+    elif quick == "delivered":
+        shipments = [s for s in shipments if s.overall_status == "delivered"]
     shipment_previews = {}
+    shipment_ids = [shipment.id for shipment in shipments]
+    latest_ai_statuses = {}
+    latest_ai_events = {}
+    latest_failed_checks = {}
+    if shipment_ids:
+        ai_rows = (
+            db.query(ShipmentAIStatus)
+            .filter(ShipmentAIStatus.shipment_id.in_(shipment_ids))
+            .order_by(ShipmentAIStatus.created_at.desc())
+            .all()
+        )
+        for row in ai_rows:
+            if row.shipment_id not in latest_ai_statuses:
+                latest_ai_statuses[row.shipment_id] = row
+                try:
+                    events = json.loads(row.formatted_events_json or "[]")
+                    latest_ai_events[row.shipment_id] = events
+                except Exception:
+                    latest_ai_events[row.shipment_id] = []
+
+        active_tn_ids = [tn.id for s in shipments for tn in s.tracking_numbers if tn.id is not None]
+        all_checks = (
+            db.query(TrackingCheck)
+            .filter(TrackingCheck.shipment_id.in_(shipment_ids))
+            .filter(TrackingCheck.tracking_number_id.in_(active_tn_ids))
+            .order_by(TrackingCheck.created_at.desc())
+            .all()
+        ) if active_tn_ids else []
+        latest_check_by_tn = {}
+        for check in all_checks:
+            if check.tracking_number_id not in latest_check_by_tn:
+                latest_check_by_tn[check.tracking_number_id] = check
+
+        for check in latest_check_by_tn.values():
+            if check.fetch_status in ("failed", "error"):
+                if is_actionable_tracking_fetch_error(check.courier_name, check.tracking_type, check.error_message) and check.shipment_id not in latest_failed_checks:
+                    latest_failed_checks[check.shipment_id] = check
+
     for shipment in shipments:
         item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
         receiver_address = parse_receiver_address(shipment.raw_excel_notes)
@@ -394,6 +546,7 @@ def list_shipments(
         shipment_previews[shipment.id] = {
             "item_raw_text": item_raw_text,
             "address": format_receiver_address(receiver_address),
+            "address_parts": receiver_address,
             "rate_details": rate_details,
         }
     courier_options = get_courier_options(db)
@@ -404,6 +557,9 @@ def list_shipments(
         "request": request,
         "shipments": shipments,
         "shipment_previews": shipment_previews,
+        "latest_ai_statuses": latest_ai_statuses,
+        "latest_ai_events": latest_ai_events,
+        "latest_failed_checks": latest_failed_checks,
         "courier_options": courier_options,
         "service_options": service_options,
         "country_options": country_options,
@@ -411,19 +567,72 @@ def list_shipments(
         "status": status,
         "country": normalized_country_filter,
         "custom_duty": custom_duty,
-        "service": service,
+        "service": normalized_service_filter,
+        "quick": quick,
+        "date": date,
+        "weight_from": weight_from,
+        "weight_to": weight_to,
     })
 
 @router.get("/new")
-def new_shipment_form(request: Request, db: Session = Depends(get_db)):
+def new_shipment_form(request: Request, clone_from: int | None = None, db: Session = Depends(get_db)):
     today = now_ist().strftime("%Y-%m-%d")
+    clone_data_json = ""
+    if clone_from:
+        import json
+        shipment_to_clone = db.query(Shipment).filter(Shipment.id == clone_from).first()
+        if shipment_to_clone:
+            main_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "main_awb"), None)
+            lm_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "lm_awb"), None)
+            bilty_awb = next((tn for tn in shipment_to_clone.tracking_numbers if tn.tracking_type == "bilty_no"), None)
+            receiver_address = parse_receiver_address(shipment_to_clone.raw_excel_notes)
+            item_raw_text = parse_item_raw_text(shipment_to_clone.raw_excel_notes)
+            
+            data = {
+                "customer_name": shipment_to_clone.customer_name or "",
+                "customer_phone": shipment_to_clone.customer_phone or "",
+                "receiver_name": shipment_to_clone.receiver_name or "",
+                "receiver_address_line_1": receiver_address.get("line_1", ""),
+                "receiver_address_line_2": receiver_address.get("line_2", ""),
+                "receiver_address_line_3": receiver_address.get("line_3", ""),
+                "destination_city": shipment_to_clone.destination_city or "",
+                "receiver_state": receiver_address.get("state", ""),
+                "receiver_zip": receiver_address.get("zip", ""),
+                "destination_country": shipment_to_clone.destination_country or "",
+                "contact_or_reference_raw": shipment_to_clone.contact_or_reference_raw or "",
+            }
+            clone_data_json = json.dumps(data).replace("</", "<\\/")
+
     return templates.TemplateResponse("shipments/new.html", {
         "request": request,
         "today": today,
-        "item_raw_text": "",
         "courier_options": get_courier_options(db),
         "service_options": get_service_options(db),
-        "country_options": get_country_options(db)
+        "country_options": get_country_options(db),
+        "clone_data_json": clone_data_json
+    })
+
+@router.post("/new/ai-import")
+async def ai_import_shipment(request: Request, raw_text: str = Form(...), db: Session = Depends(get_db)):
+    today = now_ist().strftime("%Y-%m-%d")
+    
+    courier_options = get_courier_options(db)
+    parsed_data = parse_raw_text_for_import(raw_text, courier_options)
+    
+    if "error" in parsed_data:
+        clone_data_json = ""
+    else:
+        clone_data_json = json.dumps(parsed_data).replace("</", "<\\/")
+        
+    return templates.TemplateResponse("shipments/new.html", {
+        "request": request,
+        "today": today,
+        "item_raw_text": parsed_data.get("item_raw_text", "") if not parsed_data.get("error") else "",
+        "courier_options": get_courier_options(db),
+        "service_options": get_service_options(db),
+        "country_options": get_country_options(db),
+        "clone_data_json": clone_data_json,
+        "toast_message": "AI Import Successful!" if not parsed_data.get("error") else f"AI Error: {parsed_data.get('error')}"
     })
 
 @router.post("/new")
@@ -470,6 +679,7 @@ def create_shipment(
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
+    paid_amount: str = Form("0.0"),
 
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
@@ -477,10 +687,14 @@ def create_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    receive_date: str = Form(""),
+    second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
 
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
@@ -492,6 +706,7 @@ def create_shipment(
     parsed_received = parse_decimal(received_amount)
     parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
+    parsed_paid_amount = parse_decimal(paid_amount)
 
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
@@ -503,11 +718,32 @@ def create_shipment(
             parsed_booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
         except ValueError:
             pass
+            
+    parsed_second_booking_date = None
+    if second_booking_date and second_booking_date.strip():
+        try:
+            parsed_second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    parsed_receive_date = None
+    if receive_date and receive_date.strip():
+        try:
+            parsed_receive_date = datetime.strptime(receive_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    parsed_connection_date = None
+    if connection_date and connection_date.strip():
+        try:
+            parsed_connection_date = datetime.strptime(connection_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
 
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
-    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+    normalized_vendor_partner = " ".join((vendor_partner or "").strip().split()).upper()
 
     customer_name = normalize_proper_case(customer_name)
     receiver_name = normalize_proper_case(receiver_name)
@@ -547,6 +783,9 @@ def create_shipment(
 
     shipment = Shipment(
         booking_date=parsed_booking_date,
+        receive_date=parsed_receive_date,
+        second_booking_date=parsed_second_booking_date,
+        connection_date=parsed_connection_date,
         customer_name=customer_name,
         receiver_name=receiver_name,
         destination_country=normalize_country(destination_country),
@@ -572,6 +811,7 @@ def create_shipment(
         received_amount=parsed_received,
         self_cost=parsed_self_cost,
         other_expense=parsed_other_exp,
+        paid_amount=parsed_paid_amount,
         total_cost=total_cost,
         service_value=service_value,
         balance_amount=balance_amount,
@@ -602,14 +842,17 @@ def create_shipment(
         add_status_timeline_event(db, shipment, overall_status or "booked", status_raw_text, "shipment_create")
 
     # Tracking numbers
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
 
     return RedirectResponse(url="/shipments", status_code=303)
-
 @router.post("/{shipment_id}/quick-update")
 def quick_update_shipment(
+    request: Request,
     shipment_id: int,
     db: Session = Depends(get_db),
     overall_status: str = Form("booked"),
@@ -618,9 +861,15 @@ def quick_update_shipment(
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
     internal_notes: str = Form(""),
     custom_duty: str | None = Form(None),
+    is_delayed: str | None = Form(None),
     row_color: str | None = Form(None),
+    booking_date: str = Form(""),
+    receive_date: str = Form(""),
+    second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     next_url: str = Form("/shipments")
 ):
     shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
@@ -637,17 +886,71 @@ def quick_update_shipment(
     if new_status != old_status or new_notes != old_notes:
         add_status_timeline_event(db, shipment, new_status, new_notes, "row_status_update")
     shipment.internal_notes = internal_notes.strip()
-    
+
     if custom_duty is not None:
         shipment.custom_duty = (custom_duty.lower() == "true")
-        
-    if row_color is not None:
-        selected_color = row_color.strip().lower()
-        shipment.row_color = selected_color if selected_color in {"green", "yellow", "red"} else None
 
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    if is_delayed is not None:
+        shipment.is_delayed = (is_delayed.lower() == "true")
+
+    if booking_date is not None:
+        if booking_date.strip() == "":
+            shipment.booking_date = None
+        else:
+            try:
+                shipment.booking_date = datetime.strptime(booking_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if second_booking_date is not None:
+        if second_booking_date.strip() == "":
+            shipment.second_booking_date = None
+        else:
+            try:
+                shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if receive_date is not None:
+        if receive_date.strip() == "":
+            shipment.receive_date = None
+        else:
+            try:
+                shipment.receive_date = datetime.strptime(receive_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if connection_date is not None:
+        if connection_date.strip() == "":
+            shipment.connection_date = None
+        else:
+            try:
+                shipment.connection_date = datetime.strptime(connection_date.strip(), "%Y-%m-%d")
+            except ValueError:
+                pass
+
+    if row_color is not None and row_color.strip() != "":
+        selected_color = row_color.strip().lower()
+        if selected_color == "clear":
+            shipment.row_color = None
+        elif selected_color in {"green", "yellow", "red"}:
+            shipment.row_color = selected_color
+
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
+
+    if request.headers.get("accept", "").startswith("application/json") or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        row_color_effective = shipment.row_color or ('green' if shipment.overall_status == 'delivered' else ('red' if shipment.overall_status in ['undelivered', 'hold', 'rto'] else 'yellow'))
+        return {
+            "status": "success",
+            "message": "Shipment updated successfully",
+            "row_color": shipment.row_color,
+            "row_color_effective": row_color_effective
+        }
 
     return RedirectResponse(url=redirect_url, status_code=303)
 @router.get("/{shipment_id}")
@@ -660,14 +963,48 @@ def shipment_detail(request: Request, shipment_id: int, db: Session = Depends(ge
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
     rate_details = parse_rate_details(shipment.raw_excel_notes)
     volumetric_dimensions = parse_volumetric_dimensions(shipment.raw_excel_notes)
+    latest_ai_status = (
+        db.query(ShipmentAIStatus)
+        .filter(ShipmentAIStatus.shipment_id == shipment.id)
+        .order_by(ShipmentAIStatus.created_at.desc())
+        .first()
+    )
+    latest_ai_events = []
+    if latest_ai_status:
+        try:
+            latest_ai_events = json.loads(latest_ai_status.formatted_events_json or '[]')
+        except json.JSONDecodeError:
+            latest_ai_events = []
+    tracking_checks = (
+        db.query(TrackingCheck)
+        .filter(TrackingCheck.shipment_id == shipment.id)
+        .order_by(TrackingCheck.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    actionable_tracking_errors = [
+        check for check in tracking_checks
+        if check.fetch_status in ("failed", "error")
+        and is_actionable_tracking_fetch_error(check.courier_name, check.tracking_type, check.error_message)
+    ]
+    indiapost_checks = [
+        check for check in tracking_checks
+        if check.fetch_status in ("failed", "error")
+        and normalize_courier_name(check.courier_name or "") in {"indiapost", "indiaapost", "indianpost", "postindia"}
+    ]
     return templates.TemplateResponse("shipments/detail.html", {
         "request": request,
         "shipment": shipment,
+        "tracking_checks": tracking_checks,
+        "actionable_tracking_errors": actionable_tracking_errors,
+        "indiapost_checks": indiapost_checks,
         "receiver_address": receiver_address,
         "receiver_address_text": format_receiver_address(receiver_address),
         "item_raw_text": item_raw_text,
         "rate_details": rate_details,
         "volumetric_dimensions": volumetric_dimensions,
+        "latest_ai_status": latest_ai_status,
+        "latest_ai_events": latest_ai_events,
         "customer_per_kg_rate": extract_per_kg_rate(shipment.customer_rate_text),
         "vendor_per_kg_rate": extract_per_kg_rate(shipment.vendor_rate_text)
     })
@@ -680,6 +1017,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
 
     main_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "main_awb"), None)
     lm_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "lm_awb"), None)
+    bilty_awb = next((tn for tn in shipment.tracking_numbers if tn.tracking_type == "bilty_no"), None)
 
     receiver_address = parse_receiver_address(shipment.raw_excel_notes)
     item_raw_text = parse_item_raw_text(shipment.raw_excel_notes)
@@ -690,6 +1028,7 @@ def edit_shipment_form(request: Request, shipment_id: int, db: Session = Depends
         "shipment": shipment,
         "main_awb": main_awb,
         "lm_awb": lm_awb,
+        "bilty_awb": bilty_awb,
         "receiver_address": receiver_address,
         "item_raw_text": item_raw_text,
         "rate_details": rate_details,
@@ -746,6 +1085,7 @@ def update_shipment(
     received_amount: str = Form("0.0"),
     self_cost: str = Form("0.0"),
     other_expense: str = Form("0.0"),
+    paid_amount: str = Form("0.0"),
 
     status_raw_text: str = Form(""),
     overall_status: str = Form("booked"),
@@ -753,10 +1093,14 @@ def update_shipment(
     custom_duty: bool = Form(False),
 
     booking_date: str = Form(""),
+    receive_date: str = Form(""),
+    second_booking_date: str = Form(""),
+    connection_date: str = Form(""),
     main_tracking_number: str = Form(""),
     main_tracking_courier: str = Form(""),
     lm_awb_number: str = Form(""),
     lm_awb_courier: str = Form(""),
+    bilty_number: str = Form(""),
 
     internal_notes: str = Form(""),
     customer_notes: str = Form(""),
@@ -775,6 +1119,7 @@ def update_shipment(
     parsed_received = parse_decimal(received_amount)
     parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
+    parsed_paid_amount = parse_decimal(paid_amount)
 
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
@@ -786,10 +1131,20 @@ def update_shipment(
         except ValueError:
             pass
 
+    if second_booking_date and second_booking_date.strip():
+        try:
+            shipment.second_booking_date = datetime.strptime(second_booking_date.strip(), "%Y-%m-%d")
+        except ValueError:
+            pass
+            
+    # Set to None if explicitly cleared (if you want clearing to be possible, maybe handle empty string)
+    if not second_booking_date or second_booking_date.strip() == "":
+        shipment.second_booking_date = None
+
     normalized_destination_city = normalize_proper_case(destination_city)
     normalized_receiver_state = normalize_proper_case(receiver_state)
     normalized_receiver_zip = " ".join((receiver_zip or "").strip().split()).upper()
-    normalized_vendor_partner = normalize_proper_case(vendor_partner)
+    normalized_vendor_partner = " ".join((vendor_partner or "").strip().split()).upper()
 
     customer_name = normalize_proper_case(customer_name)
     receiver_name = normalize_proper_case(receiver_name)
@@ -840,6 +1195,7 @@ def update_shipment(
     shipment.received_amount = parsed_received
     shipment.self_cost = parsed_self_cost
     shipment.other_expense = parsed_other_exp
+    shipment.paid_amount = parsed_paid_amount
     shipment.total_cost = total_cost
     shipment.service_value = service_value
     shipment.balance_amount = balance_amount
@@ -874,8 +1230,27 @@ def update_shipment(
     })
     shipment.raw_excel_row_text = raw_excel_row_text
 
-    upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
-    upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    main_tracking_changed = upsert_tracking(db, shipment.id, "main_awb", main_tracking_number, main_tracking_courier, True)
+    lm_tracking_changed = upsert_tracking(db, shipment.id, "lm_awb", lm_awb_number, lm_awb_courier, False)
+    upsert_tracking(db, shipment.id, "bilty_no", bilty_number, "", False)
 
     db.commit()
+    register_tracking_after_save(main_tracking_courier, main_tracking_number, main_tracking_changed)
+    register_tracking_after_save(lm_awb_courier, lm_awb_number, lm_tracking_changed)
+    return RedirectResponse(url="/shipments", status_code=303)
+
+
+@router.post("/{shipment_id}/delete")
+def delete_shipment(request: Request, shipment_id: int, db: Session = Depends(get_db)):
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        return RedirectResponse(url="/shipments", status_code=303)
+
+    db.query(ShipmentAIStatus).filter(ShipmentAIStatus.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(TrackingCheck).filter(TrackingCheck.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(TrackingEvent).filter(TrackingEvent.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(TrackingNumber).filter(TrackingNumber.shipment_id == shipment_id).delete(synchronize_session=False)
+    db.query(Shipment).filter(Shipment.id == shipment_id).delete(synchronize_session=False)
+    db.commit()
+
     return RedirectResponse(url="/shipments", status_code=303)

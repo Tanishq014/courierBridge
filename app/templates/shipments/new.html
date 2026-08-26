@@ -2,17 +2,98 @@
 
 {% block title %}New Shipment | CourierBridge{% endblock %}
 
+{% block head %}
+{% if toast_message %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    showToast({{ toast_message | tojson | safe }}, "{{ 'error' if 'Error' in toast_message else 'success' }}");
+});
+</script>
+{% endif %}
+{% if clone_data_json %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const data = {{ clone_data_json | safe }};
+    const form = document.getElementById('new-shipment-form');
+    for (const [name, value] of Object.entries(data)) {
+        const el = form.elements[name];
+        if (el && el.type !== 'hidden' && el.type !== 'submit') {
+            const safeValue = value === null ? '' : value;
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = safeValue === true;
+            } else {
+                let stringVal = String(safeValue).toLowerCase();
+                if (el.tomselect) {
+                    if (safeValue) {
+                        const existingOpts = Object.values(el.tomselect.options);
+                        const match = existingOpts.find(opt => opt.value.toLowerCase() === stringVal);
+                        const finalVal = match ? match.value : safeValue;
+                        if (!match) el.tomselect.addOption({value: finalVal, text: finalVal});
+                        el.tomselect.setValue(finalVal);
+                    }
+                } else if (el.tagName === 'SELECT') {
+                    const match = Array.from(el.options).find(opt => opt.value.toLowerCase() === stringVal);
+                    if (match) el.value = match.value;
+                } else {
+                    el.value = safeValue;
+                }
+            }
+        } else if (el && el.type === 'hidden') {
+            el.value = value === null ? '' : value;
+        }
+    }
+    
+    // Force volumetric and rate scripts to recalculate by triggering change on key inputs
+    const dispatchChange = (name) => {
+        if (form.elements[name]) form.elements[name].dispatchEvent(new Event('input', { bubbles: true }));
+        if (form.elements[name]) form.elements[name].dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    ['volumetric_length', 'volumetric_width', 'volumetric_height', 'dead_weight', 'customer_charged_weight', 'vendor_charged_weight'].forEach(dispatchChange);
+    
+    // Save draft after short delay
+    setTimeout(() => {
+        const anyInput = form.querySelector('input:not([type="hidden"])');
+        if(anyInput) anyInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }, 600);
+    
+    // Clean up the URL so refreshing doesn't wipe changes and re-clone (and fixes 405 on AI Import refresh)
+    window.history.replaceState({}, document.title, "/shipments/new");
+});
+</script>
+{% endif %}
+
+{% endblock %}
+
 {% block content %}
 <header class="page-header compact-page-header">
     <div class="page-heading">
         <div class="heading-with-date">
             <h1>Create new booking</h1>
-            <div class="form-group inline-date page-inline-date">
-                <input form="new-shipment-form" type="date" name="booking_date" value="{{ today }}" required aria-label="Booking date" title="Booking date">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="booking_date" value="{{ today }}" required aria-label="Booking date" title="Booking date">
+                </div>
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="second_booking_date" aria-label="Send date" title="Send date">
+                </div>
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="receive_date" aria-label="Receive date" title="Receive date">
+                </div>
+                <div class="form-group inline-date page-inline-date" style="margin: 0;">
+                    <input form="new-shipment-form" type="date" name="connection_date" aria-label="Connection date" title="Connection date">
+                </div>
             </div>
         </div>
     </div>
-    <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
+    <div class="page-actions">
+        <a href="#" id="ai-bookmarklet" class="btn btn-primary" title="Drag this button to your Chrome bookmarks bar to quickly import shipments from vendor sites!" style="background: linear-gradient(135deg, #6366f1, #a855f7); border: none; font-weight: 600;">✨ Drag to Bookmarks (AI)</a>
+        <a href="/shipments" class="btn btn-secondary">Cancel</a>
+        <script>
+            const aiUrl = window.location.origin + '/shipments/new/ai-import';
+            const jsCode = `javascript:(function(){var t=document.body.innerText+'\\n\\nInput Values:\\n';var els=document.querySelectorAll('input,select,textarea');for(var j=0;j<els.length;j++){var el=els[j];var n=el.name||el.id||'Field';if(el.value&&el.type!=='hidden')t+=n+': '+el.value+'\\n';}var f=document.createElement('form');f.method='POST';f.action='${aiUrl}';f.target='_blank';var i=document.createElement('textarea');i.name='raw_text';i.value=t;f.appendChild(i);document.body.appendChild(f);f.submit();})();`;
+            document.getElementById('ai-bookmarklet').href = jsCode;
+        </script>
+    </div>
 </header>
 
 <div class="card form-card">
@@ -21,14 +102,14 @@
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
         </div>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Sender Phone</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_phone" placeholder="e.g. 9876543210">
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Sender Name <span class="required">*</span></label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" placeholder="e.g. John Doe" required>
+            </div>
+            <div class="form-group">
+                <label>Sender Phone</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_phone" placeholder="e.g. 9876543210">
             </div>
             <div class="form-group">
                 <label>Receiver Name</label>
@@ -38,8 +119,7 @@
                 <label>Address Line 1</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_1" placeholder="House / building">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Address Line 2</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_2" placeholder="Street / area">
@@ -56,15 +136,17 @@
                 <label>Receiver State</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" placeholder="e.g. Ontario">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Receiver ZIP</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" placeholder="e.g. M5V 2T6">
             </div>
             <div class="form-group">
                 <label>Destination Country <span class="required">*</span></label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" list="destination-country-options" placeholder="Search country" required>
+                <select name="destination_country" class="searchable-country" placeholder="Search country..." required>
+                    <option value="">Search country...</option>
+                    {% for country in country_options %}<option value="{{ country }}">{{ country }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Receiver Phone</label>
@@ -121,7 +203,7 @@
         <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Handed over to</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. Nikhil, Self">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" placeholder="e.g. NIKHIL, SELF">
             </div>
             <div class="form-group">
                 <label>First Courier Company <span class="required">*</span></label>
@@ -146,32 +228,36 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" placeholder="e.g. LM123456">
             </div>
             <div class="form-group">
-                <label>Current Status</label>
-                <select name="overall_status">
-                    <option value="booked">Booked</option>
-                    <option value="received">Received by Courier</option>
-                    <option value="bagging">Bagging</option>
-                    <option value="hand_over_to_airline">Hand over to airline</option>
-                    <option value="in_transit">In Transit</option>
-                    <option value="at_destination">At destination</option>
-                    <option value="custom_clearance">Custom Clearance</option>
-                    <option value="at_lm_partner">To LM Partner</option>
-                    <option value="out_for_delivery">Out for Delivery</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="undelivered">Undelivered</option>
-                    <option value="rto">RTO</option>
-                    <option value="return_damage">Return/Damage</option>
-                    <option value="exception">Exception</option>
-                    <option value="unknown">Unknown</option>
-                </select>
+                <label>Bilty Number / LR</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="bilty_number" placeholder="e.g. LR12345">
             </div>
         </div>
         <div class="grid-4">
             <div class="form-group">
+                <label>Current Status</label>
+                <select name="overall_status">
+                    <option value="booked">Booked</option>
+                    <option value="send_to_delhi">Send to Delhi</option>
+                    <option value="in_scan">In scan</option>
+                    <option value="processed">Processed</option>
+                    <option value="connected">Connected</option>
+                    <option value="transit_in_india">Transit in india</option>
+                    <option value="transit_to_dest">Transit to dest</option>
+                    <option value="arrived">Arrived</option>
+                    <option value="custom_process">Custom Process</option>
+                    <option value="to_lm">To LM</option>
+                    <option value="out_for_delivery">Out For Delivery</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="undelivered">Undelivered</option>
+                    <option value="hold">Hold</option>
+                    <option value="rto">Rto</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Promised Days</label>
                 <input type="number" name="promised_days_number" placeholder="Days">
             </div>
-            <div class="form-group" style="grid-column: span 3;">
+            <div class="form-group" style="grid-column: span 2;">
                 <label>Status Notes</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
@@ -207,6 +293,10 @@
             <div class="form-group">
                 <label>Other Expense</label>
                 <input type="number" step="0.01" name="other_expense" value="0.0" id="other_expense">
+            </div>
+            <div class="form-group">
+                <label>Paid Amount</label>
+                <input type="number" step="0.01" name="paid_amount" value="0.0" id="paid_amount" placeholder="Amt. paid to vendor">
             </div>
             <div class="form-group" style="font-weight: bold;">
                 Profit: <span id="profit_display">0.00</span>

@@ -46,8 +46,14 @@
                     <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" value="{{ parsed_data.customer_name }}">
                 </div>
                 <div class="form-group">
-                    <label>Destination</label>
-                    <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" value="{{ parsed_data.destination_country }}">
+                    <label>Destination Country</label>
+                    <select name="destination_country" class="searchable-country" placeholder="Search country...">
+                        <option value="">Search country...</option>
+                        {% if parsed_data.destination_country and parsed_data.destination_country not in country_options %}
+                        <option value="{{ parsed_data.destination_country }}" selected>{{ parsed_data.destination_country }}</option>
+                        {% endif %}
+                        {% for country in country_options %}<option value="{{ country }}" {% if country == parsed_data.destination_country %}selected{% endif %}>{{ country }}</option>{% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="form-group">

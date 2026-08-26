@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
+import pycountry
 
 router = APIRouter(prefix="/tools")
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["country_options"] = sorted([c.name for c in pycountry.countries])
 
 
 def normalize_proper_case(value: str | None) -> str:

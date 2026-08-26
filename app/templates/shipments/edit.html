@@ -5,31 +5,50 @@
 {% block content %}
 <header class="page-header compact-page-header">
     <div class="page-heading">
-        <div class="eyebrow">Shipment #{{ shipment.id }}</div>
         <h1>Edit shipment</h1>
-        <p class="page-description">Update booking, financial, and tracking details for {{ shipment.customer_name }}.</p>
     </div>
-    <div class="page-actions"><a href="/shipments" class="btn btn-secondary">Cancel</a></div>
+    <div class="page-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="/shipments/new?clone_from={{ shipment.id }}" class="btn btn-secondary" title="Create a new shipment copying all data from this one">Clone</a>
+        <a href="/shipments" class="btn btn-secondary">Cancel</a>
+        <button form="edit-shipment-form" type="submit" class="btn btn-primary">Save changes</button>
+    </div>
 </header>
 
 <div class="card form-card">
-    <form method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form compact-shipment-form">
+    <form id="edit-shipment-form" method="POST" action="/shipments/{{ shipment.id }}/edit" class="shipment-form compact-shipment-form">
 
         <div class="form-section-title">
             <h3>Sender & Receiver</h3>
-            <div class="form-group inline-date">
-                <label>Booking Date <span class="required">*</span></label>
-                <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-left: auto;">
+                <div style="font-size: 0.9rem; font-weight: 700; color: #111827; background: #f3f4f6; padding: 0.35rem 0.75rem; border-radius: 0.375rem; display: flex; align-items: center; border: 1px solid #e5e7eb;">
+                    Shipment #{{ shipment.id }}
+                </div>
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Booking Date <span class="required">*</span></label>
+                    <input type="date" name="booking_date" value="{% if shipment.booking_date %}{{ shipment.booking_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+                </div>
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Send Date</label>
+                    <input type="date" name="second_booking_date" value="{% if shipment.second_booking_date %}{{ shipment.second_booking_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Receive Date</label>
+                    <input type="date" name="receive_date" value="{% if shipment.receive_date %}{{ shipment.receive_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+                <div class="form-group inline-date" style="margin: 0;">
+                    <label>Connection Date</label>
+                    <input type="date" name="connection_date" value="{% if shipment.connection_date %}{{ shipment.connection_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
             </div>
         </div>
-        <div class="grid-4">
-            <div class="form-group">
-                <label>Sender Phone</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_phone" value="{{ shipment.customer_phone or '' }}" placeholder="e.g. 9876543210">
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Sender Name <span class="required">*</span></label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="customer_name" value="{{ shipment.customer_name or '' }}" placeholder="e.g. John Doe" required>
+            </div>
+            <div class="form-group">
+                <label>Sender Phone</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="customer_phone" value="{{ shipment.customer_phone or '' }}" placeholder="e.g. 9876543210">
             </div>
             <div class="form-group">
                 <label>Receiver Name</label>
@@ -39,8 +58,7 @@
                 <label>Address Line 1</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_1" value="{{ receiver_address.line_1 }}" placeholder="House / building">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Address Line 2</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_address_line_2" value="{{ receiver_address.line_2 }}" placeholder="Street / area">
@@ -57,15 +75,20 @@
                 <label>Receiver State</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_state" value="{{ receiver_address.state }}" placeholder="e.g. Ontario">
             </div>
-        </div>
-        <div class="grid-4">
+
             <div class="form-group">
                 <label>Receiver ZIP</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="receiver_zip" value="{{ receiver_address.zip }}" placeholder="e.g. M5V 2T6">
             </div>
             <div class="form-group">
                 <label>Destination Country <span class="required">*</span></label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="destination_country" class="country-normalized-input" value="{{ shipment.destination_country or '' }}" list="destination-country-options" placeholder="Search country" required>
+                <select name="destination_country" class="searchable-country" placeholder="Search country..." required>
+                    <option value="">Search country...</option>
+                    {% if shipment.destination_country and shipment.destination_country not in country_options %}
+                    <option value="{{ shipment.destination_country }}" selected>{{ shipment.destination_country }}</option>
+                    {% endif %}
+                    {% for country in country_options %}<option value="{{ country }}" {% if country == shipment.destination_country %}selected{% endif %}>{{ country }}</option>{% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Receiver Phone</label>
@@ -122,7 +145,7 @@
         <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;">
             <div class="form-group">
                 <label>Handed over to</label>
-                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ shipment.vendor_partner or '' }}" placeholder="e.g. Nikhil, Self">
+                <input autocomplete="new-password" spellcheck="false" type="text" name="vendor_partner" value="{{ (shipment.vendor_partner or '')|upper }}" placeholder="e.g. NIKHIL, SELF">
             </div>
             <div class="form-group">
                 <label>First Courier Company <span class="required">*</span></label>
@@ -151,32 +174,36 @@
                 <input autocomplete="new-password" spellcheck="false" type="text" name="lm_awb_number" value="{{ lm_awb.tracking_number if lm_awb else '' }}">
             </div>
             <div class="form-group">
-                <label>Current Status</label>
-                <select name="overall_status">
-                    <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
-                    <option value="received" {% if shipment.overall_status == 'received' %}selected{% endif %}>Received by Courier</option>
-                    <option value="bagging" {% if shipment.overall_status == 'bagging' %}selected{% endif %}>Bagging</option>
-                    <option value="hand_over_to_airline" {% if shipment.overall_status == 'hand_over_to_airline' %}selected{% endif %}>Hand over to airline</option>
-                    <option value="in_transit" {% if shipment.overall_status == 'in_transit' %}selected{% endif %}>In Transit</option>
-                    <option value="at_destination" {% if shipment.overall_status == 'at_destination' %}selected{% endif %}>At destination</option>
-                    <option value="custom_clearance" {% if shipment.overall_status == 'custom_clearance' %}selected{% endif %}>Custom Clearance</option>
-                    <option value="at_lm_partner" {% if shipment.overall_status == 'at_lm_partner' %}selected{% endif %}>To LM Partner</option>
-                    <option value="out_for_delivery" {% if shipment.overall_status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
-                    <option value="delivered" {% if shipment.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
-                    <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
-                    <option value="rto" {% if shipment.overall_status == 'rto' %}selected{% endif %}>RTO</option>
-                    <option value="return_damage" {% if shipment.overall_status == 'return_damage' %}selected{% endif %}>Return/Damage</option>
-                    <option value="exception" {% if shipment.overall_status == 'exception' %}selected{% endif %}>Exception</option>
-                    <option value="unknown" {% if shipment.overall_status == 'unknown' %}selected{% endif %}>Unknown</option>
-                </select>
+                <label>Bilty Number / LR</label>
+                <input autocomplete="new-password" spellcheck="false" type="text" name="bilty_number" value="{{ bilty_awb.tracking_number if bilty_awb else '' }}" placeholder="e.g. LR12345">
             </div>
         </div>
         <div class="grid-4">
             <div class="form-group">
+                <label>Current Status</label>
+                <select name="overall_status">
+                    <option value="booked" {% if shipment.overall_status == 'booked' %}selected{% endif %}>Booked</option>
+                    <option value="send_to_delhi" {% if shipment.overall_status == 'send_to_delhi' %}selected{% endif %}>Send to Delhi</option>
+                    <option value="in_scan" {% if shipment.overall_status == 'in_scan' %}selected{% endif %}>In scan</option>
+                    <option value="processed" {% if shipment.overall_status == 'processed' %}selected{% endif %}>Processed</option>
+                    <option value="connected" {% if shipment.overall_status == 'connected' %}selected{% endif %}>Connected</option>
+                    <option value="transit_in_india" {% if shipment.overall_status == 'transit_in_india' %}selected{% endif %}>Transit in india</option>
+                    <option value="transit_to_dest" {% if shipment.overall_status == 'transit_to_dest' %}selected{% endif %}>Transit to dest</option>
+                    <option value="arrived" {% if shipment.overall_status == 'arrived' %}selected{% endif %}>Arrived</option>
+                    <option value="custom_process" {% if shipment.overall_status == 'custom_process' %}selected{% endif %}>Custom Process</option>
+                    <option value="to_lm" {% if shipment.overall_status == 'to_lm' %}selected{% endif %}>To LM</option>
+                    <option value="out_for_delivery" {% if shipment.overall_status == 'out_for_delivery' %}selected{% endif %}>Out For Delivery</option>
+                    <option value="delivered" {% if shipment.overall_status == 'delivered' %}selected{% endif %}>Delivered</option>
+                    <option value="undelivered" {% if shipment.overall_status == 'undelivered' %}selected{% endif %}>Undelivered</option>
+                    <option value="hold" {% if shipment.overall_status == 'hold' %}selected{% endif %}>Hold</option>
+                    <option value="rto" {% if shipment.overall_status == 'rto' %}selected{% endif %}>Rto</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Promised Days</label>
                 <input type="number" name="promised_days_number" value="{{ shipment.promised_days_number or '' }}" placeholder="Days">
             </div>
-            <div class="form-group" style="grid-column: span 3;">
+            <div class="form-group" style="grid-column: span 2;">
                 <label>Status Notes</label>
                 <input autocomplete="new-password" spellcheck="false" type="text" name="status_raw_text" value="{{ shipment.status_raw_text or '' }}" placeholder="e.g. Customer asked to hold, pending customs, follow-up needed">
             </div>
@@ -212,6 +239,10 @@
             <div class="form-group">
                 <label>Other Expense</label>
                 <input type="number" step="0.01" name="other_expense" value="{{ shipment.other_expense or 0 }}" id="other_expense">
+            </div>
+            <div class="form-group">
+                <label>Paid Amount</label>
+                <input type="number" step="0.01" name="paid_amount" value="{{ shipment.paid_amount or 0 }}" id="paid_amount" placeholder="Amt. paid to vendor">
             </div>
             <div class="form-group" style="font-weight: bold;">
                 Profit: <span id="profit_display">{{ shipment.service_value or 0 }}</span>
