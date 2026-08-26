@@ -16,6 +16,7 @@ DEFAULT_TRACKING_TEMPLATES = {
     "shipglobal": "https://shipglobal.in/tracking/?awb={awb}",
     "shipglobalin": "https://shipglobal.in/tracking/?awb={awb}",
     "shipglobaldirect": "https://shipglobal.in/tracking/?awb={awb}",
+    "uniuni": "https://www.uniuni.com/tracking/?tracking_number={awb}",
 }
 LM_FALLBACK_TEMPLATE = "https://t.17track.net/en#nums={awb}"
 COPY_AND_OPEN_TRACKING_SITES = {}
@@ -46,7 +47,7 @@ def build_tracking_url(
     })
 
     normalized_courier = normalize_courier_name(courier_name)
-    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas", "skynet"}:
+    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas", "skynet", "uniuni"}:
         return ""
 
     template = normalized_templates.get(normalized_courier)
@@ -69,4 +70,6 @@ def build_tracking_site_url(courier_name: str | None, tracking_number: str | Non
         return f"/tracking/overseas?awb={quote_plus(tracking_number)}"
     if normalized == "skynet":
         return f"/tracking/skynet?awb={quote_plus(tracking_number)}"
+    if normalized == "uniuni":
+        return f"/tracking/uniuni?awb={quote_plus(tracking_number)}"
     return COPY_AND_OPEN_TRACKING_SITES.get(normalized, "")

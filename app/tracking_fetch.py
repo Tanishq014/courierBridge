@@ -420,7 +420,10 @@ def fetch_quickship(awb: str) -> dict[str, Any]:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
-    payload = json.loads(raw)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return normalize_fetch_result(False, [], raw, "quickship", "Invalid JSON")
     events, latest_status, found_lm_awb, found_lm_courier = parse_quickship_response(payload)
     result = normalize_fetch_result(bool(payload.get("success")), events, raw, "quickship", found_lm_awb=found_lm_awb, found_lm_courier=found_lm_courier)
     if latest_status:
@@ -583,7 +586,10 @@ def fetch_nz_post(awb: str) -> dict[str, Any]:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
-    payload = json.loads(raw)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return normalize_fetch_result(False, [], raw, "nzpost", "Invalid JSON")
     events, latest_status = parse_nzpost_response(payload)
     result = normalize_fetch_result(True, events, raw, "nzpost")
     if latest_status:
@@ -996,7 +1002,10 @@ def fetch_purolator(awb: str) -> dict[str, Any]:
     with urllib.request.urlopen(request, timeout=30) as response:
         raw = response.read().decode("utf-8", errors="replace")
 
-    payload = json.loads(raw)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return normalize_fetch_result(False, [], raw, "purolator", "Invalid JSON")
     events: list[dict[str, Any]] = []
 
     shipments = payload.get("shipment") or []
@@ -1098,7 +1107,10 @@ def fetch_skynet(awb: str) -> dict[str, Any]:
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = resp.read().decode("utf-8")
-        data = json.loads(raw)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return normalize_fetch_result(False, [], raw, "skynet", "Invalid JSON")
         events = []
         found_lm_awb = ""
         found_lm_courier = ""
@@ -1144,7 +1156,10 @@ def fetch_shipglobal(awb: str) -> dict[str, Any]:
     try:
         with urllib.request.urlopen(req, timeout=10) as response:
             raw = response.read().decode("utf-8", errors="replace")
-            payload = json.loads(raw)
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                return normalize_fetch_result(False, [], raw, "shipglobal", "Invalid JSON")
             data = payload.get("data") or {}
             
             awb_info = data.get("awbInfo") or {}
@@ -1171,6 +1186,61 @@ def fetch_shipglobal(awb: str) -> dict[str, Any]:
 
 
 
+def fetch_uniuni(awb: str) -> dict[str, Any]:
+    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key=SMq45nJhQuNR3WHsJA6N&source=web"
+    req = urllib.request.Request(url, headers={
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+        "origin": "https://www.uniuni.com",
+        "referer": "https://www.uniuni.com/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0"
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return normalize_fetch_result(False, [], raw, "uniuni", f"HTTP {exc.code}")
+    except Exception as exc:
+        return normalize_fetch_result(False, [], "", "uniuni", str(exc))
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return normalize_fetch_result(False, [], raw, "uniuni", "Invalid JSON")
+
+    if payload.get("status") != "SUCCESS":
+        return normalize_fetch_result(False, [], raw, "uniuni", payload.get("ret_msg") or "API Error")
+    
+    valid_tno = payload.get("data", {}).get("valid_tno", [])
+    if not valid_tno:
+        return normalize_fetch_result(False, [], raw, "uniuni", "No tracking info found")
+    
+    first_tno = valid_tno[0]
+    spath_list = first_tno.get("spath_list", [])
+    events = []
+    
+    for item in spath_list:
+        ts = item.get("dateTime", {}).get("ts")
+        dt = None
+        if ts:
+            try:
+                ts_val = float(ts)
+                if ts_val > 1e11:  # likely milliseconds
+                    ts_val /= 1000.0
+                dt = datetime.fromtimestamp(ts_val).isoformat()
+            except (ValueError, TypeError):
+                pass
+            
+        location = str(item.get("pathAddr") or item.get("city") or "").strip()
+        desc = str(item.get("description_en") or item.get("pathInfo") or item.get("code") or "").strip()
+        if desc and dt:
+            events.append(event_to_dict(dt, desc, location, source="uniuni"))
+            
+    events = clean_event_list(events)
+    return normalize_fetch_result(len(events) > 0, events, raw, "uniuni")
+
+
 def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type: str = "") -> dict[str, Any]:
     courier_key = normalize_courier_name(courier)
     awb = (tracking_number or "").strip()
@@ -1195,6 +1265,8 @@ def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type:
             return fetch_skynet(awb)
         if courier_key in {"shipglobal", "shipglobalin", "shipglobaldirect"}:
             return fetch_shipglobal(awb)
+        if courier_key in {"uniuni", "uni", "uniunica"}:
+            return fetch_uniuni(awb)
         if courier_key in {"indiapost", "indiaapost", "indianpost", "postindia"}:
             return normalize_fetch_result(False, [], "", courier_key, "India Post backend tracking is not configured")
         brand_key = seventeen_track_brand_key(courier_key)

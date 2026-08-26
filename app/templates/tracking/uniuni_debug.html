@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Uni Uni tracking | CourierBridge{% endblock %}
+
+{% block content %}
+<header class="page-header compact-page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Tracking lookup</div>
+        <h1>Uni Uni tracking</h1>
+        <p class="page-description">AWB {{ awb }} · loaded through Uni Uni API.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/shipments" class="btn btn-secondary">Back</a>
+    </div>
+</header>
+
+<section class="card stack">
+    <div class="form-group">
+        <label>Uni Uni AWB</label>
+        <input autocomplete="new-password" spellcheck="false" id="uniuni-awb" type="text" value="{{ awb }}">
+    </div>
+    <div class="button-row">
+        <button type="button" class="btn btn-primary" id="lookup-btn">Run backend lookup</button>
+        <a class="btn btn-secondary" href="{{ uniuni_url }}" target="_blank" rel="noopener">Open Uni Uni</a>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Tracking result</h3>
+            <p class="card-subtitle">Rendered from Uni Uni API response.</p>
+        </div>
+    </div>
+    <div id="uniuni-rendered-result" class="uniuni-rendered-result empty-state compact">
+        <div><div class="empty-icon">⌁</div><h3>No result loaded</h3><p>Run backend lookup to load tracking details.</p></div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Debug output</h3>
+            <p class="card-subtitle">Raw API response.</p>
+        </div>
+    </div>
+    <pre id="debug-output" class="debug-output">Waiting...</pre>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const awbInput = document.getElementById('uniuni-awb');
+    const output = document.getElementById('debug-output');
+    const renderedResult = document.getElementById('uniuni-rendered-result');
+    const uniuniUrl = {{ uniuni_url | tojson }};
+    const log = (...args) => {
+        console.log('[Uni Uni tracking debug]', ...args);
+        output.textContent += `\n${args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2)).join(' ')}`;
+    };
+    const awb = () => awbInput.value.trim();
+
+    function formatTs(ts) {
+        if (!ts) return '';
+        const d = new Date(ts * 1000);
+        return d.toLocaleString();
+    }
+
+    async function runLookup() {
+        output.textContent = 'Running API lookup...';
+        renderedResult.classList.add('empty-state', 'compact');
+        renderedResult.innerHTML = '<div><div class="empty-icon">⌁</div><h3>Loading...</h3><p>Calling Uni Uni API endpoint.</p></div>';
+        const number = awb();
+        log('lookup:start', {awb: number});
+        try {
+            const response = await fetch(`/tracking/uniuni/lookup?awb=${encodeURIComponent(number)}`);
+            const payload = await response.json();
+            log('lookup:status', response.status);
+            output.textContent = JSON.stringify(payload, null, 2);
+            
+            if (payload.json && payload.json.data && payload.json.data.valid_tno && payload.json.data.valid_tno.length > 0) {
+                const history = payload.json.data.valid_tno[0].spath_list || [];
+                
+                let html = '<div style="padding: 1rem;">';
+                html += '<table class="table"><thead><tr><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Date/Time</th><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Location</th><th style="text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0;">Status / Details</th></tr></thead><tbody>';
+                
+                for (const item of history) {
+                    const dt = item.dateTime && item.dateTime.ts ? formatTs(item.dateTime.ts) : '';
+                    const loc = item.pathAddr || item.city || '';
+                    const desc = item.description_en || item.pathInfo || item.code || '';
+                    html += `<tr>
+                        <td style="white-space: nowrap; padding: 8px; border-bottom: 1px solid #f1f5f9;">${dt}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${loc}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${desc}</td>
+                    </tr>`;
+                }
+                html += '</tbody></table></div>';
+                
+                renderedResult.classList.remove('empty-state', 'compact');
+                renderedResult.innerHTML = html;
+            } else {
+                renderedResult.classList.add('empty-state', 'compact');
+                renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>No tracking history returned</h3><p>Check debug output below.</p></div>';
+            }
+        } catch (err) {
+            log('lookup:error', String(err));
+            renderedResult.classList.add('empty-state', 'compact');
+            renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>Lookup failed</h3><p>Check debug output below.</p></div>';
+        }
+    }
+
+    document.getElementById('lookup-btn').addEventListener('click', runLookup);
+    if (awb()) runLookup();
+})();
+</script>
+{% endblock %}

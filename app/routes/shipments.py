@@ -44,6 +44,7 @@ DEFAULT_COURIERS = [
     "Skynet",
     "Shipglobal",
     "Courier Please",
+    "Uni Uni",
 ]
 
 COUNTRY_ALIASES = {

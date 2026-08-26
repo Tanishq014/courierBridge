@@ -742,6 +742,7 @@ Track: ${url}` : label;
         if (normalized === 'atlantic') return { url: `/tracking/atlantic?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
         if (normalized === 'overseas') return { url: `/tracking/overseas?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
         if (normalized === 'skynet') return { url: `/tracking/skynet?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
+        if (normalized === 'uniuni') return { url: `/tracking/uniuni?awb=${encodeURIComponent(awb)}`, copy: false, autoFill: false };
         if (copyAndOpenSites[normalized]) return { url: copyAndOpenSites[normalized], copy: true, autoFill: false };
         const template = trackingTemplates[normalized] || (trackingType === 'lm_awb' ? 'https://t.17track.net/en#nums={awb}' : '');
         return { url: template ? template.replace('{awb}', encodeURIComponent(awb)) : '', copy: false, autoFill: false };

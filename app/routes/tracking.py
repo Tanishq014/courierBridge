@@ -227,6 +227,57 @@ def skynet_tracking_lookup(awb: str = ""):
     except Exception as exc:
         return JSONResponse({"ok": False, "error": str(exc), "debug": debug}, status_code=502)
 
+@router.get("/uniuni")
+def uniuni_tracking_page(request: Request, awb: str = ""):
+    return templates.TemplateResponse("tracking/uniuni_debug.html", {
+        "request": request,
+        "awb": awb.strip(),
+        "uniuni_url": "https://www.uniuni.com/tracking/",
+    })
+
+@router.get("/uniuni/lookup")
+def uniuni_tracking_lookup(awb: str = ""):
+    awb = awb.strip()
+    if not awb:
+        return JSONResponse({"ok": False, "error": "Missing AWB", "debug": {"stage": "validate"}}, status_code=400)
+
+    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key=SMq45nJhQuNR3WHsJA6N&source=web"
+    request = urllib.request.Request(
+        url,
+        headers={
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+            "origin": "https://www.uniuni.com",
+            "referer": "https://www.uniuni.com/",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0"
+        },
+        method="GET",
+    )
+    debug = {
+        "url": url,
+        "method": "GET",
+    }
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read().decode("utf-8", errors="replace")
+            parsed = None
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                pass
+            return JSONResponse({
+                "ok": True,
+                "status": response.status,
+                "debug": debug,
+                "raw": raw,
+                "json": parsed,
+            })
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return JSONResponse({"ok": False, "status": exc.code, "debug": debug, "raw": raw}, status_code=502)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc), "debug": debug}, status_code=502)
+
 @router.get("/overseas")
 def overseas_tracking_page(request: Request, awb: str = ""):
     return templates.TemplateResponse("tracking/overseas_debug.html", {
