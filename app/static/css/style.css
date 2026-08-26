@@ -1869,11 +1869,13 @@ body.sidebar-collapsed.sidebar-hovering .sidebar-toggle {
     display: inline-flex;
     gap: 2px;
     align-items: center;
+    position: relative;
+    z-index: 10;
 }
 
 .row-color-dot {
-    width: 10px;
-    height: 10px;
+    width: 13px;
+    height: 13px;
     padding: 0;
     border: 1px solid rgba(15, 25, 20, 0.24);
     border-radius: 999px;

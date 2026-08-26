@@ -705,6 +705,7 @@ def create_shipment(
     parsed_received = parse_decimal(received_amount)
     parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
+    parsed_paid_amount = parse_decimal(paid_amount)
 
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
@@ -1117,6 +1118,7 @@ def update_shipment(
     parsed_received = parse_decimal(received_amount)
     parsed_self_cost = parse_decimal(self_cost) if (self_cost and self_cost.strip()) else calculate_rate_amount(vendor_charged_weight, vendor_rate_text)
     parsed_other_exp = parse_decimal(other_expense)
+    parsed_paid_amount = parse_decimal(paid_amount)
 
     total_cost = parsed_self_cost + parsed_other_exp
     service_value = parsed_billed - total_cost
