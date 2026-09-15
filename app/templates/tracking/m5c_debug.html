@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}M5C tracking | CourierBridge{% endblock %}
+
+{% block content %}
+<header class="page-header compact-page-header">
+    <div class="page-heading">
+        <div class="eyebrow">Tracking lookup</div>
+        <h1>M5C tracking</h1>
+        <p class="page-description">AWB {{ awb }} · loaded through M5C WebForms postback.</p>
+    </div>
+    <div class="page-actions">
+        <a href="/shipments" class="btn btn-secondary">Back</a>
+    </div>
+</header>
+
+<section class="card stack">
+    <div class="form-group">
+        <label>M5C AWB</label>
+        <input autocomplete="new-password" spellcheck="false" id="m5c-awb" type="text" value="{{ awb }}">
+    </div>
+    <div class="button-row">
+        <button type="button" class="btn btn-primary" id="lookup-btn">Run backend lookup</button>
+        <a class="btn btn-secondary" href="{{ m5c_url }}" target="_blank" rel="noopener">Open M5C only</a>
+    </div>
+    <div class="notice">
+        <span>i</span>
+        This lookup fetches fresh ASP.NET hidden fields first, then posts the tracking number server-side.
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Tracking result</h3>
+            <p class="card-subtitle">Parsed events from M5C response.</p>
+        </div>
+    </div>
+    <div id="m5c-rendered-result" class="m5c-rendered-result empty-state compact">
+        <div><div class="empty-icon">⌁</div><h3>No result loaded</h3><p>Run backend lookup to load tracking details.</p></div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Debug output</h3>
+            <p class="card-subtitle">Raw backend response metadata.</p>
+        </div>
+    </div>
+    <pre id="debug-output" class="debug-output">Waiting...</pre>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const awbInput = document.getElementById('m5c-awb');
+    const output = document.getElementById('debug-output');
+    const renderedResult = document.getElementById('m5c-rendered-result');
+    const awb = () => awbInput.value.trim();
+
+    async function runLookup() {
+        const number = awb();
+        output.textContent = 'Running backend lookup...';
+        renderedResult.classList.add('empty-state', 'compact');
+        renderedResult.innerHTML = '<div><div class="empty-icon">⌁</div><h3>Loading...</h3><p>Calling M5C API endpoint.</p></div>';
+        
+        try {
+            const response = await fetch(`/tracking/m5c/lookup?awb=${encodeURIComponent(number)}`);
+            const payload = await response.json();
+            
+            const debugPayload = {...payload};
+            if (debugPayload.raw) debugPayload.raw = `[${debugPayload.raw.length} chars of raw HTML hidden]`;
+            output.textContent = JSON.stringify(debugPayload, null, 2);
+            
+            if (payload.raw) {
+                renderedResult.classList.remove('empty-state', 'compact');
+                renderedResult.innerHTML = payload.raw;
+            } else {
+                renderedResult.classList.add('empty-state', 'compact');
+                renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>No tracking history returned</h3><p>Check debug output below.</p></div>';
+            }
+        } catch (err) {
+            output.textContent = String(err);
+            renderedResult.classList.add('empty-state', 'compact');
+            renderedResult.innerHTML = '<div><div class="empty-icon">!</div><h3>Lookup failed</h3><p>Check debug output below.</p></div>';
+        }
+    }
+
+    document.getElementById('lookup-btn').addEventListener('click', runLookup);
+    if (awb()) runLookup();
+})();
+</script>
+{% endblock %}

@@ -13,6 +13,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+import os
 
 router = APIRouter(prefix="/tracking")
 templates = Jinja2Templates(directory="app/templates")
@@ -241,7 +242,8 @@ def uniuni_tracking_lookup(awb: str = ""):
     if not awb:
         return JSONResponse({"ok": False, "error": "Missing AWB", "debug": {"stage": "validate"}}, status_code=400)
 
-    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key=SMq45nJhQuNR3WHsJA6N&source=web"
+    uniuni_key = os.environ.get("UNIUNI_TRACKING_API_KEY", "")
+    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key={uniuni_key}&source=web"
     request = urllib.request.Request(
         url,
         headers={
@@ -277,6 +279,79 @@ def uniuni_tracking_lookup(awb: str = ""):
         return JSONResponse({"ok": False, "status": exc.code, "debug": debug, "raw": raw}, status_code=502)
     except Exception as exc:
         return JSONResponse({"ok": False, "error": str(exc), "debug": debug}, status_code=502)
+
+@router.get("/m5c")
+def m5c_tracking_page(request: Request, awb: str = ""):
+    return templates.TemplateResponse("tracking/m5c_debug.html", {
+        "request": request,
+        "awb": awb.strip(),
+        "m5c_url": "https://m5clogs.com/track.aspx",
+    })
+
+@router.get("/m5c/lookup")
+def m5c_tracking_lookup(awb: str = ""):
+    awb = awb.strip()
+    if not awb:
+        return JSONResponse({"ok": False, "error": "Missing AWB", "debug": {"stage": "validate"}}, status_code=400)
+
+    url = "https://m5clogs.com/track.aspx"
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+    debug = {"url": url, "method": "GET+POST", "awb": awb}
+
+    def hidden_value(page: str, field_id: str) -> str:
+        pattern = rf'id="{re.escape(field_id)}" value="([^"]*)"'
+        match = re.search(pattern, page)
+        return html.unescape(match.group(1)) if match else ""
+
+    try:
+        get_request = urllib.request.Request(url, headers=headers, method="GET")
+        with opener.open(get_request, timeout=20) as response:
+            initial_html = response.read().decode("utf-8", errors="replace")
+            
+        tokens = {
+            "__VIEWSTATE": hidden_value(initial_html, "__VIEWSTATE"),
+            "__VIEWSTATEGENERATOR": hidden_value(initial_html, "__VIEWSTATEGENERATOR"),
+            "__EVENTVALIDATION": hidden_value(initial_html, "__EVENTVALIDATION"),
+        }
+        missing = [key for key, value in tokens.items() if not value]
+        debug["tokens_found"] = {key: bool(value) for key, value in tokens.items()}
+        if missing:
+            return JSONResponse({"ok": False, "error": f"Missing hidden fields: {', '.join(missing)}", "debug": debug}, status_code=502)
+
+        form = {
+            "__VIEWSTATE": tokens["__VIEWSTATE"],
+            "__VIEWSTATEGENERATOR": tokens["__VIEWSTATEGENERATOR"],
+            "__EVENTVALIDATION": tokens["__EVENTVALIDATION"],
+            "text": awb,
+            "Button1": "Track Now",
+        }
+        body = urllib.parse.urlencode(form).encode("utf-8")
+        post_headers = {
+            **headers,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://m5clogs.com",
+            "Referer": url,
+        }
+        post_request = urllib.request.Request(url, data=body, headers=post_headers, method="POST")
+        with opener.open(post_request, timeout=20) as response:
+            raw = response.read().decode("utf-8", errors="replace")
+        debug["posted_fields"] = list(form.keys())
+        
+        from app.tracking_fetch import extract_m5c_tracking_section
+        useful_html = extract_m5c_tracking_section(raw)
+        debug["raw_length"] = len(raw)
+        debug["useful_length"] = len(useful_html)
+        return JSONResponse({"ok": True, "status": 200, "debug": debug, "raw": useful_html})
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return JSONResponse({"ok": False, "status": exc.code, "debug": debug, "raw": raw}, status_code=502)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc), "debug": debug}, status_code=502)
+
 
 @router.get("/overseas")
 def overseas_tracking_page(request: Request, awb: str = ""):
@@ -337,9 +412,11 @@ def overseas_tracking_lookup(awb: str = ""):
         with opener.open(post_request, timeout=20) as response:
             raw = response.read().decode("utf-8", errors="replace")
         debug["posted_fields"] = list(form.keys())
+        
         useful_html = extract_overseas_tracking_section(raw)
         debug["raw_length"] = len(raw)
         debug["useful_length"] = len(useful_html)
+        
         return JSONResponse({"ok": True, "status": 200, "debug": debug, "raw": useful_html})
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")

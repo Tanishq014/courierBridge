@@ -47,7 +47,7 @@ def build_tracking_url(
     })
 
     normalized_courier = normalize_courier_name(courier_name)
-    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas", "skynet", "uniuni"}:
+    if normalized_courier in COPY_AND_OPEN_TRACKING_SITES or normalized_courier in {"atlantic", "overseas", "skynet", "uniuni", "m5c"}:
         return ""
 
     template = normalized_templates.get(normalized_courier)
@@ -72,4 +72,6 @@ def build_tracking_site_url(courier_name: str | None, tracking_number: str | Non
         return f"/tracking/skynet?awb={quote_plus(tracking_number)}"
     if normalized == "uniuni":
         return f"/tracking/uniuni?awb={quote_plus(tracking_number)}"
+    if normalized == "m5c":
+        return f"/tracking/m5c?awb={quote_plus(tracking_number)}"
     return COPY_AND_OPEN_TRACKING_SITES.get(normalized, "")

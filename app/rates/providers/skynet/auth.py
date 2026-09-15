@@ -20,6 +20,10 @@ class SkyNetAuthService:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             logger.info("Authenticating SkyNet session...")
             
+            # Step 1: Initialize session by visiting homepage
+            await client.get("https://skylink.skynetww.com/")
+            client.cookies.set("cookie_type", "customer", domain="skylink.skynetww.com")
+            
             # Retrieve secure credentials from environment
             username = os.environ.get("SKYNET_USERNAME")
             password = os.environ.get("SKYNET_PASSWORD")
@@ -48,9 +52,6 @@ class SkyNetAuthService:
             
             resp_login = await client.post(url_login, content=payload, headers=headers)
             resp_login.raise_for_status()
-            
-            # Additional cookie (the CI session needs a cookie_type=customer to identify type)
-            client.cookies.set("cookie_type", "customer", domain="skylink.skynetww.com")
             
             # Format the cookie header string
             cookie_parts = []

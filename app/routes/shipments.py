@@ -45,6 +45,7 @@ DEFAULT_COURIERS = [
     "Shipglobal",
     "Courier Please",
     "Uni Uni",
+    "M5C",
 ]
 
 COUNTRY_ALIASES = {

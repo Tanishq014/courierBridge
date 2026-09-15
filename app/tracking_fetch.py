@@ -987,7 +987,7 @@ def fetch_purolator(awb: str) -> dict[str, Any]:
         "origin": "https://www.purolator.com",
         "referer": "https://www.purolator.com/",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
-        "x-api-key": "TdIVdHURM65yalzbkDenz5jMWlovpP7L2VrK9QMu"
+        "x-api-key": os.environ.get("PUROLATOR_TRACKING_API_KEY", "")
     }
     data = {
         "search": [{"trackingId": awb, "pod": True, "sequenceId": 1, "eventSortOrder": "d"}],
@@ -1187,7 +1187,8 @@ def fetch_shipglobal(awb: str) -> dict[str, Any]:
 
 
 def fetch_uniuni(awb: str) -> dict[str, Any]:
-    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key=SMq45nJhQuNR3WHsJA6N&source=web"
+    uniuni_key = os.environ.get("UNIUNI_TRACKING_API_KEY", "")
+    url = f"https://tracking-service-api.uniuni.ca/tracking/trackinguniuninew?id={urllib.parse.quote_plus(awb)}&key={uniuni_key}&source=web"
     req = urllib.request.Request(url, headers={
         "accept": "application/json, text/plain, */*",
         "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
@@ -1241,12 +1242,115 @@ def fetch_uniuni(awb: str) -> dict[str, Any]:
     return normalize_fetch_result(len(events) > 0, events, raw, "uniuni")
 
 
+def parse_m5c_events(raw: str) -> tuple[list[dict[str, Any]], str, str]:
+    events = []
+    
+    # 1. Parse activity table
+    table_match = re.search(r"<div[^>]*class=[\"']activity-table[\"'][^>]*>(.*?)</div>", raw, flags=re.IGNORECASE | re.DOTALL)
+    if table_match:
+        table_html = table_match.group(1)
+        tbody_match = re.search(r"<tbody[^>]*>(.*?)</tbody>", table_html, flags=re.IGNORECASE | re.DOTALL)
+        if tbody_match:
+            rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tbody_match.group(1), flags=re.IGNORECASE | re.DOTALL)
+            for row in rows:
+                cells = re.findall(r"<td[^>]*>(.*?)</td>", row, flags=re.IGNORECASE | re.DOTALL)
+                if len(cells) >= 4:
+                    date_str = strip_html(cells[0])
+                    time_str = strip_html(cells[1])
+                    location = strip_html(cells[2])
+                    status = strip_html(cells[3])
+                    events.append(event_to_dict(f"{date_str} {time_str}", status, location, "m5c"))
+
+    # 2. Extract LM AWB and Courier
+    lm_awb = ""
+    lm_courier = ""
+    fwd_match = re.search(r"<div[^>]*class=[\"']fwd-info[\"'][^>]*>(.*?)</div>", raw, flags=re.IGNORECASE | re.DOTALL)
+    if fwd_match:
+        fwd_html = fwd_match.group(1)
+        num_match = re.search(r">([\w\-]+)</(?:a|span)>", fwd_html)
+        if num_match:
+            lm_awb = num_match.group(1).strip()
+        
+        courier_match = re.search(r"Forwarder\s*:\s*</span>([^<]+)", fwd_html, flags=re.IGNORECASE)
+        if courier_match:
+            lm_courier = courier_match.group(1).strip()
+
+    return clean_event_list(events), lm_awb, lm_courier
+
+
+def extract_m5c_tracking_section(raw: str) -> str:
+    start = raw.find('<div id="TRACKING">')
+    if start < 0:
+        return raw
+    
+    end = raw.find('<footer', start)
+    if end < 0:
+        end = len(raw)
+        
+    style_start = raw.find('<style>')
+    style_end = raw.find('</style>', style_start) if style_start >= 0 else -1
+    style_block = raw[style_start:style_end+8] if style_start >= 0 and style_end >= 0 else ""
+    
+    return style_block + raw[start:end]
+
+
+def fetch_m5c(awb: str) -> dict[str, Any]:
+    url = "https://m5clogs.com/track.aspx"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+    
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+    get_req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with opener.open(get_req, timeout=15) as resp:
+            initial_html = resp.read().decode("utf-8", errors="replace")
+            
+        vs = hidden_value(initial_html, "__VIEWSTATE")
+        vsg = hidden_value(initial_html, "__VIEWSTATEGENERATOR")
+        ev = hidden_value(initial_html, "__EVENTVALIDATION")
+        
+        if not vs:
+            raise RuntimeError("Missing __VIEWSTATE")
+            
+        form = {
+            "__VIEWSTATE": vs,
+            "__VIEWSTATEGENERATOR": vsg,
+            "__EVENTVALIDATION": ev,
+            "text": awb,
+            "Button1": "Track Now"
+        }
+        
+        post_req = urllib.request.Request(
+            url,
+            data=urllib.parse.urlencode(form).encode("utf-8"),
+            headers={**headers, "Content-Type": "application/x-www-form-urlencoded", "Referer": url, "Origin": "https://m5clogs.com"},
+            method="POST"
+        )
+        
+        with opener.open(post_req, timeout=15) as post_resp:
+            raw = post_resp.read().decode("utf-8", errors="replace")
+            
+        events, lm_awb, lm_courier = parse_m5c_events(raw)
+        useful = extract_m5c_tracking_section(raw)
+        
+        return normalize_fetch_result(True, events, useful, "m5c", found_lm_awb=lm_awb, found_lm_courier=lm_courier)
+        
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return normalize_fetch_result(False, [], raw, "m5c", f"HTTP {exc.code}")
+    except Exception as exc:
+        return normalize_fetch_result(False, [], "", "m5c", str(exc))
+
 def fetch_tracking_for_number(courier: str, tracking_number: str, tracking_type: str = "") -> dict[str, Any]:
     courier_key = normalize_courier_name(courier)
     awb = (tracking_number or "").strip()
     if not awb:
         return normalize_fetch_result(False, [], "", courier_key, "Missing tracking number")
     try:
+        if courier_key == "m5c":
+            return fetch_m5c(awb)
         if courier_key in {"maww", "mawwl", "maworldwidelogistics"}:
             return fetch_mawwl(awb)
         if courier_key in {"couriersplease", "courierplease"}:
